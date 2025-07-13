@@ -1,0 +1,40 @@
+version: "3.9"
+services:
+  api-dbsrv-01:
+    image: mysql:8.4
+    platform: linux/amd64
+    container_name: api-dbsrv-01
+    environment:
+      TZ: "Asia/Tokyo"
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+      MYSQL_USER: api
+      MYSQL_PASSWORD: P@ssw0rd
+      MYSQL_DATABASE: devdb
+      MYSQL_TCP_PORT: 3306
+    volumes:
+      - api-dbsrv01-data:/var/lib/mysql
+      - ./mysql/conf.d/my.cnf:/etc/mysql/conf.d/my.cnf
+      - ./mysql/init:/docker-entrypoint-initdb.d
+    ports:
+      - "3306:3306"
+
+  api-srv:
+    image: api-srv
+    depends_on:
+      - api-dbsrv-01
+    build:
+      target: dev
+      context: ../
+      dockerfile: environment/go/Dockerfile
+    environment:
+      ENV: DEV
+      PORT: 8080
+      DATABASE_URL: api:P@ssw0rd@tcp(api-dbsrv-01)/devdb?charset=utf8&parseTime=True&loc=Local
+      ALLOW_URL: "*"
+    volumes:
+      - ../:/app
+    ports:
+      - "8080:8080"
+
+volumes:
+  api-dbsrv01-data:

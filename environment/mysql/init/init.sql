@@ -1,0 +1,57 @@
+-- USE `devdb`;
+-- 
+-- CREATE TABLE `users` (
+--     `id` INT AUTO_INCREMENT,
+--     `created_at` TIMESTAMP NOT NULL,
+--     `updated_at` TIMESTAMP NOT NULL,
+--     `deleted_at` TIMESTAMP,
+--     `uid` VARCHAR(255),
+--     `email` VARCHAR(255),
+--     `name` VARCHAR(50),
+--     `birth_day` DATE,
+--     PRIMARY KEY (`id`,`uid`),
+--     UNIQUE KEY `email` (`email`),
+--     UNIQUE KEY `uid` (`uid`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- 
+-- GRANT ALL PRIVILEGES ON devdb.* TO 'api'@'%';
+-- 
+-- INSERT INTO `users` (`created_at`, `updated_at`, `uid`, `email`, `name`, `birth_day`) VALUES 
+-- (NOW(), NOW(), 'uid1', 'user1@example.com', '山田太郎', '1980-01-01'),
+-- (NOW(), NOW(), 'uid2', 'user2@example.com', '田中花子', '1990-02-02'),
+-- (NOW(), NOW(), 'uid3', 'user3@example.com', '佐藤一郎', '2000-03-03'),
+-- (NOW(), NOW(), 'uid4', 'user4@example.com', '鈴木二郎', '2010-04-04'),
+-- (NOW(), NOW(), 'uid5', 'user5@example.com', '伊藤三郎', '2020-05-05'),
+-- (NOW(), NOW(), 'uid6', 'user6@example.com', '山田太郎', '1980-01-01'),
+-- (NOW(), NOW(), 'uid7', 'user7@example.com', '田中花子', '1990-02-02'),
+-- (NOW(), NOW(), 'uid8', 'user8@example.com', '佐藤一郎', '2000-03-03'),
+-- (NOW(), NOW(), 'uid9', 'user9@example.com', '鈴木二郎', '2010-04-04'),
+-- (NOW(), NOW(), 'uid10', 'user10@example.com', '伊藤三郎', '2020-05-05'),
+-- (NOW(), NOW(), 'uid11', 'user11@example.com', '山田太郎', '1980-01-01'),
+-- (NOW(), NOW(), 'uid12', 'user12@example.com', '田中花子', '1990-02-02'),
+-- (NOW(), NOW(), 'uid13', 'user13@example.com', '佐藤一郎', '2000-03-03'),
+-- (NOW(), NOW(), 'uid14', 'user14@example.com', '鈴木二郎', '2010-04-04'),
+-- (NOW(), NOW(), 'uid15', 'user15@example.com', '伊藤三郎', '2020-05-05'),
+-- (NOW(), NOW(), 'uid16', 'user16@example.com', '山田太郎', '1980-01-01'),
+-- (NOW(), NOW(), 'uid17', 'user17@example.com', '田中花子', '1990-02-02'),
+-- (NOW(), NOW(), 'uid18', 'user18@example.com', '佐藤一郎', '2000-03-03'),
+-- (NOW(), NOW(), 'uid19', 'user19@example.com', '鈴木二郎', '2010-04-04'),
+-- (NOW(), NOW(), 'uid20', 'user20@example.com', '伊藤三郎', '2020-05-05');
+-- 
+-- 
+-- CREATE TABLE IF NOT EXISTS `points` (
+--     `id` INT AUTO_INCREMENT PRIMARY KEY,
+--     `user_uid` VARCHAR(255) NOT NULL,
+--     `type` ENUM('vc', 'text') NOT NULL,
+--     `amount` INT NOT NULL,
+--     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+--     FOREIGN KEY (`user_uid`) REFERENCES `users`(`uid`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- 
+-- INSERT INTO `points` (`user_uid`, `type`, `amount`, `created_at`) VALUES
+-- ('uid1', 'vc', 100, NOW()),
+-- ('uid1', 'text', 50, NOW()),
+-- ('uid2', 'vc', 200, NOW()),
+-- ('uid3', 'text', 300, NOW()),
+-- ('uid4', 'vc', 400, NOW()),
+-- ('uid5', 'text', 500, NOW());
