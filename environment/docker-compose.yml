@@ -20,8 +20,6 @@ services:
 
   api-srv:
     image: api-srv
-    depends_on:
-      - api-dbsrv-01
     build:
       target: dev
       context: ../
@@ -29,7 +27,7 @@ services:
     environment:
       ENV: DEV
       PORT: 8080
-      DATABASE_URL: api:P@ssw0rd@tcp(api-dbsrv-01)/devdb?charset=utf8&parseTime=True&loc=Local
+      DATABASE_URL: api:P@ssw0rd@tcp(unique-db.dev)/devdb?charset=utf8&parseTime=True&loc=Local
       ALLOW_URL: "*"
     volumes:
       - ../:/app
