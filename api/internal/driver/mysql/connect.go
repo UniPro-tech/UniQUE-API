@@ -41,11 +41,11 @@ func connect(dialector gorm.Dialector, count uint) {
 		if count > 1 {
 			time.Sleep(time.Second * 2)
 			count--
-			slog.Log(context.Background(), middleware.SeverityInfo, "db connection retry")
+			slog.Log(context.Background(), middleware.SeverityInfo, "db connection retry", "error", err.Error(), "count", count)
 			connect(dialector, count)
 			return
 		}
-		slog.Log(context.Background(), middleware.SeverityInfo, "db connection retry count 100")
+		slog.Log(context.Background(), middleware.SeverityInfo, "db connection retry count 100", "error", err.Error())
 		panic(err.Error())
 	}
 }
