@@ -61,7 +61,7 @@ func (us *ListUserUsecase) Run(ctx context.Context) (*ListUserUsecaseDto, error)
 			CustomID:      u.GetCustomID(),
 			Name:          u.GetName(),
 			Period:        u.GetPeriod(),
-			IsEnable:      u.IsEnable(),
+			IsEnable:      u.GetIsEnable(),
 			ExternalEmail: u.GetExternalEmail(),
 		}
 		dtouser = append(dtouser, r)

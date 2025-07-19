@@ -84,7 +84,7 @@ func (u *User) GetEmail() string         { return u.email.value }
 func (u *User) GetName() string          { return u.name.value }
 func (u *User) GetExternalEmail() string { return u.external_email.value }
 func (u *User) GetPeriod() string        { return u.period.value }
-func (u *User) IsEnable() bool           { return u.is_enable.value }
+func (u *User) GetIsEnable() bool        { return u.is_enable.value }
 
 // 構造体生成関数
 func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable *bool) *User {
