@@ -72,7 +72,7 @@ func (h *UserHandler) ListUser(ctx *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param request path string ture "ユーザーID"
-// @Success 200 {object} ResponseUser
+// @Success 200 {object} UserResponseModel
 // @Router /v1/users/:id [get]
 func (h *UserHandler) GetUserById(ctx *gin.Context) {
 	userId := ctx.Param("id")
