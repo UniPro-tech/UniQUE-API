@@ -111,6 +111,7 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 type IUserDomainService interface {
 	ListUser(ctx context.Context) ([]*User, int64, error)
 	FindUserById(ctx context.Context, id string) (*User, error)
+	SearchUser(ctx context.Context, conditions [][]string) ([]*User, int64, error)
 	EditUser(ctx context.Context, param *User) error
 	DeleteUser(ctx context.Context, id string) error
 }

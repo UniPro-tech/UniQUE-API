@@ -50,3 +50,11 @@ func (uds *UserDomainService) DeleteUser(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+func (uds *UserDomainService) SearchUser(ctx context.Context, conditions [][]string) ([]*User, int64, error) {
+	users, count, err := uds.repo.Search(ctx, conditions)
+	if err != nil {
+		return nil, 0, err
+	}
+	return users, count, nil
+}

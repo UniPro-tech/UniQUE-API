@@ -108,6 +108,42 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	return nil
 }
 
+func (ud *UserDriver) Search(ctx context.Context, conditions [][]string) ([]*userDomain.User, int64, error) {
+	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
+	users := []*scheme.User{}
+	res := []*userDomain.User{}
+	var totalCount int64
+
+	query := ud.conn.Table("users")
+	for _, condition := range conditions {
+		query = query.Where("? = ?", condition[0], condition[1])
+	}
+
+	limit, err := strconv.Atoi(ctxValue.PageLimit)
+	if err != nil {
+		limit = 100
+	}
+	page, err := strconv.Atoi(ctxValue.Pages)
+	if err != nil {
+		page = 0
+	}
+
+	err = query.Find(&users).Limit(limit).Offset(limit * (page - 1)).Order("id ASC").Count(&totalCount).Error
+	if err != nil {
+		slog.Error("can not complete SearchUser Repository", "request id", ctxValue.RequestId, "error", err)
+		return nil, 0, err
+	}
+
+	for _, user := range users {
+		u := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, &user.IsEnable)
+
+		res = append(res, u)
+	}
+
+	slog.Info("process done ListUser Repository", "request id", ctxValue.RequestId, "total count", totalCount)
+	return res, totalCount, nil
+}
+
 func NewUserDriver(conn *gorm.DB) userDomain.UserServiceRepository {
 	return &UserDriver{conn: conn}
 }
