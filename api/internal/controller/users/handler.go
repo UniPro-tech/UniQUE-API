@@ -26,13 +26,13 @@ func NewUsersHandler(
 	}
 }
 
-// HealthCheck godoc
-// @Summary 死活監視用
-// @Tags healthcheck
+// ListUsers godoc
+// @Summary ユーザー一覧取得
+// @Tags users
 // @Accept json
 // @Produce json
-// @Success 200 {object} Response
-// @Router /v1/health [get]
+// @Success 200 {object} UsersResponse
+// @Router /v1/users [get]
 func (h *UsersHandler) ListUser(ctx *gin.Context) {
 	// TODO: Authorization check
 	limit := ctx.Query("limit")

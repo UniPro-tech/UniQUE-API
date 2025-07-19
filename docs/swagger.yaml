@@ -4,10 +4,66 @@ definitions:
       status:
         type: string
     type: object
+  api_internal_controller_users.UserResponseModel:
+    properties:
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      name:
+        type: string
+      period:
+        type: string
+    type: object
+  api_internal_controller_users.UsersResponse:
+    properties:
+      pages:
+        type: integer
+      total_count:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/api_internal_controller_users.UserResponseModel'
+        type: array
+    type: object
   github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response:
     properties:
       status:
         type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel:
+    properties:
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      name:
+        type: string
+      period:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse:
+    properties:
+      pages:
+        type: integer
+      total_count:
+        type: integer
+      users:
+        items:
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel'
+        type: array
     type: object
 host: localhost:8080
 info:
@@ -30,4 +86,18 @@ paths:
       summary: 死活監視用
       tags:
       - healthcheck
+  /v1/users:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse'
+      summary: ユーザー一覧取得
+      tags:
+      - users
 swagger: "2.0"

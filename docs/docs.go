@@ -37,6 +37,28 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/users": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "ユーザー一覧取得",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -48,11 +70,97 @@ const docTemplate = `{
                 }
             }
         },
+        "api_internal_controller_users.UserResponseModel": {
+            "type": "object",
+            "properties": {
+                "custom_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "external_email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_internal_controller_users.UsersResponse": {
+            "type": "object",
+            "properties": {
+                "pages": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_internal_controller_users.UserResponseModel"
+                    }
+                }
+            }
+        },
         "github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response": {
             "type": "object",
             "properties": {
                 "status": {
                     "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel": {
+            "type": "object",
+            "properties": {
+                "custom_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "external_email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse": {
+            "type": "object",
+            "properties": {
+                "pages": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel"
+                    }
                 }
             }
         }
