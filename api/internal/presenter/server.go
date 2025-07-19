@@ -4,7 +4,12 @@ import (
 	"context"
 
 	"github.com/UniPro-tech/UniQUE-API/api/internal/controller/system"
+	"github.com/UniPro-tech/UniQUE-API/api/internal/controller/users"
+	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
+	"github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql"
+	"github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/repository"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/middleware"
+	userUsecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/user"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
 )
@@ -37,6 +42,16 @@ func (s *Server) Run(ctx context.Context) error {
 	{
 		systemHandler := system.NewSystemHandler()
 		v1.GET("/health", systemHandler.Health)
+	}
+
+	conn := mysql.New(ctx)
+	UserDriver := repository.NewUserDriver(conn)
+	UserDomainService := userDomain.NewUserDomainService(UserDriver)
+	finduser_usecase := userUsecase.NewFindUserUsecase(UserDomainService)
+	finduserbyid_usecase := userUsecase.NewFindUserByIdUsecase(UserDomainService)
+	{
+		userHandler := users.NewUsersHandler(finduser_usecase, finduserbyid_usecase)
+		v1.GET("/users", userHandler.ListUser)
 	}
 
 	err := r.Run()
