@@ -1,11 +1,6 @@
 package scheme
 
-import (
-	"gorm.io/gorm"
-)
-
 type User struct {
-	gorm.Model
 	ID            string `gorm:"primaryKey;column:id;type:varchar(255)"`
 	Email         string `gorm:"column:email;type:varchar(255)"`
 	CustomID      string `gorm:"column:custom_id;type:varchar(50)"`
