@@ -94,7 +94,7 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 		CustomID: param.GetCustomID(),
 		Name:     param.GetName(),
 		Period:   param.GetPeriod(),
-		IsEnable: param.IsEnable(),
+		IsEnable: param.GetIsEnable(),
 		Email:    param.GetEmail(),
 	}
 
