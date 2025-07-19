@@ -46,7 +46,37 @@
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse"
+                            "$ref": "#/definitions/api_internal_controller_users.UsersResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/users/:id": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Users"
+                ],
+                "summary": "ユーザーの詳細情報を取得",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ユーザーID",
+                        "name": "request",
+                        "in": "path"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/api_internal_controller_users.UserResponseModel"
                         }
                     }
                 }

@@ -96,8 +96,27 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse'
+            $ref: '#/definitions/api_internal_controller_users.UsersResponse'
       summary: ユーザー一覧取得
       tags:
       - users
+  /v1/users/:id:
+    get:
+      consumes:
+      - application/json
+      parameters:
+      - description: ユーザーID
+        in: path
+        name: request
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/api_internal_controller_users.UserResponseModel'
+      summary: ユーザーの詳細情報を取得
+      tags:
+      - Users
 swagger: "2.0"
