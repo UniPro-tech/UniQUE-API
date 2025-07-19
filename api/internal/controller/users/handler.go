@@ -28,7 +28,7 @@ func NewUsersHandler(
 
 // ListUsers godoc
 // @Summary ユーザー一覧取得
-// @Tags users
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Success 200 {object} UsersResponse
