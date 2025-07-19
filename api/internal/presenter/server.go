@@ -52,6 +52,7 @@ func (s *Server) Run(ctx context.Context) error {
 	{
 		userHandler := users.NewUsersHandler(finduser_usecase, finduserbyid_usecase)
 		v1.GET("/users", userHandler.ListUser)
+		v1.GET("/users/:id", userHandler.GetUserById)
 	}
 
 	err := r.Run()

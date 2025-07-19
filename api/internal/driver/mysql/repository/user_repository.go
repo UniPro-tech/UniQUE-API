@@ -68,7 +68,7 @@ func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	user := scheme.User{}
 
-	err := ud.conn.Table("users").Where("uid = ?", id).Find(&user).Error
+	err := ud.conn.Table("users").Where("id = ?", id).Find(&user).Error
 
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		slog.Error("can not complate FindByID Repository", "request id", ctxValue.RequestId)
@@ -77,7 +77,7 @@ func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.
 
 	res := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, &user.IsEnable)
 	if err != nil {
-		slog.Error("can not complete FindByID Repository", "request id", ctxValue.RequestId)
+		slog.Error("can not complete FindByID Repository", "request id", ctxValue.RequestId, "error", err)
 		return nil, err
 	}
 
