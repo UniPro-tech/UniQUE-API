@@ -22,7 +22,7 @@ func (us *CreateUserUsecase) Run(ctx context.Context, param *user.User) error {
 		return INVALID_REQUEST_ID
 	}
 
-	if err := us.uds.EditUser(ctx, param); err != nil {
+	if err := us.uds.AddUser(ctx, param); err != nil {
 		slog.Error("can not complete SaveUser Usecase", "error msg", err, "request id", value.RequestId)
 		return err
 	}
