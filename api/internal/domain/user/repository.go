@@ -1,6 +1,10 @@
 package user
 
-import "context"
+import (
+	"context"
+
+	"github.com/UniPro-tech/UniQUE-API/api/pkg"
+)
 
 //go:generate moq -out UserServiceRepository_mock.go . UserServiceRepository
 type UserServiceRepository interface {
@@ -8,5 +12,5 @@ type UserServiceRepository interface {
 	FindUserById(ctx context.Context, id string) (*User, error)
 	Save(ctx context.Context, param *User) error
 	Delete(ctx context.Context, id string) error
-	Search(ctx context.Context, conditions [][]string) ([]*User, int64, error)
+	Search(ctx context.Context, searchParams pkg.UserSearchParams) ([]*User, int64, error)
 }

@@ -1,6 +1,10 @@
 package user
 
-import "context"
+import (
+	"context"
+
+	"github.com/UniPro-tech/UniQUE-API/api/pkg"
+)
 
 type UserDomainService struct {
 	repo UserServiceRepository
@@ -51,8 +55,8 @@ func (uds *UserDomainService) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (uds *UserDomainService) SearchUser(ctx context.Context, conditions [][]string) ([]*User, int64, error) {
-	users, count, err := uds.repo.Search(ctx, conditions)
+func (uds *UserDomainService) SearchUser(ctx context.Context, searchParams pkg.UserSearchParams) ([]*User, int64, error) {
+	users, count, err := uds.repo.Search(ctx, searchParams)
 	if err != nil {
 		return nil, 0, err
 	}

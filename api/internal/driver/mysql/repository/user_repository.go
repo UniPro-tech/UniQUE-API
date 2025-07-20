@@ -108,15 +108,26 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	return nil
 }
 
-func (ud *UserDriver) Search(ctx context.Context, conditions [][]string) ([]*userDomain.User, int64, error) {
+func (ud *UserDriver) Search(ctx context.Context, searchParams pkg.UserSearchParams) ([]*userDomain.User, int64, error) {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	users := []*scheme.User{}
 	res := []*userDomain.User{}
 	var totalCount int64
 
-	query := ud.conn.Table("users")
-	for _, condition := range conditions {
-		query = query.Where("? = ?", condition[0], condition[1])
+	query := &scheme.User{
+		ID:            *searchParams.ID,
+		Email:         *searchParams.Email,
+		CustomID:      *searchParams.CustomID,
+		Name:          *searchParams.Name,
+		ExternalEmail: *searchParams.ExternalEmail,
+		Period:        *searchParams.Period,
+	}
+	if searchParams.IsEnable != nil {
+		if *searchParams.IsEnable == "true" {
+			query.IsEnable = true
+		} else {
+			query.IsEnable = false
+		}
 	}
 
 	limit, err := strconv.Atoi(ctxValue.PageLimit)
@@ -128,7 +139,7 @@ func (ud *UserDriver) Search(ctx context.Context, conditions [][]string) ([]*use
 		page = 0
 	}
 
-	err = query.Find(&users).Limit(limit).Offset(limit * (page - 1)).Order("id ASC").Count(&totalCount).Error
+	err = ud.conn.Table("users").Where(query).Limit(limit).Offset(limit * (page - 1)).Order("id ASC").Find(&users).Count(&totalCount).Error
 	if err != nil {
 		slog.Error("can not complete SearchUser Repository", "request id", ctxValue.RequestId, "error", err)
 		return nil, 0, err
@@ -140,7 +151,7 @@ func (ud *UserDriver) Search(ctx context.Context, conditions [][]string) ([]*use
 		res = append(res, u)
 	}
 
-	slog.Info("process done ListUser Repository", "request id", ctxValue.RequestId, "total count", totalCount)
+	slog.Info("process done ListUser Repository", "request id", ctxValue.RequestId, "total count", totalCount, "users", res)
 	return res, totalCount, nil
 }
 

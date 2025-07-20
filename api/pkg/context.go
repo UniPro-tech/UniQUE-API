@@ -3,6 +3,15 @@ package pkg
 type CtxInfo struct {
 	PageLimit string `json:"limit,omitempty"`
 	Pages     string `json:"pages,omitempty"`
-	UserId    string `json:"user_id,omitempty"`
 	RequestId string `json:"request_id,omitempty"`
+}
+
+type UserSearchParams struct {
+	ID            *string `json:"id,omitempty"`
+	Email         *string `json:"email,omitempty"`
+	CustomID      *string `json:"custom_id,omitempty"`
+	Name          *string `json:"name,omitempty"`
+	ExternalEmail *string `json:"external_email,omitempty"`
+	Period        *string `json:"period,omitempty"`
+	IsEnable      *string `json:"is_enable,omitempty"`
 }

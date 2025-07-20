@@ -2,10 +2,15 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 
 	"github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
+)
+
+var (
+	INVALID_SEARCH_PARAMS = errors.New("invalid search parameters")
 )
 
 type SearchUsecase struct {
@@ -32,13 +37,18 @@ func NewSearchUsecase(uds user.IUserDomainService) *SearchUsecase {
 	return &SearchUsecase{uds: uds}
 }
 
-func (us *SearchUsecase) Run(ctx context.Context, conditions [][]string) (*SearchUsecaseDtoModel, error) {
+func (us *SearchUsecase) Run(ctx context.Context) (*SearchUsecaseDtoModel, error) {
 	value, ok := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	if !ok {
 		return nil, INVALID_REQUEST_ID
 	}
 
-	user, _, err := us.uds.SearchUser(ctx, conditions)
+	searchParams, ok := ctx.Value("searchParams").(pkg.UserSearchParams)
+	if !ok {
+		return nil, INVALID_SEARCH_PARAMS
+	}
+
+	user, _, err := us.uds.SearchUser(ctx, searchParams)
 	if err != nil {
 		slog.Info("can not complete FindById usecase", "request id", value.RequestId)
 		return nil, err
