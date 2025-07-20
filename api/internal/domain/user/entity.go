@@ -27,6 +27,7 @@ type User struct {
 	external_email userExternalEmail
 	period         userPeriod
 	is_enable      userIsEnable
+	password_hash  userPasswordHash
 }
 
 // ドメイン バリューオブジェクト
@@ -37,6 +38,7 @@ type userExternalEmail struct{ value string }
 type userName struct{ value string }
 type userPeriod struct{ value string }
 type userIsEnable struct{ value bool }
+type userPasswordHash struct{ value string }
 
 // ドメインルール
 
@@ -98,13 +100,24 @@ func (u *User) GetName() string          { return u.name.value }
 func (u *User) GetExternalEmail() string { return u.external_email.value }
 func (u *User) GetPeriod() string        { return u.period.value }
 func (u *User) GetIsEnable() bool        { return u.is_enable.value }
-
-// 構造体生成関数
-func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable bool) *User {
-	return newUser(id, email, custom_id, name, externalEmail, period, is_enable)
+func (u *User) GetPasswordHash() string {
+	if u.password_hash.value == "" {
+		return ""
+	}
+	return u.password_hash.value
 }
 
-func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable bool) *User {
+// 構造体生成関数
+func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable bool, password_hash ...*string) *User {
+	return newUser(id, email, custom_id, name, externalEmail, period, is_enable, password_hash[0])
+}
+
+func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable bool, password_hash ...*string) *User {
+	if len(password_hash) == 0 {
+		password_hash = append(password_hash, nil) // デフォルト値としてnilを設定
+	} else if len(password_hash) > 1 {
+		panic("too many password_hash arguments")
+	}
 	return &User{
 		id:             userUUID{value: id},
 		email:          userInternalEmail{value: email},
@@ -113,6 +126,7 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 		external_email: userExternalEmail{value: externalEmail},
 		period:         userPeriod{value: period},
 		is_enable:      userIsEnable{value: is_enable},
+		password_hash:  userPasswordHash{value: *password_hash[0]},
 	}
 }
 

@@ -73,7 +73,7 @@ func (uds *UserDomainService) AddUser(ctx context.Context, param *User) error {
 	if err := param.external_email.Valid(); err != nil {
 		return ErrUserEmailAddress
 	}
-	err := uds.repo.Save(ctx, param)
+	err := uds.repo.Create(ctx, param)
 	if err != nil {
 		return err
 	}

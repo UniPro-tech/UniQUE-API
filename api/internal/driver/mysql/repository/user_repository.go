@@ -97,6 +97,7 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 		IsEnable:      param.GetIsEnable(),
 		ExternalEmail: param.GetExternalEmail(),
 		Email:         param.GetEmail(),
+		PasswordHash:  param.GetPasswordHash(),
 	}
 
 	err := ud.conn.Table("users").Save(repoUser).Error
@@ -106,6 +107,54 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	}
 
 	slog.Info("process done SaveUser Repository", "request id", ctxValue.RequestId)
+	return nil
+}
+
+func (ud *UserDriver) Create(ctx context.Context, param *userDomain.User) error {
+	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
+
+	repoUser := &scheme.User{
+		ID:            param.GetID(),
+		CustomID:      param.GetCustomID(),
+		Name:          param.GetName(),
+		Period:        param.GetPeriod(),
+		IsEnable:      param.GetIsEnable(),
+		ExternalEmail: param.GetExternalEmail(),
+		Email:         param.GetEmail(),
+		PasswordHash:  param.GetPasswordHash(),
+	}
+
+	err := ud.conn.Table("users").Create(repoUser).Error
+	if err != nil {
+		slog.Error("can not complete CreateUser Repository", "request id", ctxValue.RequestId)
+		return err
+	}
+
+	slog.Info("process done CreateUser Repository", "request id", ctxValue.RequestId)
+	return nil
+}
+
+func (ud *UserDriver) Update(ctx context.Context, param *userDomain.User) error {
+	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
+
+	repoUser := &scheme.User{
+		ID:            param.GetID(),
+		CustomID:      param.GetCustomID(),
+		Name:          param.GetName(),
+		Period:        param.GetPeriod(),
+		IsEnable:      param.GetIsEnable(),
+		ExternalEmail: param.GetExternalEmail(),
+		Email:         param.GetEmail(),
+		PasswordHash:  param.GetPasswordHash(),
+	}
+
+	err := ud.conn.Table("users").Updates(repoUser).Error
+	if err != nil {
+		slog.Error("can not complete UpdateUser Repository", "request id", ctxValue.RequestId)
+		return err
+	}
+
+	slog.Info("process done UpdateUser Repository", "request id", ctxValue.RequestId)
 	return nil
 }
 

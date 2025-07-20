@@ -8,4 +8,5 @@ type UserRequestModel struct {
 	ExternalEmail string `json:"external_email,omitempty"`
 	Period        string `json:"period,omitempty"`
 	IsEnable      bool   `json:"is_enable,omitempty"`
+	PasswordHash  string `json:"password_hash,omitempty"`
 }
