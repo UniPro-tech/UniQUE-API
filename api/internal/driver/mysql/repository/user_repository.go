@@ -54,7 +54,7 @@ func (ud *UserDriver) ListUser(ctx context.Context) ([]*userDomain.User, int64, 
 	}
 
 	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, &user.IsEnable)
+		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, &user.IsEnable)
 
 		res = append(res, u)
 	}
@@ -135,7 +135,7 @@ func (ud *UserDriver) Search(ctx context.Context, conditions [][]string) ([]*use
 	}
 
 	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, &user.IsEnable)
+		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, &user.IsEnable)
 
 		res = append(res, u)
 	}
