@@ -90,12 +90,13 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
 	repoUser := &scheme.User{
-		ID:       param.GetID(),
-		CustomID: param.GetCustomID(),
-		Name:     param.GetName(),
-		Period:   param.GetPeriod(),
-		IsEnable: param.GetIsEnable(),
-		Email:    param.GetEmail(),
+		ID:            param.GetID(),
+		CustomID:      param.GetCustomID(),
+		Name:          param.GetName(),
+		Period:        param.GetPeriod(),
+		IsEnable:      param.GetIsEnable(),
+		ExternalEmail: param.GetExternalEmail(),
+		Email:         param.GetEmail(),
 	}
 
 	err := ud.conn.Table("users").Save(repoUser).Error
