@@ -7,7 +7,7 @@ type Response struct {
 type UsersResponse struct {
 	TotalCount int64               `json:"total_count,omitempty"`
 	Pages      int                 `json:"pages,omitempty"`
-	Users      []UserResponseModel `json:"users,omitempty"`
+	Users      []UserResponseModel `json:"data,omitempty"`
 }
 
 type UserResponseModel struct {
