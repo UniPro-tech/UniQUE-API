@@ -4,6 +4,11 @@ type Response struct {
 	Status string `json:"status,omitempty"`
 }
 
+type ErrorResponse struct {
+	Message string `json:"message,omitempty"`
+	Status  string `json:"status,omitempty"`
+}
+
 type UsersResponse struct {
 	TotalCount int64               `json:"total_count,omitempty"`
 	Pages      int                 `json:"pages,omitempty"`

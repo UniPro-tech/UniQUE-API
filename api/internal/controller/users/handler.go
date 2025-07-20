@@ -184,6 +184,8 @@ func (h *UserHandler) SearchUsers(ctx *gin.Context) {
 // @Produce json
 // @Param request body UserRequestModel true "ユーザー情報"
 // @Success 200 {object} Response
+// @Failure 400 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
 // @Router /v1/users [post]
 func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 	request_id := ctx.GetHeader("X-Request-ID")
@@ -198,11 +200,9 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 	}
 
 	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
-	slog.Info("test", "param", param, "user", user.GetPasswordHash())
 	err = h.AddUserUsecase.Run(reqCtx, user)
 	if err != nil {
-		slog.Error("can not process SaveUser Usecase", "error msg", err, "request id", ctx.GetHeader("X-Request-ID"))
-		ctx.JSON(http.StatusBadRequest, Response{Status: "Internal Server Error"})
+		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: err.Error(), Status: "Bad Request"})
 		return
 	}
 

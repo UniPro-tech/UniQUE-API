@@ -9,6 +9,7 @@ import (
 	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/scheme"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
+	"github.com/go-sql-driver/mysql"
 
 	"gorm.io/gorm"
 )
@@ -126,8 +127,19 @@ func (ud *UserDriver) Create(ctx context.Context, param *userDomain.User) error 
 
 	err := ud.conn.Table("users").Create(repoUser).Error
 	if err != nil {
-		slog.Error("can not complete CreateUser Repository", "request id", ctxValue.RequestId)
-		return err
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
+			switch mysqlErr.Number {
+			case 1062:
+				slog.Error("Duplicate entry error in CreateUser Repository", "request id", ctxValue.RequestId, "error", mysqlErr)
+				return errors.New("duplicate entry for user custom_id or email")
+			default:
+				slog.Error("can not complete CreateUser Repository", "request id", ctxValue.RequestId, "error", err)
+				return errors.New("failed to create user due to database error")
+			}
+		} else {
+			slog.Error("can not complete CreateUser Repository", "request id", ctxValue.RequestId, "error", err)
+			return errors.New("failed to create user due to database error")
+		}
 	}
 
 	slog.Info("process done CreateUser Repository", "request id", ctxValue.RequestId)
