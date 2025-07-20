@@ -55,10 +55,27 @@ func (uds *UserDomainService) DeleteUser(ctx context.Context, id string) error {
 	return nil
 }
 
-func (uds *UserDomainService) SearchUser(ctx context.Context, searchParams pkg.UserSearchParams) ([]*User, int64, error) {
+func (uds *UserDomainService) SearchUser(ctx context.Context, searchParams pkg.UserParams) ([]*User, int64, error) {
 	users, count, err := uds.repo.Search(ctx, searchParams)
 	if err != nil {
 		return nil, 0, err
 	}
 	return users, count, nil
+}
+
+func (uds *UserDomainService) AddUser(ctx context.Context, param *User) error {
+	if err := param.custom_id.Valid(); err != nil {
+		return ErrInvalidCustomID
+	}
+	if err := param.email.Valid(param.GetCustomID(), param.GetPeriod()); err != nil {
+		return ErrUserEmailAddress
+	}
+	if err := param.external_email.Valid(); err != nil {
+		return ErrUserEmailAddress
+	}
+	err := uds.repo.Save(ctx, param)
+	if err != nil {
+		return err
+	}
+	return nil
 }

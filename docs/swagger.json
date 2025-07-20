@@ -32,6 +32,7 @@
         },
         "/v1/users": {
             "get": {
+                "description": "ユーザーのメールアドレスやカスタムIDで検索",
                 "consumes": [
                     "application/json"
                 ],
@@ -41,12 +42,93 @@
                 "tags": [
                     "Users"
                 ],
-                "summary": "ユーザー一覧取得",
+                "summary": "ユーザー検索",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "メールアドレス",
+                        "name": "email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "カスタムID",
+                        "name": "custom_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "名前",
+                        "name": "name",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "外部メールアドレス",
+                        "name": "external_email",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "期間",
+                        "name": "period",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "有効フラグ",
+                        "name": "is_enable",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "取得件数",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "description": "ページ番号",
+                        "name": "page",
+                        "in": "query"
+                    }
+                ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/users.UsersResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "RegisterUser"
+                ],
+                "summary": "ユーザー情報を登録",
+                "parameters": [
+                    {
+                        "description": "ユーザー情報",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/users.UserRequestModel"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/users.Response"
                         }
                     }
                 }
@@ -88,6 +170,40 @@
             "type": "object",
             "properties": {
                 "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "users.Response": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "users.UserRequestModel": {
+            "type": "object",
+            "properties": {
+                "custom_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "external_email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "period": {
                     "type": "string"
                 }
             }

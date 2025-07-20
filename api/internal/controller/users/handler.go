@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
 	usecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/user"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 
@@ -15,17 +16,20 @@ type UserHandler struct {
 	ListUserUsecase     *usecase.ListUserUsecase
 	FindUserByIdUsecase *usecase.FindUserByIdUsecase
 	SearchUserUsecase   *usecase.SearchUsecase
+	AddUserUsecase      *usecase.CreateUserUsecase
 }
 
 func NewUsersHandler(
 	listUserUsecase *usecase.ListUserUsecase,
 	findUserByIdUsecase *usecase.FindUserByIdUsecase,
 	searchUserUsecase *usecase.SearchUsecase,
+	addUserUsecase *usecase.CreateUserUsecase,
 ) *UserHandler {
 	return &UserHandler{
 		ListUserUsecase:     listUserUsecase,
 		FindUserByIdUsecase: findUserByIdUsecase,
 		SearchUserUsecase:   searchUserUsecase,
+		AddUserUsecase:      addUserUsecase,
 	}
 }
 
@@ -138,7 +142,7 @@ func (h *UserHandler) SearchUsers(ctx *gin.Context) {
 		PageLimit: limit,
 		Pages:     page,
 		RequestId: request_id,
-	}), "searchParams", pkg.UserSearchParams{
+	}), "searchParams", pkg.UserParams{
 		ID:            &id,
 		Email:         &email,
 		CustomID:      &customID,
@@ -171,4 +175,36 @@ func (h *UserHandler) SearchUsers(ctx *gin.Context) {
 		Pages:      res.Pages,
 		Users:      users,
 	})
+}
+
+// RegisterUser godoc
+// @Summary ユーザー情報を登録
+// @Tags RegisterUser
+// @Accept json
+// @Produce json
+// @Param request body UserRequestModel true "ユーザー情報"
+// @Success 200 {object} Response
+// @Router /v1/users [post]
+func (h *UserHandler) RegisterUser(ctx *gin.Context) {
+	request_id := ctx.GetHeader("X-Request-ID")
+	param := &UserRequestModel{}
+
+	reqCtx := context.WithValue(ctx, "ctxInfo", pkg.CtxInfo{RequestId: request_id})
+	err := ctx.ShouldBindJSON(&param)
+	if err != nil {
+		slog.Error("can not process SaveUser Usecase", "error msg", err, "request id", ctx.GetHeader("X-Request-ID"))
+		ctx.JSON(http.StatusBadRequest, Response{Status: "Bad Request"})
+		return
+	}
+
+	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable)
+	err = h.AddUserUsecase.Run(reqCtx, user)
+	if err != nil {
+		slog.Error("can not process SaveUser Usecase", "error msg", err, "request id", ctx.GetHeader("X-Request-ID"))
+		ctx.JSON(http.StatusBadRequest, Response{Status: "Internal Server Error"})
+		return
+	}
+
+	slog.Info("process done SaveUser Usecase", "request id", ctx.GetHeader("X-Request-ID"))
+	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
 }

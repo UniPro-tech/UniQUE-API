@@ -6,7 +6,7 @@ type CtxInfo struct {
 	RequestId string `json:"request_id,omitempty"`
 }
 
-type UserSearchParams struct {
+type UserParams struct {
 	ID            *string `json:"id,omitempty"`
 	Email         *string `json:"email,omitempty"`
 	CustomID      *string `json:"custom_id,omitempty"`

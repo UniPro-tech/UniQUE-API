@@ -43,7 +43,7 @@ func (us *SearchUsecase) Run(ctx context.Context) (*SearchUsecaseDtoModel, error
 		return nil, INVALID_REQUEST_ID
 	}
 
-	searchParams, ok := ctx.Value("searchParams").(pkg.UserSearchParams)
+	searchParams, ok := ctx.Value("searchParams").(pkg.UserParams)
 	if !ok {
 		return nil, INVALID_SEARCH_PARAMS
 	}

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	CUSTOM_ID_PATTERN           = `^[a-zA-Z0-9](?:(?<![-_])[a-zA-Z0-9]|[-_](?![-_])){0,9}$`
+	CUSTOM_ID_PATTERN           = `^[a-zA-Z0-9-_]{1,10}$`
 	USER_EXTERNAL_EMAIL_PATTERN = `^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`
 )
 
@@ -49,12 +49,20 @@ userID バリデーション godoc
 func (v *customID) Valid() error {
 	r := regexp.MustCompile(CUSTOM_ID_PATTERN)
 	matched := r.MatchString(v.value)
-
-	// 結果を出力
 	if !matched {
 		return ErrInvalidCustomID
 	}
-
+	if v.value[0] == '-' || v.value[0] == '_' {
+		return ErrInvalidCustomID
+	}
+	if v.value[len(v.value)-1] == '-' || v.value[len(v.value)-1] == '_' {
+		return ErrInvalidCustomID
+	}
+	for i := 1; i < len(v.value); i++ {
+		if (v.value[i] == '-' || v.value[i] == '_') && (v.value[i-1] == '-' || v.value[i-1] == '_') {
+			return ErrInvalidCustomID
+		}
+	}
 	return nil
 }
 
@@ -73,6 +81,9 @@ func (v *userExternalEmail) Valid() error {
  */
 func (v *userInternalEmail) Valid(customID string, period string) error {
 	expectedEmail := period + "." + customID + "@uniproject.jp"
+	if period == "0" {
+		expectedEmail = customID + "@uniproject.jp"
+	}
 	if v.value != expectedEmail {
 		return errors.New("invalid internal email address")
 	}
@@ -89,15 +100,11 @@ func (u *User) GetPeriod() string        { return u.period.value }
 func (u *User) GetIsEnable() bool        { return u.is_enable.value }
 
 // 構造体生成関数
-func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable *bool) *User {
+func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable bool) *User {
 	return newUser(id, email, custom_id, name, externalEmail, period, is_enable)
 }
 
-func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable *bool) *User {
-	if is_enable == nil {
-		defaultEnable := true
-		is_enable = &defaultEnable
-	}
+func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable bool) *User {
 	return &User{
 		id:             userUUID{value: id},
 		email:          userInternalEmail{value: email},
@@ -105,7 +112,7 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 		name:           userName{value: name},
 		external_email: userExternalEmail{value: externalEmail},
 		period:         userPeriod{value: period},
-		is_enable:      userIsEnable{value: *is_enable},
+		is_enable:      userIsEnable{value: is_enable},
 	}
 }
 
@@ -113,7 +120,8 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 type IUserDomainService interface {
 	ListUser(ctx context.Context) ([]*User, int64, error)
 	FindUserById(ctx context.Context, id string) (*User, error)
-	SearchUser(ctx context.Context, searchParams pkg.UserSearchParams) ([]*User, int64, error)
+	SearchUser(ctx context.Context, searchParams pkg.UserParams) ([]*User, int64, error)
 	EditUser(ctx context.Context, param *User) error
 	DeleteUser(ctx context.Context, id string) error
+	AddUser(ctx context.Context, param *User) error
 }

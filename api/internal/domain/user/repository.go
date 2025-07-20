@@ -12,5 +12,5 @@ type UserServiceRepository interface {
 	FindUserById(ctx context.Context, id string) (*User, error)
 	Save(ctx context.Context, param *User) error
 	Delete(ctx context.Context, id string) error
-	Search(ctx context.Context, searchParams pkg.UserSearchParams) ([]*User, int64, error)
+	Search(ctx context.Context, searchParams pkg.UserParams) ([]*User, int64, error)
 }

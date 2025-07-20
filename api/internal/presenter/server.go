@@ -50,11 +50,13 @@ func (s *Server) Run(ctx context.Context) error {
 	finduser_usecase := userUsecase.NewFindUserUsecase(UserDomainService)
 	finduserbyid_usecase := userUsecase.NewFindUserByIdUsecase(UserDomainService)
 	searchuser_usecase := userUsecase.NewSearchUsecase(UserDomainService)
+	adduser_usecase := userUsecase.NewCreateUserUsecase(UserDomainService)
 	{
-		userHandler := users.NewUsersHandler(finduser_usecase, finduserbyid_usecase, searchuser_usecase)
+		userHandler := users.NewUsersHandler(finduser_usecase, finduserbyid_usecase, searchuser_usecase, adduser_usecase)
 		v1.GET("/users", userHandler.ListUser)
 		v1.GET("/users/:id", userHandler.GetUserById)
 		v1.GET("/users/search", userHandler.SearchUsers)
+		v1.POST("/users", userHandler.RegisterUser)
 	}
 
 	err := r.Run()

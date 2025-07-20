@@ -4,6 +4,28 @@ definitions:
       status:
         type: string
     type: object
+  users.Response:
+    properties:
+      status:
+        type: string
+    type: object
+  users.UserRequestModel:
+    properties:
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      name:
+        type: string
+      period:
+        type: string
+    type: object
   users.UserResponseModel:
     properties:
       custom_id:
@@ -57,6 +79,40 @@ paths:
     get:
       consumes:
       - application/json
+      description: ユーザーのメールアドレスやカスタムIDで検索
+      parameters:
+      - description: メールアドレス
+        in: query
+        name: email
+        type: string
+      - description: カスタムID
+        in: query
+        name: custom_id
+        type: string
+      - description: 名前
+        in: query
+        name: name
+        type: string
+      - description: 外部メールアドレス
+        in: query
+        name: external_email
+        type: string
+      - description: 期間
+        in: query
+        name: period
+        type: string
+      - description: 有効フラグ
+        in: query
+        name: is_enable
+        type: boolean
+      - description: 取得件数
+        in: query
+        name: limit
+        type: string
+      - description: ページ番号
+        in: query
+        name: page
+        type: string
       produces:
       - application/json
       responses:
@@ -64,9 +120,29 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/users.UsersResponse'
-      summary: ユーザー一覧取得
+      summary: ユーザー検索
       tags:
       - Users
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ユーザー情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users.UserRequestModel'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/users.Response'
+      summary: ユーザー情報を登録
+      tags:
+      - RegisterUser
   /v1/users/:id:
     get:
       consumes:

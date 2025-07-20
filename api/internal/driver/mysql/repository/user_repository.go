@@ -54,7 +54,7 @@ func (ud *UserDriver) ListUser(ctx context.Context) ([]*userDomain.User, int64, 
 	}
 
 	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, &user.IsEnable)
+		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable)
 
 		res = append(res, u)
 	}
@@ -75,7 +75,7 @@ func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.
 		return nil, gorm.ErrRecordNotFound
 	}
 
-	res := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, &user.IsEnable)
+	res := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, user.IsEnable)
 	if err != nil {
 		slog.Error("can not complete FindByID Repository", "request id", ctxValue.RequestId, "error", err)
 		return nil, err
@@ -89,7 +89,7 @@ func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.
 func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
-	repoUser := scheme.User{
+	repoUser := &scheme.User{
 		ID:       param.GetID(),
 		CustomID: param.GetCustomID(),
 		Name:     param.GetName(),
@@ -98,7 +98,7 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 		Email:    param.GetEmail(),
 	}
 
-	err := ud.conn.Table("users").Save(&repoUser).Error
+	err := ud.conn.Table("users").Save(repoUser).Error
 	if err != nil {
 		slog.Error("can not complete SaveUser Repository", "request id", ctxValue.RequestId)
 		return err
@@ -108,7 +108,7 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	return nil
 }
 
-func (ud *UserDriver) Search(ctx context.Context, searchParams pkg.UserSearchParams) ([]*userDomain.User, int64, error) {
+func (ud *UserDriver) Search(ctx context.Context, searchParams pkg.UserParams) ([]*userDomain.User, int64, error) {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	users := []*scheme.User{}
 	res := []*userDomain.User{}
@@ -146,7 +146,7 @@ func (ud *UserDriver) Search(ctx context.Context, searchParams pkg.UserSearchPar
 	}
 
 	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, &user.IsEnable)
+		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable)
 
 		res = append(res, u)
 	}
