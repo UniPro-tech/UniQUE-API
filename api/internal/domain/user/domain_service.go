@@ -31,14 +31,8 @@ func (uds *UserDomainService) FindUserById(ctx context.Context, id string) (*Use
 }
 
 func (uds *UserDomainService) EditUser(ctx context.Context, param *User) error {
-	if err := param.custom_id.Valid(); err != nil {
-		return ErrInvalidCustomID
-	}
-	if err := param.email.Valid(param.GetCustomID(), param.GetPeriod()); err != nil {
-		return ErrUserEmailAddress
-	}
-	if err := param.external_email.Valid(); err != nil {
-		return ErrUserEmailAddress
+	if err := param.Valid(); err != nil {
+		return err
 	}
 	err := uds.repo.Save(ctx, param)
 	if err != nil {
@@ -64,14 +58,8 @@ func (uds *UserDomainService) SearchUser(ctx context.Context, searchParams pkg.U
 }
 
 func (uds *UserDomainService) AddUser(ctx context.Context, param *User) error {
-	if err := param.custom_id.Valid(); err != nil {
-		return ErrInvalidCustomID
-	}
-	if err := param.email.Valid(param.GetCustomID(), param.GetPeriod()); err != nil {
-		return ErrUserEmailAddress
-	}
-	if err := param.external_email.Valid(); err != nil {
-		return ErrUserEmailAddress
+	if err := param.Valid(); err != nil {
+		return err
 	}
 	err := uds.repo.Create(ctx, param)
 	if err != nil {

@@ -14,8 +14,9 @@ const (
 )
 
 var (
-	ErrInvalidCustomID  = errors.New("invalid custom id")
-	ErrUserEmailAddress = errors.New("invalid user email address")
+	ERR_INVALID_CUSTOM_ID      = errors.New("invalid custom id")
+	ERR_INVALID_EMAIL          = errors.New("invalid user email address")
+	ERR_INVALID_EXTERNAL_EMAIL = errors.New("invalid external email address")
 )
 
 // ドメインモデル
@@ -52,17 +53,17 @@ func (v *customID) Valid() error {
 	r := regexp.MustCompile(CUSTOM_ID_PATTERN)
 	matched := r.MatchString(v.value)
 	if !matched {
-		return ErrInvalidCustomID
+		return ERR_INVALID_CUSTOM_ID
 	}
 	if v.value[0] == '-' || v.value[0] == '_' {
-		return ErrInvalidCustomID
+		return ERR_INVALID_CUSTOM_ID
 	}
 	if v.value[len(v.value)-1] == '-' || v.value[len(v.value)-1] == '_' {
-		return ErrInvalidCustomID
+		return ERR_INVALID_CUSTOM_ID
 	}
 	for i := 1; i < len(v.value); i++ {
 		if (v.value[i] == '-' || v.value[i] == '_') && (v.value[i-1] == '-' || v.value[i-1] == '_') {
-			return ErrInvalidCustomID
+			return ERR_INVALID_CUSTOM_ID
 		}
 	}
 	return nil
@@ -72,7 +73,7 @@ func (v *customID) Valid() error {
 func (v *userExternalEmail) Valid() error {
 	match, _ := regexp.MatchString(USER_EXTERNAL_EMAIL_PATTERN, v.value)
 	if !match {
-		return ErrUserEmailAddress
+		return ERR_INVALID_EXTERNAL_EMAIL
 	}
 
 	return nil
@@ -88,6 +89,19 @@ func (v *userInternalEmail) Valid(customID string, period string) error {
 	}
 	if v.value != expectedEmail {
 		return errors.New("invalid internal email address")
+	}
+	return nil
+}
+
+func (v *User) Valid() error {
+	if err := v.custom_id.Valid(); err != nil {
+		return ERR_INVALID_CUSTOM_ID
+	}
+	if err := v.email.Valid(v.GetCustomID(), v.GetPeriod()); err != nil {
+		return ERR_INVALID_EMAIL
+	}
+	if err := v.external_email.Valid(); err != nil {
+		return ERR_INVALID_EXTERNAL_EMAIL
 	}
 	return nil
 }
@@ -114,7 +128,7 @@ func NewUser(id string, name string, email string, custom_id string, externalEma
 
 func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable bool, password_hash ...*string) *User {
 	if len(password_hash) == 0 {
-		password_hash = append(password_hash, nil) // デフォルト値としてnilを設定
+		password_hash = append(password_hash, nil)
 	} else if len(password_hash) > 1 {
 		panic("too many password_hash arguments")
 	}

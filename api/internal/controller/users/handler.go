@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"net/http"
 
+	errorresponse "github.com/UniPro-tech/UniQUE-API/api/internal/controller/errorresponse"
 	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
 	usecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/user"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
@@ -202,8 +203,11 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
 	err = h.AddUserUsecase.Run(reqCtx, user)
 	if err != nil {
-		ctx.JSON(http.StatusBadRequest, ErrorResponse{Message: err.Error(), Status: "Bad Request"})
-		return
+		if err == userDomain.ERR_INVALID_CUSTOM_ID || err == userDomain.ERR_INVALID_EMAIL || err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			ctx.JSON(http.StatusBadRequest, errorresponse.MissmatchedPatternError)
+			return
+		}
 	}
 
 	slog.Info("process done SaveUser Usecase", "request id", ctx.GetHeader("X-Request-ID"))
