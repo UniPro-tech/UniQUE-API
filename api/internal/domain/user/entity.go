@@ -123,6 +123,11 @@ func (u *User) GetPasswordHash() string {
 
 // 構造体生成関数
 func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable bool, password_hash ...*string) *User {
+	if len(password_hash) == 0 {
+		password_hash = append(password_hash, nil)
+	} else if len(password_hash) > 1 {
+		panic("too many password_hash arguments")
+	}
 	return newUser(id, email, custom_id, name, externalEmail, period, is_enable, password_hash[0])
 }
 
@@ -131,6 +136,17 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 		password_hash = append(password_hash, nil)
 	} else if len(password_hash) > 1 {
 		panic("too many password_hash arguments")
+	}
+	if password_hash[0] == nil {
+		return &User{
+			id:             userUUID{value: id},
+			email:          userInternalEmail{value: email},
+			custom_id:      customID{value: custom_id},
+			name:           userName{value: name},
+			external_email: userExternalEmail{value: externalEmail},
+			period:         userPeriod{value: period},
+			is_enable:      userIsEnable{value: is_enable},
+		}
 	}
 	return &User{
 		id:             userUUID{value: id},
