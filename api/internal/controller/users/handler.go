@@ -215,6 +215,9 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 			ctx.JSON(http.StatusConflict, errorresponse.AlreadyExistsError)
 			return
 		}
+		slog.Error("Failed to save user", "error", err, "request_id", request_id)
+		ctx.JSON(http.StatusInternalServerError, errorresponse.UnknownError)
+		return
 	}
 
 	slog.Info("process done SaveUser Usecase", "request id", ctx.GetHeader("X-Request-ID"))
