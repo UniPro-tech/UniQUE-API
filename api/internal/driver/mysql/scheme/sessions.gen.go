@@ -12,7 +12,7 @@ const TableNameSession = "sessions"
 
 // Session mapped from table <sessions>
 type Session struct {
-	ID        int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	ID        string    `gorm:"column:id;primaryKey" json:"id"`
 	UserID    string    `gorm:"column:user_id;not null" json:"user_id"`
 	IPAddress string    `gorm:"column:ip_address;not null" json:"ip_address"`
 	UserAgent string    `gorm:"column:user_agent;not null" json:"user_agent"`

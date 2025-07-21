@@ -14,6 +14,7 @@ const TableNameApp = "apps"
 type App struct {
 	ID           string    `gorm:"column:id;primaryKey" json:"id"`
 	ClientID     string    `gorm:"column:client_id;not null" json:"client_id"`
+	Aud          string    `gorm:"column:aud;not null" json:"aud"`
 	ClientSecret string    `gorm:"column:client_secret;not null" json:"client_secret"`
 	Name         string    `gorm:"column:name;not null" json:"name"`
 	CreatedAt    time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
