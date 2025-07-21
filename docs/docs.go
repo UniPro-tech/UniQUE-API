@@ -118,7 +118,7 @@ const docTemplate = `{
                     "application/json"
                 ],
                 "tags": [
-                    "RegisterUser"
+                    "Users"
                 ],
                 "summary": "ユーザー情報を登録",
                 "parameters": [
@@ -137,6 +137,18 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/users.Response"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/users.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/users.ErrorResponse"
                         }
                     }
                 }
@@ -182,6 +194,17 @@ const docTemplate = `{
                 }
             }
         },
+        "users.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
         "users.Response": {
             "type": "object",
             "properties": {
@@ -209,6 +232,9 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "name": {
+                    "type": "string"
+                },
+                "password_hash": {
                     "type": "string"
                 },
                 "period": {
@@ -245,17 +271,17 @@ const docTemplate = `{
         "users.UsersResponse": {
             "type": "object",
             "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/users.UserResponseModel"
+                    }
+                },
                 "pages": {
                     "type": "integer"
                 },
                 "total_count": {
                     "type": "integer"
-                },
-                "users": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/users.UserResponseModel"
-                    }
                 }
             }
         }

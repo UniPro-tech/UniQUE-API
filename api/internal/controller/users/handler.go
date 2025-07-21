@@ -179,7 +179,7 @@ func (h *UserHandler) SearchUsers(ctx *gin.Context) {
 
 // RegisterUser godoc
 // @Summary ユーザー情報を登録
-// @Tags RegisterUser
+// @Tags Users
 // @Accept json
 // @Produce json
 // @Param request body UserRequestModel true "ユーザー情報"

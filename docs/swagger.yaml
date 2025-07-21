@@ -4,6 +4,13 @@ definitions:
       status:
         type: string
     type: object
+  users.ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
   users.Response:
     properties:
       status:
@@ -22,6 +29,8 @@ definitions:
       is_enable:
         type: boolean
       name:
+        type: string
+      password_hash:
         type: string
       period:
         type: string
@@ -45,14 +54,14 @@ definitions:
     type: object
   users.UsersResponse:
     properties:
+      data:
+        items:
+          $ref: '#/definitions/users.UserResponseModel'
+        type: array
       pages:
         type: integer
       total_count:
         type: integer
-      users:
-        items:
-          $ref: '#/definitions/users.UserResponseModel'
-        type: array
     type: object
 host: localhost:8080
 info:
@@ -140,9 +149,17 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/users.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/users.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/users.ErrorResponse'
       summary: ユーザー情報を登録
       tags:
-      - RegisterUser
+      - Users
   /v1/users/:id:
     get:
       consumes:
