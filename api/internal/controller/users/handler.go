@@ -2,11 +2,13 @@ package users
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 
 	errorresponse "github.com/UniPro-tech/UniQUE-API/api/internal/controller/errorresponse"
 	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
+	sqlerrors "github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/errors"
 	usecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/user"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 
@@ -206,6 +208,11 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 		if err == userDomain.ERR_INVALID_CUSTOM_ID || err == userDomain.ERR_INVALID_EMAIL || err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
 			ctx.JSON(http.StatusBadRequest, errorresponse.MissmatchedPatternError)
+			return
+		}
+		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
+			slog.Error("Duplicate entry error", "error", err, "request_id", request_id)
+			ctx.JSON(http.StatusConflict, errorresponse.AlreadyExistsError)
 			return
 		}
 	}

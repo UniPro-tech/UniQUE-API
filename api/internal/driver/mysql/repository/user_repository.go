@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
+	sqlerrors "github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/errors"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/scheme"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 	"github.com/go-sql-driver/mysql"
@@ -131,7 +132,7 @@ func (ud *UserDriver) Create(ctx context.Context, param *userDomain.User) error 
 			switch mysqlErr.Number {
 			case 1062:
 				slog.Error("Duplicate entry error in CreateUser Repository", "request id", ctxValue.RequestId, "error", mysqlErr)
-				return errors.New("duplicate entry for user custom_id or email")
+				return sqlerrors.ERR_DUPLICATE_ENTRY
 			default:
 				slog.Error("can not complete CreateUser Repository", "request id", ctxValue.RequestId, "error", err)
 				return errors.New("failed to create user due to database error")
