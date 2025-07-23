@@ -23,7 +23,7 @@ type UserDriver struct {
 func (ud *UserDriver) Delete(ctx context.Context, id string) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	user := scheme.User{}
-	err := ud.conn.Where("uid = ?", id).Delete(&user).Error
+	err := ud.conn.Where("id = ?", id).Delete(&user).Error
 	if err != nil {
 		slog.Info("can not complete DeleteUser Repository", "request id", ctxValue.RequestId)
 		return err
