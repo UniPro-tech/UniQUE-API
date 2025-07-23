@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"log/slog"
 
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 )
@@ -65,5 +66,23 @@ func (uds *UserDomainService) AddUser(ctx context.Context, param *User) error {
 	if err != nil {
 		return err
 	}
+	return nil
+}
+
+func (ud *UserDomainService) Delete(ctx context.Context, id string) error {
+	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
+
+	err := ud.repo.Delete(ctx, id)
+	if err != nil {
+		slog.Error("can not complete DeleteUser Repository", "error msg", err, "request id", ctxValue.RequestId)
+		return err
+	}
+
+	slog.Info("process done DeleteUser Repository", "request id", ctxValue.RequestId, "user id", id)
+	if err != nil {
+		slog.Error("can not complete DeleteUser Repository", "error msg", err, "request id", ctxValue.RequestId)
+		return err
+	}
+	slog.Info("process done DeleteUser Repository", "request id", ctxValue.RequestId, "user id", id)
 	return nil
 }

@@ -20,6 +20,7 @@ type UserHandler struct {
 	FindUserByIdUsecase *usecase.FindUserByIdUsecase
 	SearchUserUsecase   *usecase.SearchUsecase
 	AddUserUsecase      *usecase.CreateUserUsecase
+	DeleteUserUsecase   *usecase.DeleteUserUsecase
 }
 
 func NewUsersHandler(
@@ -27,12 +28,14 @@ func NewUsersHandler(
 	findUserByIdUsecase *usecase.FindUserByIdUsecase,
 	searchUserUsecase *usecase.SearchUsecase,
 	addUserUsecase *usecase.CreateUserUsecase,
+	deleteUserUsecase *usecase.DeleteUserUsecase,
 ) *UserHandler {
 	return &UserHandler{
 		ListUserUsecase:     listUserUsecase,
 		FindUserByIdUsecase: findUserByIdUsecase,
 		SearchUserUsecase:   searchUserUsecase,
 		AddUserUsecase:      addUserUsecase,
+		DeleteUserUsecase:   deleteUserUsecase,
 	}
 }
 
@@ -222,4 +225,31 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 
 	slog.Info("process done SaveUser Usecase", "request id", ctx.GetHeader("X-Request-ID"))
 	ctx.JSON(http.StatusOK, gin.H{"status": "success"})
+}
+
+// DeleteUser godoc
+// @Summary ユーザーを削除
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param id path string true "ユーザーID"
+// @Success 204 {object} nil
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /v1/users/{id} [delete]
+func (h *UserHandler) DeleteUser(ctx *gin.Context) {
+	userId := ctx.Param("id")
+	request_id := ctx.GetHeader("X-Request-ID")
+
+	reqCtx := context.WithValue(ctx, "ctxInfo", pkg.CtxInfo{RequestId: request_id})
+	err := h.DeleteUserUsecase.Run(reqCtx, userId)
+	if err != nil {
+		slog.Error("can not process DeleteUser Usecase", "error msg", err, "request id", request_id)
+		ctx.JSON(http.StatusInternalServerError, Response{Status: "Internal Server Error"})
+		return
+	}
+
+	slog.Info("process done DeleteUser Usecase", "request id", request_id)
+	ctx.JSON(http.StatusNoContent, nil)
 }
