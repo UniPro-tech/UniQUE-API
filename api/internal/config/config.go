@@ -5,10 +5,11 @@ import (
 )
 
 type Config struct {
-	Env          string `env:"ENV" envDefault:"dev"`
-	Database_url string `env:"DATABASE_URL" envDefult:""`
-	ProjectID    string `env:"PROJECTID" envDefault:""`
-	SecretKey    string `env:"SECRET" envDefault:""`
+	Env          string   `env:"ENV" envDefault:"dev"`
+	Database_url string   `env:"DATABASE_URL" envDefult:""`
+	ProjectID    string   `env:"PROJECTID" envDefault:""`
+	SecretKey    string   `env:"SECRET" envDefault:""`
+	FrontendURLs []string `env:"FRONTEND_URLS" envDefault:"http://localhost:3000"`
 }
 
 func New() (*Config, error) {
