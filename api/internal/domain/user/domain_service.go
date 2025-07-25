@@ -125,3 +125,16 @@ func (ud *UserDomainService) SaveUser(ctx context.Context, param *User) error {
 	slog.Info("process done EditUser Repository", "request id", ctxValue.RequestId, "user id", param.GetID())
 	return nil
 }
+
+func (ud *UserDomainService) UpdateUser(ctx context.Context, param *User) error {
+	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
+
+	err := ud.repo.Update(ctx, param)
+	if err != nil {
+		slog.Error("can not complete UpdateUser Repository", "error msg", err, "request id", ctxValue.RequestId)
+		return err
+	}
+
+	slog.Info("process done UpdateUser Repository", "request id", ctxValue.RequestId, "user id", param.GetID())
+	return nil
+}
