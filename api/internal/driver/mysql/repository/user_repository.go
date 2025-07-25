@@ -19,7 +19,9 @@ type UserDriver struct {
 	conn *gorm.DB
 }
 
-// Delete implements user.UserServiceRepository.
+// Deleteは、指定されたユーザーIDに基づいてデータベースからユーザーのレコードを削除します。
+// コンテキストから取得したリクエストIDを使用して、操作状況をログに記録します。
+// 削除に失敗した場合はエラーを返します。
 func (ud *UserDriver) Delete(ctx context.Context, id string) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	user := scheme.User{}
@@ -33,7 +35,11 @@ func (ud *UserDriver) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// ListUser implements user.UserServiceRepository.
+// ListUserは、データベースからユーザーのページネーションされた一覧を取得します。
+// コンテキストからページ制限やページ番号などのページネーション情報を利用します。
+// userDomain.Userのスライス、ユーザーの総件数、およびクエリ中に発生したエラーを返します。
+// ページネーションのパラメータが不正な場合は、デフォルト値が使用されます。
+// エラーや処理状況はslogでログに記録されます。
 func (ud *UserDriver) ListUser(ctx context.Context) ([]*userDomain.User, int64, error) {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	res := []*userDomain.User{}
@@ -65,7 +71,10 @@ func (ud *UserDriver) ListUser(ctx context.Context) ([]*userDomain.User, int64, 
 	return res, totalCount, nil
 }
 
-// FindUserById implements user.UserServiceRepository.
+// FindUserByIdは、指定されたユーザーIDに基づいてデータベースからユーザー情報を取得します。
+// コンテキストとユーザーIDを受け取り、Userドメインオブジェクトのポインタとエラーを返します。
+// ユーザーが見つからない場合はgorm.ErrRecordNotFoundを返します。
+// エラーや処理状況は、コンテキストから取得したリクエストIDとともにslogでログに記録します。
 func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.User, error) {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	user := scheme.User{}
@@ -87,7 +96,18 @@ func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.
 	return res, nil
 }
 
-// Save implements user.UserServiceRepository.
+// Save は、指定されたユーザードメインオブジェクトの情報をデータベースに上書き保存します。
+// コンテキスト情報（ctxInfo）を利用してリクエストIDを取得し、処理のログを記録します。
+// 保存処理に失敗した場合はエラーを返します。
+//
+// param:
+//
+//	ctx   - リクエストのコンテキスト情報
+//	param - 保存対象のユーザードメインオブジェクト
+//
+// returns:
+//
+//	error - 保存処理に失敗した場合のエラー
 func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
@@ -112,6 +132,22 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 	return nil
 }
 
+// Create は、新しいユーザー情報をデータベースに登録します。
+//
+// 引数:
+//
+//	ctx   - コンテキスト情報を保持する context.Context 型。
+//	param - 登録するユーザー情報を保持する userDomain.User 型のポインタ。
+//
+// 戻り値:
+//
+//	error - 登録処理に失敗した場合はエラーを返します。
+//	        主な失敗要因として、重複エントリ（MySQL エラーコード 1062）や
+//	        データベースエラーが考えられます。
+//
+// 備考:
+//
+//	登録処理の成否に応じて、適切なログ出力を行います。
 func (ud *UserDriver) Create(ctx context.Context, param *userDomain.User) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
@@ -147,6 +183,11 @@ func (ud *UserDriver) Create(ctx context.Context, param *userDomain.User) error 
 	return nil
 }
 
+// Update は、指定されたユーザ情報（userDomain.User）をデータベース上の該当ユーザのレコードの特定のカラムのみ更新します。
+// ctx にはリクエストコンテキスト情報が含まれており、更新処理のログ出力に利用されます。
+// param には更新対象のユーザ情報が格納されています。
+// 更新処理が正常に完了した場合は nil を返し、エラーが発生した場合はそのエラーを返します。
+// エラー発生時にはエラーログを、正常終了時には完了ログを出力します。
 func (ud *UserDriver) Update(ctx context.Context, param *userDomain.User) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
@@ -171,6 +212,24 @@ func (ud *UserDriver) Update(ctx context.Context, param *userDomain.User) error 
 	return nil
 }
 
+// Search は、指定された検索パラメータに基づいてユーザー情報を検索し、
+// 該当するユーザーのリストと総件数を返します。
+//
+// 引数:
+//
+//	ctx - コンテキスト情報（リクエストIDやページ情報などを含む）
+//	searchParams - ユーザー検索条件を格納した構造体
+//
+// 戻り値:
+//
+//	[]*userDomain.User - 検索結果のユーザー情報のスライス
+//	int64 - 検索結果の総件数
+//	error - 検索処理中に発生したエラー（存在
+//
+// 検索条件にはID、メールアドレス、カスタムID、氏名、外部メールアドレス、期間、
+// 有効/無効フラグなどが指定可能です。
+// ページネーションとソート（ID昇順）にも対応しています。
+// 検索処理中にエラーが発生した場合は、エラー情報を返します。
 func (ud *UserDriver) Search(ctx context.Context, searchParams pkg.UserParams) ([]*userDomain.User, int64, error) {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	users := []*scheme.User{}
