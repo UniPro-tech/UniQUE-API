@@ -168,4 +168,5 @@ type IUserDomainService interface {
 	EditUser(ctx context.Context, param *User) error
 	DeleteUser(ctx context.Context, id string) error
 	AddUser(ctx context.Context, param *User) error
+	SaveUser(ctx context.Context, param *User) error
 }

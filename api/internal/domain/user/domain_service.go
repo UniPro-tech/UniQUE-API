@@ -112,3 +112,16 @@ func (ud *UserDomainService) Delete(ctx context.Context, id string) error {
 	slog.Info("process done DeleteUser Repository", "request id", ctxValue.RequestId, "user id", id)
 	return nil
 }
+
+func (ud *UserDomainService) SaveUser(ctx context.Context, param *User) error {
+	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
+
+	err := ud.repo.Save(ctx, param)
+	if err != nil {
+		slog.Error("can not complete EditUser Repository", "error msg", err, "request id", ctxValue.RequestId)
+		return err
+	}
+
+	slog.Info("process done EditUser Repository", "request id", ctxValue.RequestId, "user id", param.GetID())
+	return nil
+}

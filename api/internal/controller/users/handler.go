@@ -21,6 +21,7 @@ type UserHandler struct {
 	SearchUserUsecase   *usecase.SearchUsecase
 	AddUserUsecase      *usecase.CreateUserUsecase
 	DeleteUserUsecase   *usecase.DeleteUserUsecase
+	SaveUserUsecase     *usecase.SaveUserUsecase
 }
 
 func NewUsersHandler(
@@ -29,6 +30,7 @@ func NewUsersHandler(
 	searchUserUsecase *usecase.SearchUsecase,
 	addUserUsecase *usecase.CreateUserUsecase,
 	deleteUserUsecase *usecase.DeleteUserUsecase,
+	saveUserUsecase *usecase.SaveUserUsecase,
 ) *UserHandler {
 	return &UserHandler{
 		ListUserUsecase:     listUserUsecase,
@@ -36,6 +38,7 @@ func NewUsersHandler(
 		SearchUserUsecase:   searchUserUsecase,
 		AddUserUsecase:      addUserUsecase,
 		DeleteUserUsecase:   deleteUserUsecase,
+		SaveUserUsecase:     saveUserUsecase,
 	}
 }
 
@@ -251,5 +254,50 @@ func (h *UserHandler) DeleteUser(ctx *gin.Context) {
 	}
 
 	slog.Info("process done DeleteUser Usecase", "request id", request_id)
+	ctx.JSON(http.StatusNoContent, nil)
+}
+
+// PutUser godoc
+// @Summary ユーザー情報を更新(置き換え)
+// @Tags Users
+// @Accept json
+// @Produce json
+// @Param request body UserRequestModel true "ユーザー情報"
+// @Success 204 {object} nil
+// @Failure 400 {object} ErrorResponse
+// @Failure 404 {object} ErrorResponse
+// @Failure 500 {object} ErrorResponse
+// @Router /v1/users [put]
+func (h *UserHandler) PutUser(ctx *gin.Context) {
+	request_id := ctx.GetHeader("X-Request-ID")
+	param := &UserRequestModel{}
+
+	reqCtx := context.WithValue(ctx, "ctxInfo", pkg.CtxInfo{RequestId: request_id})
+	err := ctx.ShouldBindJSON(&param)
+	if err != nil {
+		slog.Error("can not process EditUser Usecase", "error msg", err, "request id", request_id)
+		ctx.JSON(http.StatusBadRequest, Response{Status: "Bad Request"})
+		return
+	}
+
+	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
+	err = h.SaveUserUsecase.Run(reqCtx, user)
+	if err != nil {
+		if err == userDomain.ERR_INVALID_CUSTOM_ID || err == userDomain.ERR_INVALID_EMAIL || err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			ctx.JSON(http.StatusBadRequest, errorresponse.MissmatchedPatternError)
+			return
+		}
+		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
+			slog.Error("Duplicate entry error", "error", err, "request_id", request_id)
+			ctx.JSON(http.StatusConflict, errorresponse.AlreadyExistsError)
+			return
+		}
+		slog.Error("Failed to save user", "error", err, "request_id", request_id)
+		ctx.JSON(http.StatusInternalServerError, errorresponse.UnknownError)
+		return
+	}
+
+	slog.Info("process done EditUser Usecase", "request id", request_id)
 	ctx.JSON(http.StatusNoContent, nil)
 }
