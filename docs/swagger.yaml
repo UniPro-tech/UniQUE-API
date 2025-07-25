@@ -160,6 +160,36 @@ paths:
       summary: ユーザー情報を登録
       tags:
       - Users
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ユーザー情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/users.UserRequestModel'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/users.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/users.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/users.ErrorResponse'
+      summary: ユーザー情報を更新(置き換え)
+      tags:
+      - Users
   /v1/users/:id:
     get:
       consumes:
