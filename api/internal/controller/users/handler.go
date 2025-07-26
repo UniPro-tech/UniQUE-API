@@ -214,9 +214,25 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
 	err = h.AddUserUsecase.Run(reqCtx, user)
 	if err != nil {
-		if err == userDomain.ERR_INVALID_CUSTOM_ID || err == userDomain.ERR_INVALID_EMAIL || err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+		if err == userDomain.ERR_INVALID_CUSTOM_ID {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
-			ctx.JSON(http.StatusBadRequest, errorresponse.MissmatchedPatternError)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "CustomID does not match the required pattern"
+			ctx.JSON(http.StatusBadRequest, response)
+			return
+		}
+		if err == userDomain.ERR_INVALID_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "Email does not match the required pattern"
+			slog.Info(response.Message)
+			ctx.JSON(http.StatusBadRequest, response)
+			return
+		}
+		if err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "ExternalEmail does not match the required pattern"
 			return
 		}
 		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
@@ -286,9 +302,25 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
 	err = h.SaveUserUsecase.Run(reqCtx, user)
 	if err != nil {
-		if err == userDomain.ERR_INVALID_CUSTOM_ID || err == userDomain.ERR_INVALID_EMAIL || err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+		if err == userDomain.ERR_INVALID_CUSTOM_ID {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
-			ctx.JSON(http.StatusBadRequest, errorresponse.MissmatchedPatternError)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "CustomID does not match the required pattern"
+			ctx.JSON(http.StatusBadRequest, response)
+			return
+		}
+		if err == userDomain.ERR_INVALID_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "Email does not match the required pattern"
+			slog.Info(response.Message)
+			ctx.JSON(http.StatusBadRequest, response)
+			return
+		}
+		if err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "ExternalEmail does not match the required pattern"
 			return
 		}
 		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
@@ -331,9 +363,25 @@ func (h *UserHandler) PatchUser(ctx *gin.Context) {
 	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
 	err = h.UpdateUserUsecase.Run(reqCtx, user)
 	if err != nil {
-		if err == userDomain.ERR_INVALID_CUSTOM_ID || err == userDomain.ERR_INVALID_EMAIL || err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+		if err == userDomain.ERR_INVALID_CUSTOM_ID {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
-			ctx.JSON(http.StatusBadRequest, errorresponse.MissmatchedPatternError)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "CustomID does not match the required pattern"
+			ctx.JSON(http.StatusBadRequest, response)
+			return
+		}
+		if err == userDomain.ERR_INVALID_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "Email does not match the required pattern"
+			slog.Info(response.Message)
+			ctx.JSON(http.StatusBadRequest, response)
+			return
+		}
+		if err == userDomain.ERR_INVALID_EXTERNAL_EMAIL {
+			slog.Error("Invalid user data", "error", err, "request_id", request_id)
+			response := errorresponse.MissmatchedPatternError
+			response.Message = "ExternalEmail does not match the required pattern"
 			return
 		}
 		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
