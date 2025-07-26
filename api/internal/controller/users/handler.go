@@ -233,6 +233,7 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
 			response := errorresponse.MissmatchedPatternError
 			response.Message = "ExternalEmail does not match the required pattern"
+			ctx.JSON(http.StatusBadRequest, response)
 			return
 		}
 		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
@@ -321,6 +322,7 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
 			response := errorresponse.MissmatchedPatternError
 			response.Message = "ExternalEmail does not match the required pattern"
+			ctx.JSON(http.StatusBadRequest, response)
 			return
 		}
 		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
@@ -382,6 +384,7 @@ func (h *UserHandler) PatchUser(ctx *gin.Context) {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
 			response := errorresponse.MissmatchedPatternError
 			response.Message = "ExternalEmail does not match the required pattern"
+			ctx.JSON(http.StatusBadRequest, response)
 			return
 		}
 		if errors.Is(err, sqlerrors.ERR_DUPLICATE_ENTRY) {
