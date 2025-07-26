@@ -20,6 +20,8 @@ func CORS() gin.HandlerFunc {
 			"GET",
 			"DELETE",
 			"OPTIONS",
+			"PUT",
+			"PATCH",
 		},
 		AllowHeaders: []string{
 			"Content-Type",
