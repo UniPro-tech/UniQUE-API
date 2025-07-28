@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log/slog"
 	"net/http"
+	"time"
 
 	errorresponse "github.com/UniPro-tech/UniQUE-API/api/internal/controller/errorresponse"
 	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
@@ -75,6 +76,7 @@ func (h *UserHandler) ListUser(ctx *gin.Context) {
 			ExternalEmail: user.ExternalEmail,
 			Period:        user.Period,
 			IsEnable:      user.IsEnable,
+			JoinedAt:      user.JoinedAt,
 		})
 	}
 	ctx.JSON(200, UsersResponse{
@@ -211,7 +213,16 @@ func (h *UserHandler) RegisterUser(ctx *gin.Context) {
 		return
 	}
 
-	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
+	joinedAt := time.Time{}
+	if param.JoinedAt == "" {
+		joinedAt, err = time.Parse(time.RFC3339, param.JoinedAt)
+		if err != nil {
+			slog.Error("Invalid date format for JoinedAt", "error", err, "request id", request_id)
+			ctx.JSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": "Invalid date format for JoinedAt"})
+			return
+		}
+	}
+	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash, &joinedAt)
 	err = h.AddUserUsecase.Run(reqCtx, user)
 	if err != nil {
 		if err == userDomain.ERR_INVALID_CUSTOM_ID {
@@ -300,7 +311,16 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 		return
 	}
 
-	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
+	joinedAt := time.Time{}
+	if param.JoinedAt != "" {
+		joinedAt, err = time.Parse(time.RFC3339, param.JoinedAt)
+		if err != nil {
+			slog.Error("Invalid date format for JoinedAt", "error", err, "request_id", request_id)
+			ctx.JSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": "Invalid date format for JoinedAt"})
+			return
+		}
+	}
+	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash, &joinedAt)
 	err = h.PutUserUsecase.Run(reqCtx, user)
 	if err != nil {
 		if err == userDomain.ERR_INVALID_CUSTOM_ID {
@@ -362,7 +382,16 @@ func (h *UserHandler) PatchUser(ctx *gin.Context) {
 		return
 	}
 
-	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
+	joinedAt := time.Time{}
+	if param.JoinedAt != "" {
+		joinedAt, err = time.Parse(time.RFC3339, param.JoinedAt)
+		if err != nil {
+			slog.Error("Invalid date format for JoinedAt", "error", err, "request_id", request_id)
+			ctx.JSON(http.StatusBadRequest, gin.H{"status": "Bad Request", "message": "Invalid date format for JoinedAt"})
+			return
+		}
+	}
+	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash, &joinedAt)
 	err = h.UpdateUserUsecase.Run(reqCtx, user)
 	if err != nil {
 		if err == userDomain.ERR_INVALID_CUSTOM_ID {

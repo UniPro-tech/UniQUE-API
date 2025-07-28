@@ -23,4 +23,7 @@ type UserResponseModel struct {
 	ExternalEmail string `json:"external_email,omitempty"`
 	Period        string `json:"period,omitempty"`
 	IsEnable      bool   `json:"is_enable,omitempty"`
+	CreatedAt     string `json:"created_at,omitempty"`
+	UpdatedAt     string `json:"updated_at,omitempty"`
+	JoinedAt      string `json:"joined_at,omitempty"`
 }

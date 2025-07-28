@@ -9,4 +9,5 @@ type UserRequestModel struct {
 	Period        string `json:"period,omitempty"`
 	IsEnable      bool   `json:"is_enable,omitempty"`
 	PasswordHash  string `json:"password_hash,omitempty"`
+	JoinedAt      string `json:"joined_at,omitempty"`
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"regexp"
+	"time"
 
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 )
@@ -29,6 +30,9 @@ type User struct {
 	period         userPeriod
 	is_enable      userIsEnable
 	password_hash  userPasswordHash
+	created_at     *userCreatedAt
+	updated_at     *userUpdatedAt
+	joined_at      *userJoinedAt
 }
 
 // ドメイン バリューオブジェクト
@@ -40,6 +44,9 @@ type userName struct{ value string }
 type userPeriod struct{ value string }
 type userIsEnable struct{ value bool }
 type userPasswordHash struct{ value string }
+type userCreatedAt struct{ value time.Time }
+type userUpdatedAt struct{ value time.Time }
+type userJoinedAt struct{ value time.Time }
 
 // ドメインルール
 
@@ -120,24 +127,38 @@ func (u *User) GetPasswordHash() string {
 	}
 	return u.password_hash.value
 }
-
-// 構造体生成関数
-func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable bool, password_hash ...*string) *User {
-	if len(password_hash) == 0 {
-		password_hash = append(password_hash, nil)
-	} else if len(password_hash) > 1 {
-		panic("too many password_hash arguments")
+func (u *User) GetCreatedAt() time.Time {
+	if u.created_at == nil {
+		return time.Time{}
 	}
-	return newUser(id, email, custom_id, name, externalEmail, period, is_enable, password_hash[0])
+	return u.created_at.value
+}
+func (u *User) GetUpdatedAt() time.Time {
+	if u.updated_at == nil {
+		return time.Time{}
+	}
+	return u.updated_at.value
+}
+func (u *User) GetJoinedAt() time.Time {
+	if u.joined_at == nil {
+		return time.Time{}
+	}
+	return u.joined_at.value
 }
 
-func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable bool, password_hash ...*string) *User {
-	if len(password_hash) == 0 {
-		password_hash = append(password_hash, nil)
-	} else if len(password_hash) > 1 {
-		panic("too many password_hash arguments")
+// 構造体生成関数
+func NewUser(id string, name string, email string, custom_id string, externalEmail string, period string, is_enable bool, password_hash *string, joined_at *time.Time) *User {
+	if password_hash == nil {
+		password_hash = new(string)
 	}
-	if password_hash[0] == nil {
+	return newUser(id, email, custom_id, name, externalEmail, period, is_enable, password_hash, joined_at)
+}
+
+func newUser(id string, email string, custom_id string, name string, externalEmail string, period string, is_enable bool, password_hash *string, joined_at *time.Time) *User {
+	if password_hash == nil || *password_hash == "" {
+		password_hash = new(string)
+	}
+	if joined_at == nil {
 		return &User{
 			id:             userUUID{value: id},
 			email:          userInternalEmail{value: email},
@@ -146,8 +167,10 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 			external_email: userExternalEmail{value: externalEmail},
 			period:         userPeriod{value: period},
 			is_enable:      userIsEnable{value: is_enable},
+			password_hash:  userPasswordHash{value: *password_hash},
 		}
 	}
+
 	return &User{
 		id:             userUUID{value: id},
 		email:          userInternalEmail{value: email},
@@ -156,7 +179,8 @@ func newUser(id string, email string, custom_id string, name string, externalEma
 		external_email: userExternalEmail{value: externalEmail},
 		period:         userPeriod{value: period},
 		is_enable:      userIsEnable{value: is_enable},
-		password_hash:  userPasswordHash{value: *password_hash[0]},
+		password_hash:  userPasswordHash{value: *password_hash},
+		joined_at:      &userJoinedAt{value: *joined_at},
 	}
 }
 

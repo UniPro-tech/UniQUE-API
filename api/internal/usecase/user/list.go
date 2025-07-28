@@ -33,6 +33,7 @@ type ListUserUsecaseDtoModel struct {
 	Period        string `json:"period,omitempty"`
 	ExternalEmail string `json:"external_email,omitempty"`
 	IsEnable      bool   `json:"is_enable,omitempty"`
+	JoinedAt      string `json:"joined_at,omitempty"`
 }
 
 func NewFindUserUsecase(uds user.IUserDomainService) *ListUserUsecase {
@@ -63,6 +64,7 @@ func (us *ListUserUsecase) Run(ctx context.Context) (*ListUserUsecaseDto, error)
 			Period:        u.GetPeriod(),
 			IsEnable:      u.GetIsEnable(),
 			ExternalEmail: u.GetExternalEmail(),
+			JoinedAt:      u.GetJoinedAt().Format("2006-01-02T15:04:05Z07:00"),
 		}
 		dtouser = append(dtouser, r)
 	}

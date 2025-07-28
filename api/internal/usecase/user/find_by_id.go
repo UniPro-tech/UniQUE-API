@@ -20,6 +20,9 @@ type GetUserByIdUsecaseDtoModel struct {
 	Period        string `json:"period,omitempty"`
 	ExternalEmail string `json:"external_email,omitempty"`
 	IsEnable      bool   `json:"is_enable,omitempty"`
+	CreatedAt     string `json:"created_at,omitempty"`
+	UpdatedAt     string `json:"updated_at,omitempty"`
+	JoinedAt      string `json:"joined_at,omitempty"`
 }
 
 func NewFindUserByIdUsecase(uds user.IUserDomainService) *FindUserByIdUsecase {
