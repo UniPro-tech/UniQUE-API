@@ -21,7 +21,7 @@ type UserHandler struct {
 	SearchUserUsecase   *usecase.SearchUsecase
 	AddUserUsecase      *usecase.CreateUserUsecase
 	DeleteUserUsecase   *usecase.DeleteUserUsecase
-	SaveUserUsecase     *usecase.SaveUserUsecase
+	PutUserUsecase      *usecase.PutUserUsecase
 	UpdateUserUsecase   *usecase.UpdateUserUsecase
 }
 
@@ -31,7 +31,7 @@ func NewUsersHandler(
 	searchUserUsecase *usecase.SearchUsecase,
 	addUserUsecase *usecase.CreateUserUsecase,
 	deleteUserUsecase *usecase.DeleteUserUsecase,
-	saveUserUsecase *usecase.SaveUserUsecase,
+	putUserUsecase *usecase.PutUserUsecase,
 	updateUserUsecase *usecase.UpdateUserUsecase,
 ) *UserHandler {
 	return &UserHandler{
@@ -40,7 +40,7 @@ func NewUsersHandler(
 		SearchUserUsecase:   searchUserUsecase,
 		AddUserUsecase:      addUserUsecase,
 		DeleteUserUsecase:   deleteUserUsecase,
-		SaveUserUsecase:     saveUserUsecase,
+		PutUserUsecase:      putUserUsecase,
 		UpdateUserUsecase:   updateUserUsecase,
 	}
 }
@@ -301,7 +301,7 @@ func (h *UserHandler) PutUser(ctx *gin.Context) {
 	}
 
 	user := userDomain.NewUser(param.ID, param.Name, param.Email, param.CustomID, param.ExternalEmail, param.Period, param.IsEnable, &param.PasswordHash)
-	err = h.SaveUserUsecase.Run(reqCtx, user)
+	err = h.PutUserUsecase.Run(reqCtx, user)
 	if err != nil {
 		if err == userDomain.ERR_INVALID_CUSTOM_ID {
 			slog.Error("Invalid user data", "error", err, "request_id", request_id)
