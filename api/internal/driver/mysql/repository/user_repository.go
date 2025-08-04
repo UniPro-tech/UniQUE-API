@@ -71,31 +71,6 @@ func (ud *UserDriver) ListUser(ctx context.Context) ([]*userDomain.User, int64, 
 	return res, totalCount, nil
 }
 
-// FindUserByIdは、指定されたユーザーIDに基づいてデータベースからユーザー情報を取得します。
-// コンテキストとユーザーIDを受け取り、Userドメインオブジェクトのポインタとエラーを返します。
-// ユーザーが見つからない場合はgorm.ErrRecordNotFoundを返します。
-// エラーや処理状況は、コンテキストから取得したリクエストIDとともにslogでログに記録します。
-func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.User, error) {
-	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
-	user := scheme.User{}
-
-	err := ud.conn.Table("users").Where("id = ?", id).Find(&user).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		slog.Error("can not complate FindByID Repository", "request id", ctxValue.RequestId)
-		return nil, gorm.ErrRecordNotFound
-	}
-
-	res := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, user.IsEnable, nil, &user.JoinedAt)
-	if err != nil {
-		slog.Error("can not complete FindByID Repository", "request id", ctxValue.RequestId, "error", err)
-		return nil, err
-	}
-
-	slog.Info("process done FindByID Repository", "request id", ctxValue.RequestId, "user", user)
-	return res, nil
-}
-
 // Save は、指定されたユーザードメインオブジェクトの情報をデータベースに上書き保存します。
 // コンテキスト情報（ctxInfo）を利用してリクエストIDを取得し、処理のログを記録します。
 // 保存処理に失敗した場合はエラーを返します。
