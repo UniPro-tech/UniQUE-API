@@ -62,7 +62,7 @@ func (rd *RoleDriver) ListRole(ctx context.Context) ([]*roleDomain.Role, int64, 
 	}
 
 	for _, role := range roles {
-		// TODO: 実装　role.Permissions
+		// TODO: 実装　role.Permission
 		u := roleDomain.NewRole(role.ID, role.CustomID, role.Name, role.IsEnable, role.IsSystem, []string{})
 
 		res = append(res, u)
@@ -88,11 +88,11 @@ func (rd *RoleDriver) Save(ctx context.Context, param *roleDomain.Role) error {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
 	repoRole := &scheme.Role{
-		ID:          param.GetID(),
-		CustomID:    param.GetCustomID(),
-		Name:        param.GetName(),
-		IsEnable:    param.GetIsEnable(),
-		Permissions: int32(param.GetPermissionsBits()),
+		ID:         param.GetID(),
+		CustomID:   param.GetCustomID(),
+		Name:       param.GetName(),
+		IsEnable:   param.GetIsEnable(),
+		Permission: int32(param.GetPermissionBits()),
 	}
 
 	err := rd.conn.Table("roles").Save(repoRole).Error
@@ -125,12 +125,12 @@ func (rd *RoleDriver) Create(ctx context.Context, param *roleDomain.Role) error 
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
 	repoRole := &scheme.Role{
-		ID:          param.GetID(),
-		CustomID:    param.GetCustomID(),
-		Name:        param.GetName(),
-		IsEnable:    param.GetIsEnable(),
-		Permissions: int32(param.GetPermissionsBits()),
-		IsSystem:    param.GetIsSystem(),
+		ID:         param.GetID(),
+		CustomID:   param.GetCustomID(),
+		Name:       param.GetName(),
+		IsEnable:   param.GetIsEnable(),
+		Permission: int32(param.GetPermissionBits()),
+		IsSystem:   param.GetIsSystem(),
 	}
 
 	err := rd.conn.Table("roles").Create(repoRole).Error
@@ -176,12 +176,12 @@ func (rd *RoleDriver) Update(ctx context.Context, param *roleDomain.Role) error 
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
 
 	repoRole := &scheme.Role{
-		ID:          param.GetID(),
-		CustomID:    param.GetCustomID(),
-		Name:        param.GetName(),
-		IsEnable:    param.GetIsEnable(),
-		Permissions: int32(param.GetPermissionsBits()),
-		IsSystem:    param.GetIsSystem(),
+		ID:         param.GetID(),
+		CustomID:   param.GetCustomID(),
+		Name:       param.GetName(),
+		IsEnable:   param.GetIsEnable(),
+		Permission: int32(param.GetPermissionBits()),
+		IsSystem:   param.GetIsSystem(),
 	}
 
 	err := rd.conn.Table("roles").Updates(repoRole).Error
@@ -254,7 +254,7 @@ func (rd *RoleDriver) Search(ctx context.Context, searchParams pkg.RoleParams) (
 	}
 
 	for _, role := range roles {
-		// TODO: 実装する role.Permissions
+		// TODO: 実装する role.Permission
 		r := roleDomain.NewRole(role.ID, role.Name, role.CustomID, role.IsEnable, role.IsSystem, []string{})
 
 		res = append(res, r)

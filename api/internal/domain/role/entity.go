@@ -19,14 +19,14 @@ var (
 
 // ドメインモデル
 type Role struct {
-	id          roleUUID
-	name        roleName
-	custom_id   customID
-	permissions rolePermissions
-	created_at  roleCreatedAt
-	updated_at  *roleUpdatedAt
-	is_enable   roleIsEnable
-	is_system   roleIsSystem
+	id         roleUUID
+	name       roleName
+	custom_id  customID
+	permission rolePermission
+	created_at roleCreatedAt
+	updated_at *roleUpdatedAt
+	is_enable  roleIsEnable
+	is_system  roleIsSystem
 }
 
 // ドメイン バリューオブジェクト
@@ -37,7 +37,7 @@ type roleIsEnable struct{ value bool }
 type roleCreatedAt struct{ value time.Time }
 type roleUpdatedAt struct{ value time.Time }
 type roleIsSystem struct{ value bool }
-type rolePermissions struct {
+type rolePermission struct {
 	value []string
 	bits  uint32
 }
@@ -102,23 +102,23 @@ func (r *Role) GetUpdatedAt() time.Time {
 	}
 	return r.updated_at.value
 }
-func (r *Role) GetIsSystem() bool             { return r.is_system.value }
-func (r *Role) GetPermissionsArray() []string { return r.permissions.value }
-func (r *Role) GetPermissionsBits() uint32    { return r.permissions.bits }
+func (r *Role) GetIsSystem() bool            { return r.is_system.value }
+func (r *Role) GetPermissionArray() []string { return r.permission.value }
+func (r *Role) GetPermissionBits() uint32    { return r.permission.bits }
 
 // 構造体生成関数
-func NewRole(id string, custom_id string, name string, is_enable bool, is_system bool, permissions []string) *Role {
-	return newRole(id, custom_id, name, is_enable, is_system, permissions, 0)
+func NewRole(id string, custom_id string, name string, is_enable bool, is_system bool, permission []string) *Role {
+	return newRole(id, custom_id, name, is_enable, is_system, permission, 0)
 }
 
-func newRole(id string, custom_id string, name string, is_enable bool, is_system bool, permissions []string, permissionBit uint32) *Role {
+func newRole(id string, custom_id string, name string, is_enable bool, is_system bool, permission []string, permissionBit uint32) *Role {
 	return &Role{
-		id:          roleUUID{value: id},
-		custom_id:   customID{value: custom_id},
-		name:        roleName{value: name},
-		permissions: rolePermissions{value: permissions, bits: 0},
-		is_enable:   roleIsEnable{value: is_enable},
-		is_system:   roleIsSystem{value: is_system},
+		id:         roleUUID{value: id},
+		custom_id:  customID{value: custom_id},
+		name:       roleName{value: name},
+		permission: rolePermission{value: permission, bits: 0},
+		is_enable:  roleIsEnable{value: is_enable},
+		is_system:  roleIsSystem{value: is_system},
 	}
 }
 
