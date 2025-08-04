@@ -62,7 +62,7 @@ func (ud *UserDriver) ListUser(ctx context.Context) ([]*userDomain.User, int64, 
 	}
 
 	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable, nil, user.JoinedAt)
+		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable, nil, &user.JoinedAt)
 
 		res = append(res, u)
 	}
@@ -86,7 +86,7 @@ func (ud *UserDriver) FindUserById(ctx context.Context, id string) (*userDomain.
 		return nil, gorm.ErrRecordNotFound
 	}
 
-	res := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, user.IsEnable, nil, user.JoinedAt)
+	res := userDomain.NewUser(user.ID, user.Email, user.CustomID, user.Name, user.ExternalEmail, user.Period, user.IsEnable, nil, &user.JoinedAt)
 	if err != nil {
 		slog.Error("can not complete FindByID Repository", "request id", ctxValue.RequestId, "error", err)
 		return nil, err
@@ -121,7 +121,7 @@ func (ud *UserDriver) Save(ctx context.Context, param *userDomain.User) error {
 		ExternalEmail: param.GetExternalEmail(),
 		Email:         param.GetEmail(),
 		PasswordHash:  param.GetPasswordHash(),
-		JoinedAt:      &joinedAt,
+		JoinedAt:      joinedAt,
 	}
 
 	err := ud.conn.Table("users").Save(repoUser).Error
@@ -163,7 +163,7 @@ func (ud *UserDriver) Create(ctx context.Context, param *userDomain.User) error 
 		ExternalEmail: param.GetExternalEmail(),
 		Email:         param.GetEmail(),
 		PasswordHash:  param.GetPasswordHash(),
-		JoinedAt:      &joinedAt,
+		JoinedAt:      joinedAt,
 	}
 
 	err := ud.conn.Table("users").Create(repoUser).Error
@@ -205,7 +205,7 @@ func (ud *UserDriver) Update(ctx context.Context, param *userDomain.User) error 
 		ExternalEmail: param.GetExternalEmail(),
 		Email:         param.GetEmail(),
 		PasswordHash:  param.GetPasswordHash(),
-		JoinedAt:      &joinedAt,
+		JoinedAt:      joinedAt,
 	}
 
 	err := ud.conn.Table("users").Updates(repoUser).Error
@@ -274,7 +274,7 @@ func (ud *UserDriver) Search(ctx context.Context, searchParams pkg.UserParams) (
 	}
 
 	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable, nil, user.JoinedAt)
+		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable, nil, &user.JoinedAt)
 
 		res = append(res, u)
 	}
