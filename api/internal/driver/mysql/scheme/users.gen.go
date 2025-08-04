@@ -12,18 +12,18 @@ const TableNameUser = "users"
 
 // User mapped from table <users>
 type User struct {
-	ID            string     `gorm:"column:id;primaryKey" json:"id"`
-	CustomID      string     `gorm:"column:custom_id" json:"custom_id"`
-	Name          string     `gorm:"column:name;not null" json:"name"`
-	PasswordHash  string     `gorm:"column:password_hash" json:"password_hash"`
-	Email         string     `gorm:"column:email" json:"email"`
-	ExternalEmail string     `gorm:"column:external_email;not null" json:"external_email"`
-	Period        string     `gorm:"column:period;not null" json:"period"`
-	JoinedAt      *time.Time `gorm:"column:joined_at" json:"joined_at"`
-	IsSystem      bool       `gorm:"column:is_system;not null" json:"is_system"`
-	CreatedAt     time.Time  `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt     time.Time  `gorm:"column:updated_at" json:"updated_at"`
-	IsEnable      bool       `gorm:"column:is_enable;default:1" json:"is_enable"`
+	ID            string    `gorm:"column:id;primaryKey" json:"id"`
+	CustomID      string    `gorm:"column:custom_id" json:"custom_id"`
+	Name          string    `gorm:"column:name;not null" json:"name"`
+	PasswordHash  string    `gorm:"column:password_hash" json:"password_hash"`
+	Email         string    `gorm:"column:email" json:"email"`
+	ExternalEmail string    `gorm:"column:external_email;not null" json:"external_email"`
+	Period        string    `gorm:"column:period;not null" json:"period"`
+	JoinedAt      time.Time `gorm:"column:joined_at" json:"joined_at"`
+	IsSystem      bool      `gorm:"column:is_system;not null" json:"is_system"`
+	CreatedAt     time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt     time.Time `gorm:"column:updated_at" json:"updated_at"`
+	IsEnable      bool      `gorm:"column:is_enable;default:1" json:"is_enable"`
 }
 
 // TableName User's table name

@@ -14,11 +14,12 @@ const TableNameRole = "roles"
 type Role struct {
 	ID          string    `gorm:"column:id;primaryKey" json:"id"`
 	CustomID    string    `gorm:"column:custom_id" json:"custom_id"`
+	Name        string    `gorm:"column:name" json:"name"`
 	Permissions int32     `gorm:"column:permissions;not null" json:"permissions"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt   time.Time `gorm:"column:updated_at" json:"updated_at"`
 	IsEnable    bool      `gorm:"column:is_enable;not null;default:1" json:"is_enable"`
-	System      bool      `gorm:"column:system;not null" json:"system"`
+	IsSystem    bool      `gorm:"column:is_system;not null" json:"is_system"`
 }
 
 // TableName Role's table name

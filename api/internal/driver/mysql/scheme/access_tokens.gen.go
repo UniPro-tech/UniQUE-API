@@ -12,7 +12,7 @@ const TableNameAccessToken = "access_tokens"
 
 // AccessToken mapped from table <access_tokens>
 type AccessToken struct {
-	ID       int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	ID       string    `gorm:"column:id;primaryKey" json:"id"`
 	Hash     string    `gorm:"column:hash;not null" json:"hash"`
 	Type     string    `gorm:"column:type;not null" json:"type"`
 	Scope    string    `gorm:"column:scope;not null" json:"scope"`

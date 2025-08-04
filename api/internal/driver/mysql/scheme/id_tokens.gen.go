@@ -12,10 +12,9 @@ const TableNameIDToken = "id_tokens"
 
 // IDToken mapped from table <id_tokens>
 type IDToken struct {
-	ID       int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	ID       string    `gorm:"column:id;primaryKey" json:"id"`
 	Hash     string    `gorm:"column:hash;not null" json:"hash"`
 	Type     string    `gorm:"column:type;not null" json:"type"`
-	Scope    string    `gorm:"column:scope;not null" json:"scope"`
 	IssuedAt time.Time `gorm:"column:issued_at;not null" json:"issued_at"`
 	Exp      time.Time `gorm:"column:exp;not null" json:"exp"`
 	ClientID string    `gorm:"column:client_id;not null;comment:アプリケーションID" json:"client_id"` // アプリケーションID
@@ -24,7 +23,6 @@ type IDToken struct {
 	AuthTime time.Time `gorm:"column:auth_time" json:"auth_time"`
 	Acr      string    `gorm:"column:acr" json:"acr"`
 	Amr      string    `gorm:"column:amr" json:"amr"`
-	Jti      string    `gorm:"column:jti;not null" json:"jti"`
 	UserID   string    `gorm:"column:user_id;not null" json:"user_id"`
 	Revoked  bool      `gorm:"column:revoked;not null" json:"revoked"`
 }

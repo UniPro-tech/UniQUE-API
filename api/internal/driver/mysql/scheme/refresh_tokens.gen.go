@@ -12,7 +12,7 @@ const TableNameRefreshToken = "refresh_tokens"
 
 // RefreshToken mapped from table <refresh_tokens>
 type RefreshToken struct {
-	ID       int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	ID       string    `gorm:"column:id;primaryKey" json:"id"`
 	Hash     string    `gorm:"column:hash;not null" json:"hash"`
 	Type     string    `gorm:"column:type;not null" json:"type"`
 	IssuedAt time.Time `gorm:"column:issued_at;not null" json:"issued_at"`
