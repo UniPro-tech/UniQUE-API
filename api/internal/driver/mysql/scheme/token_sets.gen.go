@@ -8,11 +8,12 @@ const TableNameTokenSet = "token_sets"
 
 // TokenSet mapped from table <token_sets>
 type TokenSet struct {
-	ID                  int32 `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	OidcAuthorizationID int32 `gorm:"column:oidc_authorization_id;not null" json:"oidc_authorization_id"`
-	AccessTokenID       int32 `gorm:"column:access_token_id;not null" json:"access_token_id"`
-	RefreshTokenID      int32 `gorm:"column:refresh_token_id;not null" json:"refresh_token_id"`
-	IsEnable            bool  `gorm:"column:is_enable;not null;default:1" json:"is_enable"`
+	ID                  int32  `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	OidcAuthorizationID int32  `gorm:"column:oidc_authorization_id;not null" json:"oidc_authorization_id"`
+	AccessTokenID       string `gorm:"column:access_token_id;not null" json:"access_token_id"`
+	RefreshTokenID      string `gorm:"column:refresh_token_id;not null" json:"refresh_token_id"`
+	IDTokenID           string `gorm:"column:id_token_id;not null" json:"id_token_id"`
+	IsEnable            bool   `gorm:"column:is_enable;not null;default:1" json:"is_enable"`
 }
 
 // TableName TokenSet's table name

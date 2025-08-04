@@ -12,11 +12,16 @@ const TableNameCode = "code"
 
 // Code mapped from table <code>
 type Code struct {
-	ID        int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
-	Token     string    `gorm:"column:token;not null" json:"token"`
-	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
-	Exp       time.Time `gorm:"column:exp" json:"exp"`
-	IsEnable  bool      `gorm:"column:is_enable;not null;default:1" json:"is_enable"`
+	ID                  int32     `gorm:"column:id;primaryKey;autoIncrement:true" json:"id"`
+	Token               string    `gorm:"column:token;not null" json:"token"`
+	Nonce               string    `gorm:"column:nonce" json:"nonce"`
+	CodeChallenge       string    `gorm:"column:code_challenge" json:"code_challenge"`
+	CodeChallengeMethod string    `gorm:"column:code_challenge_method" json:"code_challenge_method"`
+	Acr                 string    `gorm:"column:acr" json:"acr"`
+	Amr                 string    `gorm:"column:amr" json:"amr"`
+	CreatedAt           time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
+	Exp                 time.Time `gorm:"column:exp" json:"exp"`
+	IsEnable            bool      `gorm:"column:is_enable;not null;default:1" json:"is_enable"`
 }
 
 // TableName Code's table name

@@ -17,7 +17,7 @@ type Session struct {
 	IPAddress string    `gorm:"column:ip_address;not null" json:"ip_address"`
 	UserAgent string    `gorm:"column:user_agent;not null" json:"user_agent"`
 	CreatedAt time.Time `gorm:"column:created_at;default:CURRENT_TIMESTAMP" json:"created_at"`
-	ExpiresAt time.Time `gorm:"column:expires_at;not null" json:"expires_at"`
+	ExpiresAt time.Time `gorm:"column:expires_at" json:"expires_at"`
 	IsEnable  bool      `gorm:"column:is_enable;not null;default:1" json:"is_enable"`
 }
 
