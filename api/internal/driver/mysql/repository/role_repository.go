@@ -72,31 +72,6 @@ func (rd *RoleDriver) ListRole(ctx context.Context) ([]*roleDomain.Role, int64, 
 	return res, totalCount, nil
 }
 
-// FindUserByIdは、指定されたユーザーIDに基づいてデータベースからユーザー情報を取得します。
-// コンテキストとユーザーIDを受け取り、Userドメインオブジェクトのポインタとエラーを返します。
-// ユーザーが見つからない場合はgorm.ErrRecordNotFoundを返します。
-// エラーや処理状況は、コンテキストから取得したリクエストIDとともにslogでログに記録します。
-func (rd *RoleDriver) FindRoleById(ctx context.Context, id string) (*roleDomain.Role, error) {
-	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
-	role := scheme.Role{}
-
-	err := rd.conn.Table("roles").Where("id = ?", id).Find(&role).Error
-
-	if errors.Is(err, gorm.ErrRecordNotFound) {
-		slog.Error("can not complate FindByID Repository", "request id", ctxValue.RequestId)
-		return nil, gorm.ErrRecordNotFound
-	}
-	//TODO: 実装　role.Permissions
-	res := roleDomain.NewRole(role.ID, role.CustomID, role.Name, role.IsEnable, role.IsSystem, []string{})
-	if err != nil {
-		slog.Error("can not complete FindByID Repository", "request id", ctxValue.RequestId, "error", err)
-		return nil, err
-	}
-
-	slog.Info("process done FindByID Repository", "request id", ctxValue.RequestId, "role", role)
-	return res, nil
-}
-
 // Save は、指定されたユーザードメインオブジェクトの情報をデータベースに上書き保存します。
 // コンテキスト情報（ctxInfo）を利用してリクエストIDを取得し、処理のログを記録します。
 // 保存処理に失敗した場合はエラーを返します。
@@ -237,27 +212,29 @@ func (rd *RoleDriver) Update(ctx context.Context, param *roleDomain.Role) error 
 // 有効/無効フラグなどが指定可能です。
 // ページネーションとソート（ID昇順）にも対応しています。
 // 検索処理中にエラーが発生した場合は、エラー情報を返します。
-// TODO: 実装する
-/*
-func (rd *RoleDriver) Search(ctx context.Context, searchParams pkg.UserParams) ([]*roleDomain.Role, int64, error) {
+func (rd *RoleDriver) Search(ctx context.Context, searchParams pkg.RoleParams) ([]*roleDomain.Role, int64, error) {
 	ctxValue := ctx.Value("ctxInfo").(pkg.CtxInfo)
-	users := []*scheme.User{}
+	roles := []*scheme.Role{}
 	res := []*roleDomain.Role{}
 	var totalCount int64
 
-	query := &scheme.User{
-		ID:            *searchParams.ID,
-		Email:         *searchParams.Email,
-		CustomID:      *searchParams.CustomID,
-		Name:          *searchParams.Name,
-		ExternalEmail: *searchParams.ExternalEmail,
-		Period:        *searchParams.Period,
+	query := &scheme.Role{
+		ID:       *searchParams.ID,
+		CustomID: *searchParams.CustomID,
+		Name:     *searchParams.Name,
 	}
 	if searchParams.IsEnable != nil {
 		if *searchParams.IsEnable == "true" {
 			query.IsEnable = true
 		} else {
 			query.IsEnable = false
+		}
+	}
+	if searchParams.IsSystem != nil {
+		if *searchParams.IsSystem == "true" {
+			query.IsSystem = true
+		} else {
+			query.IsSystem = false
 		}
 	}
 
@@ -270,22 +247,22 @@ func (rd *RoleDriver) Search(ctx context.Context, searchParams pkg.UserParams) (
 		page = 0
 	}
 
-	err = rd.conn.Table("roles").Where(query).Limit(limit).Offset(limit * (page - 1)).Order("id ASC").Find(&users).Count(&totalCount).Error
+	err = rd.conn.Table("roles").Where(query).Limit(limit).Offset(limit * (page - 1)).Order("id ASC").Find(&roles).Count(&totalCount).Error
 	if err != nil {
 		slog.Error("can not complete SearchRole Repository", "request id", ctxValue.RequestId, "error", err)
 		return nil, 0, err
 	}
 
-	for _, user := range users {
-		u := userDomain.NewUser(user.ID, user.Name, user.Email, user.CustomID, user.ExternalEmail, user.Period, user.IsEnable, nil, user.JoinedAt)
+	for _, role := range roles {
+		// TODO: 実装する role.Permissions
+		r := roleDomain.NewRole(role.ID, role.Name, role.CustomID, role.IsEnable, role.IsSystem, []string{})
 
-		res = append(res, u)
+		res = append(res, r)
 	}
 
-	slog.Info("process done ListUser Repository", "request id", ctxValue.RequestId, "total count", totalCount, "users", res)
+	slog.Info("process done ListRole Repository", "request id", ctxValue.RequestId, "total count", totalCount, "roles", res)
 	return res, totalCount, nil
 }
-*/
 
 func NewRoleDriver(conn *gorm.DB) roleDomain.RoleServiceRepository {
 	return &RoleDriver{conn: conn}

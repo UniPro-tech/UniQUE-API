@@ -15,3 +15,11 @@ type UserParams struct {
 	Period        *string `json:"period,omitempty"`
 	IsEnable      *string `json:"is_enable,omitempty"`
 }
+
+type RoleParams struct {
+	ID       *string `json:"id,omitempty"`
+	CustomID *string `json:"custom_id,omitempty"`
+	Name     *string `json:"name,omitempty"`
+	IsEnable *string `json:"is_enable,omitempty"`
+	IsSystem *string `json:"is_system,omitempty"`
+}
