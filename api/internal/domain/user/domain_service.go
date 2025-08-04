@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
+	"gorm.io/gorm"
 )
 
 type UserDomainService struct {
@@ -30,11 +31,14 @@ func (uds *UserDomainService) ListUser(ctx context.Context) ([]*User, int64, err
 // ctx はリクエストのコンテキストを表し、id は検索対象のユーザーIDです。
 // ユーザーが見つかった場合は User オブジェクトを返し、見つからない場合やエラーが発生した場合は error を返します。
 func (uds *UserDomainService) FindUserById(ctx context.Context, id string) (*User, error) {
-	user, err := uds.repo.FindUserById(ctx, id)
+	users, count, err := uds.repo.Search(ctx, pkg.UserParams{ID: &id})
 	if err != nil {
 		return nil, err
 	}
-	return user, nil
+	if count == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return users[0], nil
 }
 
 // EditUser は、指定されたユーザー情報を検証し、リポジトリに保存します。

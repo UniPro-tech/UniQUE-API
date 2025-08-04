@@ -5,6 +5,7 @@ import (
 	"log/slog"
 
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
+	"gorm.io/gorm"
 )
 
 type RoleDomainService struct {
@@ -30,11 +31,14 @@ func (uds *RoleDomainService) ListRole(ctx context.Context) ([]*Role, int64, err
 // ctx はリクエストのコンテキストを表し、id は検索対象のユーザーIDです。
 // ユーザーが見つかった場合は Role オブジェクトを返し、見つからない場合やエラーが発生した場合は error を返します。
 func (uds *RoleDomainService) FindRoleById(ctx context.Context, id string) (*Role, error) {
-	user, err := uds.repo.FindRoleById(ctx, id)
+	roles, count, err := uds.repo.Search(ctx, pkg.RoleParams{ID: &id})
 	if err != nil {
 		return nil, err
 	}
-	return user, nil
+	if count == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+	return roles[0], nil
 }
 
 // EditRole は、指定されたユーザー情報を検証し、リポジトリに保存します。
