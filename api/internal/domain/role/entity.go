@@ -1,9 +1,12 @@
 package role
 
 import (
+	"context"
 	"errors"
 	"regexp"
 	"time"
+
+	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 )
 
 const (
@@ -124,4 +127,12 @@ func newRole(id string, custom_id string, name string, is_enable bool, is_system
 
 //go:generate moq -out IUserDomainService_mock.go . IUserDomainService
 type IRoleDomainService interface {
+	ListRole(ctx context.Context) ([]*Role, int64, error)
+	FindRoleById(ctx context.Context, id string) (*Role, error)
+	SearchRole(ctx context.Context, searchParams pkg.RoleParams) ([]*Role, int64, error)
+	EditRole(ctx context.Context, param *Role) error
+	DeleteRole(ctx context.Context, id string) error
+	AddRole(ctx context.Context, param *Role) error
+	SaveRole(ctx context.Context, param *Role) error
+	UpdateRole(ctx context.Context, param *Role) error
 }
