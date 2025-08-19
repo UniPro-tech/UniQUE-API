@@ -80,14 +80,13 @@ func (uds *RoleDomainService) DeleteRole(ctx context.Context, id string) error {
 // ctx: コンテキスト情報。
 // searchParams: ユーザー検索のためのパラメータ。
 // 戻り値: ユーザー情報のスライス、総件数、エラー情報。
-// TODO: 直す
-/*func (uds *RoleDomainService) SearchRole(ctx context.Context, searchParams pkg.RoleParams) ([]*Role, int64, error) {
-	users, count, err := uds.repo.Search(ctx, searchParams)
+func (uds *RoleDomainService) SearchRole(ctx context.Context, searchParams pkg.RoleParams) ([]*Role, int64, error) {
+	roles, count, err := uds.repo.Search(ctx, searchParams)
 	if err != nil {
 		return nil, 0, err
 	}
-	return users, count, nil
-}*/
+	return roles, count, nil
+}
 
 func (uds *RoleDomainService) AddRole(ctx context.Context, param *Role) error {
 	if err := param.Valid(); err != nil {
