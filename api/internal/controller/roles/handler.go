@@ -189,7 +189,7 @@ func (h *RoleHandler) SearchRoles(ctx *gin.Context) {
 // @Success 200 {object} Response
 // @Failure 400 {object} ErrorResponse
 // @Failure 500 {object} ErrorResponse
-// @Router /v1/users [post]
+// @Router /v1/roles [post]
 func (h *RoleHandler) RegisterRole(ctx *gin.Context) {
 	request_id := ctx.GetHeader("X-Request-ID")
 	param := &RoleRequestModel{}

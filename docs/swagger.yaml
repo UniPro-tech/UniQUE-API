@@ -274,7 +274,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response'
+            $ref: '#/definitions/api_internal_controller_system.Response'
       summary: 死活監視用
       tags:
       - healthcheck
@@ -320,6 +320,34 @@ paths:
           schema:
             $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
       summary: ロール情報を部分更新
+      tags:
+      - Roles
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: ロール情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.Response'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+      summary: ロール情報を登録
       tags:
       - Roles
   /v1/roles/{id}:
@@ -426,7 +454,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse'
+            $ref: '#/definitions/api_internal_controller_users.UsersResponse'
       summary: ユーザー検索
       tags:
       - Users
@@ -439,7 +467,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel'
+          $ref: '#/definitions/api_internal_controller_users.UserRequestModel'
       produces:
       - application/json
       responses:
@@ -448,15 +476,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
       summary: ユーザー情報を部分更新
       tags:
       - Users
@@ -469,22 +497,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel'
+          $ref: '#/definitions/api_internal_controller_users.UserRequestModel'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.Response'
+            $ref: '#/definitions/api_internal_controller_users.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
       summary: ユーザー情報を登録
       tags:
       - Users
@@ -497,7 +525,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel'
+          $ref: '#/definitions/api_internal_controller_users.UserRequestModel'
       produces:
       - application/json
       responses:
@@ -506,15 +534,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
       summary: ユーザー情報を更新(置き換え)
       tags:
       - Users
@@ -533,7 +561,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel'
+            $ref: '#/definitions/api_internal_controller_users.UserResponseModel'
       summary: ユーザーの詳細情報を取得
       tags:
       - Users
@@ -555,15 +583,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
+            $ref: '#/definitions/api_internal_controller_users.ErrorResponse'
       summary: ユーザーを削除
       tags:
       - Users
