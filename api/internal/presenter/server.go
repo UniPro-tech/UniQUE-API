@@ -49,7 +49,7 @@ func (s *Server) Run(ctx context.Context) error {
 	UserDomainService := userDomain.NewUserDomainService(UserDriver)
 	finduser_usecase := userUsecase.NewFindUserUsecase(UserDomainService)
 	finduserbyid_usecase := userUsecase.NewFindUserByIdUsecase(UserDomainService)
-	searchuser_usecase := userUsecase.NewSearchUsecase(UserDomainService)
+	searchuser_usecase := userUsecase.NewSearchUserUsecase(UserDomainService)
 	adduser_usecase := userUsecase.NewCreateUserUsecase(UserDomainService)
 	deleteuser_usecase := userUsecase.NewDeleteUserUsecase(UserDomainService)
 	putuser_usecase := userUsecase.NewPutUserUsecase(UserDomainService)

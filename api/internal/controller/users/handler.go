@@ -19,7 +19,7 @@ import (
 type UserHandler struct {
 	ListUserUsecase     *usecase.ListUserUsecase
 	FindUserByIdUsecase *usecase.FindUserByIdUsecase
-	SearchUserUsecase   *usecase.SearchUsecase
+	SearchUserUsecase   *usecase.SearchUserUsecase
 	AddUserUsecase      *usecase.CreateUserUsecase
 	DeleteUserUsecase   *usecase.DeleteUserUsecase
 	PutUserUsecase      *usecase.PutUserUsecase
@@ -29,7 +29,7 @@ type UserHandler struct {
 func NewUsersHandler(
 	listUserUsecase *usecase.ListUserUsecase,
 	findUserByIdUsecase *usecase.FindUserByIdUsecase,
-	searchUserUsecase *usecase.SearchUsecase,
+	searchUserUsecase *usecase.SearchUserUsecase,
 	addUserUsecase *usecase.CreateUserUsecase,
 	deleteUserUsecase *usecase.DeleteUserUsecase,
 	putUserUsecase *usecase.PutUserUsecase,

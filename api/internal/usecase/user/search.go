@@ -13,7 +13,7 @@ var (
 	INVALID_SEARCH_PARAMS = errors.New("invalid search parameters")
 )
 
-type SearchUsecase struct {
+type SearchUserUsecase struct {
 	uds user.IUserDomainService
 }
 
@@ -33,11 +33,11 @@ type SearchUserUsecaseDtoModel struct {
 	IsEnable      bool   `json:"is_enable,omitempty"`
 }
 
-func NewSearchUsecase(uds user.IUserDomainService) *SearchUsecase {
-	return &SearchUsecase{uds: uds}
+func NewSearchUserUsecase(uds user.IUserDomainService) *SearchUserUsecase {
+	return &SearchUserUsecase{uds: uds}
 }
 
-func (us *SearchUsecase) Run(ctx context.Context) (*SearchUsecaseDtoModel, error) {
+func (us *SearchUserUsecase) Run(ctx context.Context) (*SearchUsecaseDtoModel, error) {
 	value, ok := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	if !ok {
 		return nil, INVALID_REQUEST_ID
