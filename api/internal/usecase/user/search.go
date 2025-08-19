@@ -17,13 +17,13 @@ type SearchUserUsecase struct {
 	uds user.IUserDomainService
 }
 
-type SearchUsecaseDtoModel struct {
-	TotalCount int64                       `json:"total_count"`
-	Pages      int                         `json:"pages"`
-	Users      []SearchUserUsecaseDtoModel `json:"users"`
+type SearchUserUsecaseDtoModel struct {
+	TotalCount int64                      `json:"total_count"`
+	Pages      int                        `json:"pages"`
+	Users      []SearchUserUsecaseDtoItem `json:"users"`
 }
 
-type SearchUserUsecaseDtoModel struct {
+type SearchUserUsecaseDtoItem struct {
 	ID            string `json:"id,omitempty"`
 	Email         string `json:"email,omitempty"`
 	CustomID      string `json:"custom_id,omitempty"`
@@ -37,7 +37,7 @@ func NewSearchUserUsecase(uds user.IUserDomainService) *SearchUserUsecase {
 	return &SearchUserUsecase{uds: uds}
 }
 
-func (us *SearchUserUsecase) Run(ctx context.Context) (*SearchUsecaseDtoModel, error) {
+func (us *SearchUserUsecase) Run(ctx context.Context) (*SearchUserUsecaseDtoModel, error) {
 	value, ok := ctx.Value("ctxInfo").(pkg.CtxInfo)
 	if !ok {
 		return nil, INVALID_REQUEST_ID
@@ -54,13 +54,13 @@ func (us *SearchUserUsecase) Run(ctx context.Context) (*SearchUsecaseDtoModel, e
 		return nil, err
 	}
 
-	response := &SearchUsecaseDtoModel{
+	response := &SearchUserUsecaseDtoModel{
 		TotalCount: int64(len(user)),
 		Pages:      1, // Assuming a single page for simplicity, adjust as needed
-		Users:      []SearchUserUsecaseDtoModel{},
+		Users:      []SearchUserUsecaseDtoItem{},
 	}
 	for _, u := range user {
-		response.Users = append(response.Users, SearchUserUsecaseDtoModel{
+		response.Users = append(response.Users, SearchUserUsecaseDtoItem{
 			ID:            u.GetID(),
 			Email:         u.GetEmail(),
 			CustomID:      u.GetCustomID(),
