@@ -3,12 +3,15 @@ package presenter
 import (
 	"context"
 
+	"github.com/UniPro-tech/UniQUE-API/api/internal/controller/roles"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/controller/system"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/controller/users"
+	roleDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/role"
 	userDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/user"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/repository"
 	"github.com/UniPro-tech/UniQUE-API/api/internal/middleware"
+	roleUsecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/role"
 	userUsecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/user"
 	"github.com/gin-contrib/requestid"
 	"github.com/gin-gonic/gin"
@@ -63,6 +66,26 @@ func (s *Server) Run(ctx context.Context) error {
 		v1.DELETE("/users/:id", userHandler.DeleteUser)
 		v1.PUT("/users/:id", userHandler.PutUser)
 		v1.PATCH("/users/:id", userHandler.PatchUser)
+	}
+
+	roleDriver := repository.NewRoleDriver(conn)
+	roleDomainService := roleDomain.NewRoleDomainService(roleDriver)
+	listRoleUsecase := roleUsecase.NewListRoleUsecase(roleDomainService)
+	findRoleUsecase := roleUsecase.NewFindRoleByIdUsecase(roleDomainService)
+	searchRoleUsecase := roleUsecase.NewSearchRoleUsecase(roleDomainService)
+	addRoleUsecase := roleUsecase.NewCreateRoleUsecase(roleDomainService)
+	deleteRoleUsecase := roleUsecase.NewDeleteRoleUsecase(roleDomainService)
+	putRoleUsecase := roleUsecase.NewPutRoleUsecase(roleDomainService)
+	updateRoleUsecase := roleUsecase.NewUpdateRoleUsecase(roleDomainService)
+	{
+		roleHandler := roles.NewRolesHandler(listRoleUsecase, findRoleUsecase, searchRoleUsecase, addRoleUsecase, deleteRoleUsecase, putRoleUsecase, updateRoleUsecase)
+		v1.GET("/roles", roleHandler.ListRoles)
+		v1.GET("/roles/:id", roleHandler.GetRoleById)
+		v1.GET("/roles/search", roleHandler.SearchRoles)
+		v1.POST("/roles", roleHandler.RegisterRole)
+		v1.DELETE("/roles/:id", roleHandler.DeleteRole)
+		v1.PUT("/roles/:id", roleHandler.PutRole)
+		v1.PATCH("/roles/:id", roleHandler.PatchRole)
 	}
 
 	err := r.Run()
