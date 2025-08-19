@@ -9,7 +9,7 @@ import (
 	errorresponse "github.com/UniPro-tech/UniQUE-API/api/internal/controller/errorresponse"
 	roleDomain "github.com/UniPro-tech/UniQUE-API/api/internal/domain/role"
 	sqlerrors "github.com/UniPro-tech/UniQUE-API/api/internal/driver/mysql/errors"
-	usecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/roles"
+	usecase "github.com/UniPro-tech/UniQUE-API/api/internal/usecase/role"
 	"github.com/UniPro-tech/UniQUE-API/api/pkg"
 
 	"github.com/gin-gonic/gin"
@@ -91,7 +91,7 @@ func (h *RoleHandler) ListRoles(ctx *gin.Context) {
 // @Param request path string ture "ロールID"
 // @Success 200 {object} RoleResponseModel
 // @Router /v1/users/:id [get]
-func (h *RoleHandler) GetUserById(ctx *gin.Context) {
+func (h *RoleHandler) GetRoleById(ctx *gin.Context) {
 	roleId := ctx.Param("id")
 	request_id := ctx.GetHeader("X-Request-ID")
 
@@ -133,9 +133,9 @@ func (h *RoleHandler) GetUserById(ctx *gin.Context) {
 // @Tags Roles
 // @Accept json
 // @Produce json
-// @Success 200 {object} UsersResponse
+// @Success 200 {object} RolesResponse
 // @Router /v1/users [get]
-func (h *RoleHandler) SearchUsers(ctx *gin.Context) {
+func (h *RoleHandler) SearchRoles(ctx *gin.Context) {
 	customID := ctx.Query("custom_id")
 	name := ctx.Query("name")
 	isEnable := ctx.Query("is_enable")
