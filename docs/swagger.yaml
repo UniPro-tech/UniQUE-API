@@ -1,22 +1,79 @@
 definitions:
-  system.Response:
-    properties:
-      status:
-        type: string
-    type: object
-  users.ErrorResponse:
+  api_internal_controller_roles.ErrorResponse:
     properties:
       message:
         type: string
       status:
         type: string
     type: object
-  users.Response:
+  api_internal_controller_roles.Response:
     properties:
       status:
         type: string
     type: object
-  users.UserRequestModel:
+  api_internal_controller_roles.RoleRequestModel:
+    properties:
+      custom_id:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      name:
+        type: string
+      permission:
+        items:
+          type: string
+        type: array
+    type: object
+  api_internal_controller_roles.RoleResponseModel:
+    properties:
+      created_at:
+        type: string
+      custom_id:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permission:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  api_internal_controller_roles.RolesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/api_internal_controller_roles.RoleResponseModel'
+        type: array
+      pages:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  api_internal_controller_system.Response:
+    properties:
+      status:
+        type: string
+    type: object
+  api_internal_controller_users.ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  api_internal_controller_users.Response:
+    properties:
+      status:
+        type: string
+    type: object
+  api_internal_controller_users.UserRequestModel:
     properties:
       custom_id:
         type: string
@@ -28,6 +85,8 @@ definitions:
         type: string
       is_enable:
         type: boolean
+      joined_at:
+        type: string
       name:
         type: string
       password_hash:
@@ -35,7 +94,115 @@ definitions:
       period:
         type: string
     type: object
-  users.UserResponseModel:
+  api_internal_controller_users.UserResponseModel:
+    properties:
+      created_at:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      joined_at:
+        type: string
+      name:
+        type: string
+      period:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  api_internal_controller_users.UsersResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/api_internal_controller_users.UserResponseModel'
+        type: array
+      pages:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.Response:
+    properties:
+      status:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel:
+    properties:
+      custom_id:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      name:
+        type: string
+      permission:
+        items:
+          type: string
+        type: array
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleResponseModel:
+    properties:
+      created_at:
+        type: string
+      custom_id:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      is_system:
+        type: boolean
+      name:
+        type: string
+      permission:
+        type: integer
+      updated_at:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RolesResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleResponseModel'
+        type: array
+      pages:
+        type: integer
+      total_count:
+        type: integer
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response:
+    properties:
+      status:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse:
+    properties:
+      message:
+        type: string
+      status:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.Response:
+    properties:
+      status:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel:
     properties:
       custom_id:
         type: string
@@ -47,16 +214,43 @@ definitions:
         type: string
       is_enable:
         type: boolean
+      joined_at:
+        type: string
       name:
+        type: string
+      password_hash:
         type: string
       period:
         type: string
     type: object
-  users.UsersResponse:
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel:
+    properties:
+      created_at:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      id:
+        type: string
+      is_enable:
+        type: boolean
+      joined_at:
+        type: string
+      name:
+        type: string
+      period:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/users.UserResponseModel'
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel'
         type: array
       pages:
         type: integer
@@ -80,10 +274,114 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/system.Response'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response'
       summary: 死活監視用
       tags:
       - healthcheck
+  /v1/roles:
+    get:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RolesResponse'
+      summary: ロール一覧取得
+      tags:
+      - Roles
+    patch:
+      consumes:
+      - application/json
+      parameters:
+      - description: ロール情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+      summary: ロール情報を部分更新
+      tags:
+      - Roles
+  /v1/roles/{id}:
+    delete:
+      consumes:
+      - application/json
+      parameters:
+      - description: ロールID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+      summary: ロールを削除
+      tags:
+      - Roles
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: ロール情報
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse'
+      summary: ロール情報を更新(置き換え)
+      tags:
+      - Roles
   /v1/users:
     get:
       consumes:
@@ -128,7 +426,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.UsersResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse'
       summary: ユーザー検索
       tags:
       - Users
@@ -141,7 +439,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/users.UserRequestModel'
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel'
       produces:
       - application/json
       responses:
@@ -150,15 +448,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
       summary: ユーザー情報を部分更新
       tags:
       - Users
@@ -171,22 +469,22 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/users.UserRequestModel'
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.Response'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.Response'
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
       summary: ユーザー情報を登録
       tags:
       - Users
@@ -199,7 +497,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/users.UserRequestModel'
+          $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel'
       produces:
       - application/json
       responses:
@@ -208,15 +506,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
       summary: ユーザー情報を更新(置き換え)
       tags:
       - Users
@@ -235,7 +533,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/users.UserResponseModel'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel'
       summary: ユーザーの詳細情報を取得
       tags:
       - Users
@@ -257,15 +555,15 @@ paths:
         "400":
           description: Bad Request
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "404":
           description: Not Found
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
         "500":
           description: Internal Server Error
           schema:
-            $ref: '#/definitions/users.ErrorResponse'
+            $ref: '#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse'
       summary: ユーザーを削除
       tags:
       - Users

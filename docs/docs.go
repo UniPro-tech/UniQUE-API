@@ -32,7 +32,167 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/system.Response"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/roles": {
+            "get": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "ロール一覧取得",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RolesResponse"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "ロール情報を部分更新",
+                "parameters": [
+                    {
+                        "description": "ロール情報",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/roles/{id}": {
+            "put": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "ロール情報を更新(置き換え)",
+                "parameters": [
+                    {
+                        "description": "ロール情報",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel"
+                        }
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Roles"
+                ],
+                "summary": "ロールを削除",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "ロールID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse"
                         }
                     }
                 }
@@ -105,7 +265,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/users.UsersResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse"
                         }
                     }
                 }
@@ -128,7 +288,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.UserRequestModel"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel"
                         }
                     }
                 ],
@@ -139,19 +299,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     }
                 }
@@ -174,7 +334,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.UserRequestModel"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel"
                         }
                     }
                 ],
@@ -182,19 +342,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/users.Response"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.Response"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     }
                 }
@@ -217,7 +377,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/users.UserRequestModel"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel"
                         }
                     }
                 ],
@@ -228,19 +388,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     }
                 }
@@ -270,7 +430,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/users.UserResponseModel"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel"
                         }
                     }
                 }
@@ -304,19 +464,19 @@ const docTemplate = `{
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     },
                     "500": {
                         "description": "Internal Server Error",
                         "schema": {
-                            "$ref": "#/definitions/users.ErrorResponse"
+                            "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse"
                         }
                     }
                 }
@@ -324,15 +484,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "system.Response": {
-            "type": "object",
-            "properties": {
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "users.ErrorResponse": {
+        "api_internal_controller_roles.ErrorResponse": {
             "type": "object",
             "properties": {
                 "message": {
@@ -343,7 +495,7 @@ const docTemplate = `{
                 }
             }
         },
-        "users.Response": {
+        "api_internal_controller_roles.Response": {
             "type": "object",
             "properties": {
                 "status": {
@@ -351,7 +503,103 @@ const docTemplate = `{
                 }
             }
         },
-        "users.UserRequestModel": {
+        "api_internal_controller_roles.RoleRequestModel": {
+            "type": "object",
+            "properties": {
+                "custom_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "api_internal_controller_roles.RoleResponseModel": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "custom_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_internal_controller_roles.RolesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_internal_controller_roles.RoleResponseModel"
+                    }
+                },
+                "pages": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "api_internal_controller_system.Response": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_internal_controller_users.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_internal_controller_users.Response": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_internal_controller_users.UserRequestModel": {
             "type": "object",
             "properties": {
                 "custom_id": {
@@ -368,6 +616,9 @@ const docTemplate = `{
                 },
                 "is_enable": {
                     "type": "boolean"
+                },
+                "joined_at": {
+                    "type": "string"
                 },
                 "name": {
                     "type": "string"
@@ -380,7 +631,174 @@ const docTemplate = `{
                 }
             }
         },
-        "users.UserResponseModel": {
+        "api_internal_controller_users.UserResponseModel": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "custom_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "external_email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "api_internal_controller_users.UsersResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/api_internal_controller_users.UserResponseModel"
+                    }
+                },
+                "pages": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.Response": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleRequestModel": {
+            "type": "object",
+            "properties": {
+                "custom_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleResponseModel": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "custom_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "is_system": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission": {
+                    "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RolesResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_roles.RoleResponseModel"
+                    }
+                },
+                "pages": {
+                    "type": "integer"
+                },
+                "total_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_system.Response": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "message": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.Response": {
+            "type": "object",
+            "properties": {
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserRequestModel": {
             "type": "object",
             "properties": {
                 "custom_id": {
@@ -398,7 +816,13 @@ const docTemplate = `{
                 "is_enable": {
                     "type": "boolean"
                 },
+                "joined_at": {
+                    "type": "string"
+                },
                 "name": {
+                    "type": "string"
+                },
+                "password_hash": {
                     "type": "string"
                 },
                 "period": {
@@ -406,13 +830,48 @@ const docTemplate = `{
                 }
             }
         },
-        "users.UsersResponse": {
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "custom_id": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "external_email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_enable": {
+                    "type": "boolean"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "period": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UsersResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/users.UserResponseModel"
+                        "$ref": "#/definitions/github.com_UniPro-tech_UniQUE-API_api_internal_controller_users.UserResponseModel"
                     }
                 },
                 "pages": {
