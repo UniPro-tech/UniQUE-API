@@ -17,8 +17,11 @@ type RolesResponse struct {
 
 type RoleResponseModel struct {
 	ID         string `json:"id,omitempty"`
+	CustomID   string `json:"custom_id,omitempty"`
 	Name       string `json:"name,omitempty"`
-	Permission int32  `json:"permission,omitempty"`
+	Permission uint32 `json:"permission,omitempty"`
+	IsEnable   bool   `json:"is_enable,omitempty"`
+	IsSystem   bool   `json:"is_system,omitempty"`
 	CreatedAt  string `json:"created_at,omitempty"`
 	UpdatedAt  string `json:"updated_at,omitempty"`
 }
