@@ -144,19 +144,6 @@ func (rd *RoleDriver) Create(ctx context.Context, param *roleDomain.Role) error 
 				slog.Error("can not complete CreateRole Repository", "request id", ctxValue.RequestId, "error", err)
 				return errors.New("failed to create role due to database error")
 			}
-		}
-	}
-	err = rd.conn.Table("roles").Create(repoRole).Error
-	if err != nil {
-		if mysqlErr, ok := err.(*mysql.MySQLError); ok {
-			switch mysqlErr.Number {
-			case 1062:
-				slog.Error("Duplicate entry error in CreateRole Repository", "request id", ctxValue.RequestId, "error", mysqlErr)
-				return sqlerrors.ERR_DUPLICATE_ENTRY
-			default:
-				slog.Error("can not complete CreateRole Repository", "request id", ctxValue.RequestId, "error", err)
-				return errors.New("failed to create role due to database error")
-			}
 		} else {
 			slog.Error("can not complete CreateUser Repository", "request id", ctxValue.RequestId, "error", err)
 			return errors.New("failed to create user due to database error")
