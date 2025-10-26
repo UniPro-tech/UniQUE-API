@@ -13,6 +13,6 @@ pub use super::refresh_tokens::Entity as RefreshTokens;
 pub use super::roles::Entity as Roles;
 pub use super::sessions::Entity as Sessions;
 pub use super::token_sets::Entity as TokenSets;
+pub use super::user::Entity as Users;
 pub use super::user_app::Entity as UserApp;
 pub use super::user_role::Entity as UserRole;
-pub use super::users::Entity as Users;

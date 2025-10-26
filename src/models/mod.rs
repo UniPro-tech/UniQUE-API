@@ -15,6 +15,6 @@ pub mod refresh_tokens;
 pub mod roles;
 pub mod sessions;
 pub mod token_sets;
+pub mod user;
 pub mod user_app;
 pub mod user_role;
-pub mod users;
