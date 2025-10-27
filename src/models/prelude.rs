@@ -10,7 +10,7 @@ pub use super::id_tokens::Entity as IdTokens;
 pub use super::oidc_authorizations::Entity as OidcAuthorizations;
 pub use super::redirect_uris::Entity as RedirectUris;
 pub use super::refresh_tokens::Entity as RefreshTokens;
-pub use super::roles::Entity as Roles;
+pub use super::role::Entity as Roles;
 pub use super::sessions::Entity as Sessions;
 pub use super::token_sets::Entity as TokenSets;
 pub use super::user::Entity as Users;

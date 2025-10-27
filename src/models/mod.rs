@@ -12,7 +12,7 @@ pub mod id_tokens;
 pub mod oidc_authorizations;
 pub mod redirect_uris;
 pub mod refresh_tokens;
-pub mod roles;
+pub mod role;
 pub mod sessions;
 pub mod token_sets;
 pub mod user;
