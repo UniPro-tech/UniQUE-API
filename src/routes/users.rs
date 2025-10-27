@@ -46,12 +46,15 @@ struct CreateUser {
     pub custom_id: String,
     pub name: String,
     pub password_hash: Option<String>,
-    pub email: Option<String>,
+    pub email: String,
     pub external_email: String,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
-    pub is_system: bool,
+    pub is_system: Option<bool>,
     pub is_enable: Option<bool>,
+    pub is_suspended: Option<bool>,
+    pub suspended_until: Option<chrono::NaiveDateTime>,
+    pub suspended_reason: Option<String>,
 }
 
 /// 新しいユーザーを作成するための関数
@@ -63,16 +66,19 @@ async fn create_user(
     let am = user::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
         custom_id: Set(payload.custom_id),
-        name: Set(Some(payload.name)),
+        name: Set(payload.name),
         password_hash: Set(payload.password_hash),
         email: Set(payload.email),
         external_email: Set(payload.external_email),
         period: Set(payload.period),
         joined_at: Set(payload.joined_at),
-        is_system: Set(payload.is_system),
+        is_system: Set(Some(payload.is_system.unwrap_or(false))),
         created_at: Set(Some(Utc::now().naive_utc())),
         updated_at: Set(Some(Utc::now().naive_utc())),
         is_enable: Set(Some(payload.is_enable.unwrap_or(false))),
+        is_suspended: Set(Some(payload.is_suspended.unwrap_or(false))),
+        suspended_until: Set(payload.suspended_until),
+        suspended_reason: Set(payload.suspended_reason),
     };
     let res = am.insert(&db).await.unwrap();
     (StatusCode::CREATED, Json(res))
@@ -86,15 +92,19 @@ async fn put_user(
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: user::ActiveModel = user.into();
-        am.name = Set(Some(payload.name));
+        am.name = Set(payload.name);
         am.external_email = Set(payload.external_email);
         am.password_hash = Set(payload.password_hash);
         am.joined_at = Set(payload.joined_at);
-        am.is_system = Set(payload.is_system);
+        am.is_system = Set(Some(payload.is_system.unwrap_or(false)));
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
         am.email = Set(payload.email);
         am.period = Set(payload.period);
         am.updated_at = Set(Some(Utc::now().naive_utc()));
+        am.suspended_until = Set(payload.suspended_until);
+        am.suspended_reason = Set(payload.suspended_reason);
+        am.is_suspended = Set(Some(payload.is_suspended.unwrap_or(false)));
+        am.joined_at = Set(payload.joined_at);
         let res = am.update(&db).await.unwrap();
         return (StatusCode::OK, Json(Some(res)));
     }
@@ -103,9 +113,18 @@ async fn put_user(
 
 #[derive(serde::Deserialize)]
 struct UpdateUser {
+    pub custom_id: Option<String>,
     pub name: Option<String>,
     pub password_hash: Option<String>,
     pub external_email: Option<String>,
+    pub period: Option<String>,
+    pub joined_at: Option<chrono::NaiveDateTime>,
+    pub is_system: Option<bool>,
+    pub is_enable: Option<bool>,
+    pub is_suspended: Option<bool>,
+    pub suspended_until: Option<chrono::NaiveDateTime>,
+    pub suspended_reason: Option<String>,
+    pub email: Option<String>,
 }
 
 /// ユーザーを差分アップデートするための関数
@@ -122,14 +141,41 @@ async fn patch_update_user(
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: user::ActiveModel = user.into();
+        if let Some(custom_id) = payload.custom_id {
+            am.custom_id = Set(custom_id);
+        }
         if let Some(name) = payload.name {
-            am.name = Set(Some(name));
+            am.name = Set(name);
         }
         if let Some(external_email) = payload.external_email {
             am.external_email = Set(external_email);
         }
         if let Some(password_hash) = payload.password_hash {
             am.password_hash = Set(Some(password_hash));
+        }
+        if let Some(period) = payload.period {
+            am.period = Set(Some(period));
+        }
+        if let Some(joined_at) = payload.joined_at {
+            am.joined_at = Set(Some(joined_at));
+        }
+        if let Some(is_system) = payload.is_system {
+            am.is_system = Set(Some(is_system));
+        }
+        if let Some(is_enable) = payload.is_enable {
+            am.is_enable = Set(Some(is_enable));
+        }
+        if let Some(is_suspended) = payload.is_suspended {
+            am.is_suspended = Set(Some(is_suspended));
+        }
+        if let Some(suspended_until) = payload.suspended_until {
+            am.suspended_until = Set(Some(suspended_until));
+        }
+        if let Some(suspended_reason) = payload.suspended_reason {
+            am.suspended_reason = Set(Some(suspended_reason));
+        }
+        if let Some(email) = payload.email {
+            am.email = Set(email);
         }
         am.updated_at = Set(Some(Utc::now().naive_utc()));
         let res = am.update(&db).await.unwrap();

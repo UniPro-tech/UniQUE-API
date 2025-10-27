@@ -58,13 +58,13 @@ async fn create_role(
 ) -> impl IntoResponse {
     let am = role::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
-        custom_id: Set(Some(payload.custom_id)),
+        custom_id: Set(payload.custom_id),
         name: Set(Some(payload.name)),
         permission: Set(payload.permission),
         created_at: Set(Utc::now()),
-        updated_at: Set(Some(Utc::now())),
-        is_enable: Set(payload.is_enable.unwrap_or(true)),
-        is_system: Set(payload.is_system.unwrap_or(false)),
+        updated_at: Set(Utc::now()),
+        is_enable: Set(Some(payload.is_enable.unwrap_or(true))),
+        is_system: Set(Some(payload.is_system.unwrap_or(false))),
     };
     let res = am.insert(&db).await.unwrap();
     (StatusCode::CREATED, Json(res))
@@ -78,12 +78,12 @@ async fn put_role(
     let found = role::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: role::ActiveModel = user.into();
-        am.custom_id = Set(Some(payload.custom_id));
+        am.custom_id = Set(payload.custom_id);
         am.name = Set(Some(payload.name));
         am.permission = Set(payload.permission);
-        am.is_system = Set(payload.is_system.unwrap_or(false));
-        am.is_enable = Set(payload.is_enable.unwrap_or(false));
-        am.updated_at = Set(Some(Utc::now()));
+        am.is_system = Set(Some(payload.is_system.unwrap_or(false)));
+        am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
+        am.updated_at = Set(Utc::now());
         let res = am.update(&db).await.unwrap();
         return (StatusCode::OK, Json(Some(res)));
     }
@@ -93,8 +93,6 @@ async fn put_role(
 #[derive(serde::Deserialize)]
 struct UpdateRole {
     pub name: Option<String>,
-    pub password_hash: Option<String>,
-    pub external_email: Option<String>,
     pub custom_id: Option<String>,
     pub permission: Option<i32>,
     pub is_system: Option<bool>,
@@ -119,18 +117,18 @@ async fn patch_update_role(
             am.name = Set(Some(name));
         }
         if let Some(custom_id) = payload.custom_id {
-            am.custom_id = Set(Some(custom_id));
+            am.custom_id = Set(custom_id);
         }
         if let Some(permission) = payload.permission {
             am.permission = Set(permission);
         }
         if let Some(is_system) = payload.is_system {
-            am.is_system = Set(is_system);
+            am.is_system = Set(Some(is_system));
         }
         if let Some(is_enable) = payload.is_enable {
-            am.is_enable = Set(is_enable);
+            am.is_enable = Set(Some(is_enable));
         }
-        am.updated_at = Set(Some(Utc::now()));
+        am.updated_at = Set(Utc::now());
         let res = am.update(&db).await.unwrap();
         return (StatusCode::OK, Json(Some(res)));
     }
