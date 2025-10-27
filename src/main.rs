@@ -12,12 +12,8 @@ async fn main() {
     let db = db::connect().await.expect("DB connection failed");
 
     let app = Router::new()
-        //.merge(routes::books::routes())
-        //.merge(routes::campuses::routes())
-        //.merge(routes::authors::routes())
         .merge(routes::users::routes())
-        //.merge(routes::reviews::routes())
-        //.merge(routes::reactions::routes())
+        .merge(routes::roles::routes())
         .with_state(db);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
