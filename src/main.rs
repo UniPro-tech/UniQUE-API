@@ -4,7 +4,7 @@ use std::net::SocketAddr;
 
 mod db;
 mod models;
-//mod routes;
+mod routes;
 
 #[tokio::main]
 async fn main() {
@@ -15,7 +15,7 @@ async fn main() {
         //.merge(routes::books::routes())
         //.merge(routes::campuses::routes())
         //.merge(routes::authors::routes())
-        //.merge(routes::users::routes())
+        .merge(routes::users::routes())
         //.merge(routes::reviews::routes())
         //.merge(routes::reactions::routes())
         .with_state(db);

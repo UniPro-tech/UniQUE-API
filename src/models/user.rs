@@ -9,18 +9,18 @@ pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     #[sea_orm(unique)]
-    pub custom_id: Option<String>,
-    pub name: String,
+    pub custom_id: String,
+    pub name: Option<String>,
     pub password_hash: Option<String>,
     #[sea_orm(unique)]
     pub email: Option<String>,
     pub external_email: String,
-    pub period: String,
+    pub period: Option<String>,
     pub joined_at: Option<DateTime>,
-    pub is_system: i8,
+    pub is_system: bool,
     pub created_at: Option<DateTime>,
     pub updated_at: Option<DateTime>,
-    pub is_enable: Option<i8>,
+    pub is_enable: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
