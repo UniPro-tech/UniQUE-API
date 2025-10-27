@@ -3,19 +3,19 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Deserialize, Serialize)]
 #[sea_orm(table_name = "roles")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     #[sea_orm(unique)]
-    pub custom_id: Option<String>,
+    pub custom_id: String,
     pub name: Option<String>,
     pub permission: i32,
     pub created_at: DateTimeUtc,
-    pub updated_at: Option<DateTimeUtc>,
-    pub is_enable: bool,
-    pub is_system: bool,
+    pub updated_at: DateTimeUtc,
+    pub is_enable: Option<bool>,
+    pub is_system: Option<bool>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]

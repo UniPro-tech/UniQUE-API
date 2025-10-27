@@ -3,24 +3,28 @@
 use sea_orm::entity::prelude::*;
 use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Serialize, Deserialize)]
+#[derive(Clone, Debug, PartialEq, DeriveEntityModel, Eq, Deserialize, Serialize)]
 #[sea_orm(table_name = "users")]
 pub struct Model {
     #[sea_orm(primary_key, auto_increment = false)]
     pub id: String,
     #[sea_orm(unique)]
     pub custom_id: String,
-    pub name: Option<String>,
+    pub name: String,
     pub password_hash: Option<String>,
     #[sea_orm(unique)]
-    pub email: Option<String>,
+    pub email: String,
     pub external_email: String,
     pub period: Option<String>,
     pub joined_at: Option<DateTime>,
-    pub is_system: bool,
+    pub is_system: Option<bool>,
     pub created_at: Option<DateTime>,
     pub updated_at: Option<DateTime>,
     pub is_enable: Option<bool>,
+    pub is_suspended: Option<bool>,
+    pub suspended_until: Option<DateTime>,
+    #[sea_orm(column_type = "Text", nullable)]
+    pub suspended_reason: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
