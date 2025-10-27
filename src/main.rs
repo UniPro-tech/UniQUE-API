@@ -14,6 +14,7 @@ async fn main() {
     let app = Router::new()
         .merge(routes::users::routes())
         .merge(routes::roles::routes())
+        .merge(routes::apps::routes())
         .with_state(db);
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 3000));
