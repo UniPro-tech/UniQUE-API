@@ -14,9 +14,9 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(
-        belongs_to = "super::apps::Entity",
+        belongs_to = "super::app::Entity",
         from = "Column::AppId",
-        to = "super::apps::Column::Id",
+        to = "super::app::Column::Id",
         on_update = "NoAction",
         on_delete = "NoAction"
     )]
@@ -31,7 +31,7 @@ pub enum Relation {
     Users,
 }
 
-impl Related<super::apps::Entity> for Entity {
+impl Related<super::app::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Apps.def()
     }

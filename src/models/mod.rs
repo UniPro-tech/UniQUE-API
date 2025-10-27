@@ -3,7 +3,7 @@
 pub mod prelude;
 
 pub mod access_tokens;
-pub mod apps;
+pub mod app;
 pub mod auths;
 pub mod code;
 pub mod consents;
