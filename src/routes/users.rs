@@ -9,19 +9,24 @@ use chrono::Utc;
 use sea_orm::*;
 use serde_json;
 
-use crate::models::user::{self, Entity as User};
+use crate::{
+    models::user::{self, Entity as User},
+    routes::users_sub,
+};
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
-    Router::new().route("/users", get(get_all_users)).route(
-        "/users/{id}",
-        get(get_user)
-            .patch(patch_update_user)
-            .delete(delete_user)
-            .post(create_user)
-            .put(put_user),
-    )
-    //.merge(users_sub::books::routes())
+    Router::new()
+        .route("/users", get(get_all_users))
+        .route(
+            "/users/{id}",
+            get(get_user)
+                .patch(patch_update_user)
+                .delete(delete_user)
+                .post(create_user)
+                .put(put_user),
+        )
+        .merge(users_sub::discord::routes())
 }
 
 /// すべてのユーザーを取得するための関数

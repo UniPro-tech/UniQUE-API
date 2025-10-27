@@ -5,7 +5,7 @@ pub use super::app::Entity as Apps;
 pub use super::auths::Entity as Auths;
 pub use super::code::Entity as Code;
 pub use super::consents::Entity as Consents;
-pub use super::discords::Entity as Discords;
+pub use super::discord::Entity as Discords;
 pub use super::id_tokens::Entity as IdTokens;
 pub use super::oidc_authorizations::Entity as OidcAuthorizations;
 pub use super::redirect_uris::Entity as RedirectUris;

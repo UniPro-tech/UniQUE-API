@@ -7,7 +7,7 @@ pub mod app;
 pub mod auths;
 pub mod code;
 pub mod consents;
-pub mod discords;
+pub mod discord;
 pub mod id_tokens;
 pub mod oidc_authorizations;
 pub mod redirect_uris;
