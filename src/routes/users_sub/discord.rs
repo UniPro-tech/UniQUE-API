@@ -23,7 +23,7 @@ pub fn routes() -> Router<DbConn> {
 async fn get_all_discord(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
     let user = User::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = user {
-        let mut discord_accounts = user
+        let discord_accounts = user
             .find_related(crate::models::discord::Entity)
             .all(&db)
             .await
