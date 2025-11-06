@@ -11,7 +11,7 @@ pub use super::oidc_authorizations::Entity as OidcAuthorizations;
 pub use super::redirect_uris::Entity as RedirectUris;
 pub use super::refresh_tokens::Entity as RefreshTokens;
 pub use super::role::Entity as Roles;
-pub use super::sessions::Entity as Sessions;
+pub use super::session::Entity as Sessions;
 pub use super::token_sets::Entity as TokenSets;
 pub use super::user::Entity as Users;
 pub use super::user_app::Entity as UserApp;

@@ -33,12 +33,12 @@ pub enum Relation {
     Auths,
     #[sea_orm(has_many = "super::discord::Entity")]
     Discords,
-    #[sea_orm(has_many = "super::sessions::Entity")]
+    #[sea_orm(has_many = "super::session::Entity")]
     Sessions,
     #[sea_orm(has_many = "super::user_app::Entity")]
     UserApp,
     #[sea_orm(has_many = "super::user_role::Entity")]
-    UserRole,
+    Roles,
 }
 
 impl Related<super::auths::Entity> for Entity {
@@ -53,7 +53,7 @@ impl Related<super::discord::Entity> for Entity {
     }
 }
 
-impl Related<super::sessions::Entity> for Entity {
+impl Related<super::session::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Sessions.def()
     }
@@ -67,7 +67,20 @@ impl Related<super::user_app::Entity> for Entity {
 
 impl Related<super::user_role::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserRole.def()
+        // User -> user_role (has_many)
+        Relation::Roles.def()
+    }
+}
+
+impl Related<super::role::Entity> for Entity {
+    fn to() -> RelationDef {
+        // Go to Role via the join table's relation to Role
+        super::user_role::Relation::Roles.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        // Use this entity's relation to the join table as the via
+        Some(Relation::Roles.def().rev())
     }
 }
 

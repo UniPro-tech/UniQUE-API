@@ -13,7 +13,7 @@ pub mod oidc_authorizations;
 pub mod redirect_uris;
 pub mod refresh_tokens;
 pub mod role;
-pub mod sessions;
+pub mod session;
 pub mod token_sets;
 pub mod user;
 pub mod user_app;
