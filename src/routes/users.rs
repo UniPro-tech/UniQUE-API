@@ -104,7 +104,7 @@ async fn put_user(
         let mut am: user::ActiveModel = user.into();
         am.name = Set(payload.name);
         am.external_email = Set(payload.external_email);
-        am.password_hash = Set(password_hash);
+        am.password_hash = Set(Some(password_hash));
         am.joined_at = Set(payload.joined_at);
         am.is_system = Set(Some(payload.is_system.unwrap_or(false)));
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));

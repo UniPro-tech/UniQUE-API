@@ -1,3 +1,5 @@
+use sha2::Digest;
+
 pub fn hash_password(password: &str) -> String {
     // compute SHA-256 hash of the password and convert to hex string
     let mut hasher = sha2::Sha256::new();
