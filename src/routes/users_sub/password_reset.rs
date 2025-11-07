@@ -8,7 +8,7 @@ use axum::{
 use sea_orm::*;
 use serde_json;
 
-use crate::models::user::{self, Entity as User};
+use crate::models::user;
 use crate::utils::password;
 //use crate::{db::DbConn, routes::users_sub};
 
@@ -51,7 +51,7 @@ async fn password_reset(
             password_hash: Set(Some(new_password_hash)),
             ..Default::default()
         };
-        let res = am.insert(&db).await.unwrap();
+        am.insert(&db).await.unwrap();
         return (StatusCode::CREATED, Json(serde_json::Value::Null));
     }
     (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
