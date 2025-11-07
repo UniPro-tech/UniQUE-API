@@ -46,12 +46,10 @@ async fn password_reset(
         // 新しいパスワードのハッシュ化
         let new_password_hash = password::hash_password(&payload.new_password);
 
-        let am = user::ActiveModel {
-            id: Set(user.id),
-            password_hash: Set(Some(new_password_hash)),
-            ..Default::default()
-        };
-        am.insert(&db).await.unwrap();
+        let mut am: user::ActiveModel = user.into();
+        am.password_hash = Set(Some(new_password_hash));
+        am.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
+        am.update(&db).await.unwrap();
         return (StatusCode::CREATED, Json(serde_json::Value::Null));
     }
     (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
