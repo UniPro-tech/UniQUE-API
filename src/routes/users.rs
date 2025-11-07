@@ -12,6 +12,7 @@ use serde_json;
 use crate::{
     models::user::{self, Entity as User},
     routes::users_sub,
+    utils::password,
 };
 //use crate::{db::DbConn, routes::users_sub};
 
@@ -51,7 +52,7 @@ async fn get_user(State(db): State<DbConn>, Path(id): Path<String>) -> impl Into
 struct CreateUser {
     pub custom_id: String,
     pub name: String,
-    pub password_hash: Option<String>,
+    pub password: String,
     pub email: String,
     pub external_email: String,
     pub period: Option<String>,
@@ -64,16 +65,17 @@ struct CreateUser {
 }
 
 /// 新しいユーザーを作成するための関数
-/// システム専用
 async fn create_user(
     State(db): State<DbConn>,
     Json(payload): Json<CreateUser>,
 ) -> impl IntoResponse {
+    let password_hash = password::hash_password(&payload.password);
+
     let am = user::ActiveModel {
         id: Set(uuid::Uuid::new_v4().to_string()),
         custom_id: Set(payload.custom_id),
         name: Set(payload.name),
-        password_hash: Set(payload.password_hash),
+        password_hash: Set(Some(password_hash)),
         email: Set(payload.email),
         external_email: Set(payload.external_email),
         period: Set(payload.period),
@@ -95,12 +97,14 @@ async fn put_user(
     Path(id): Path<String>,
     Json(payload): Json<CreateUser>,
 ) -> impl IntoResponse {
+    let password_hash = password::hash_password(&payload.password);
+
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: user::ActiveModel = user.into();
         am.name = Set(payload.name);
         am.external_email = Set(payload.external_email);
-        am.password_hash = Set(payload.password_hash);
+        am.password_hash = Set(password_hash);
         am.joined_at = Set(payload.joined_at);
         am.is_system = Set(Some(payload.is_system.unwrap_or(false)));
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
