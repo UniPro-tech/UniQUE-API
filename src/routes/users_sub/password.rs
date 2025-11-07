@@ -13,7 +13,7 @@ use crate::utils::password;
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
-    Router::new().route("/users/{id}/password_reset", put(password_reset))
+    Router::new().route("/users/{id}/password/change", put(password_reset))
 }
 
 #[derive(serde::Deserialize)]
