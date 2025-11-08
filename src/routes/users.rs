@@ -8,6 +8,7 @@ use axum::{
 use chrono::Utc;
 use sea_orm::*;
 use serde_json;
+use ulid::Ulid;
 
 use crate::{
     models::user::{self, Entity as User},
@@ -18,13 +19,12 @@ use crate::{
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
-        .route("/users", get(get_all_users))
+        .route("/users", get(get_all_users).post(create_user))
         .route(
             "/users/{id}",
             get(get_user)
                 .patch(patch_update_user)
                 .delete(delete_user)
-                .post(create_user)
                 .put(put_user),
         )
         .merge(users_sub::discord::routes())
@@ -54,7 +54,7 @@ struct CreateUser {
     pub custom_id: String,
     pub name: String,
     pub password: String,
-    pub email: String,
+    pub email: Option<String>,
     pub external_email: String,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
@@ -71,13 +71,25 @@ async fn create_user(
     Json(payload): Json<CreateUser>,
 ) -> impl IntoResponse {
     let password_hash = password::hash_password(&payload.password);
+    let mut email = payload.email;
+    if email.is_none() {
+        if payload.period.is_some() {
+            email = Some(format!(
+                "{}.{}@uniproject.jp",
+                payload.period.as_ref().unwrap(),
+                payload.custom_id
+            ));
+        } else {
+            email = Some(format!("temp_{}@uniproject.jp", payload.custom_id));
+        }
+    }
 
     let am = user::ActiveModel {
-        id: Set(uuid::Uuid::new_v4().to_string()),
+        id: Set(Ulid::new().to_string()),
         custom_id: Set(payload.custom_id),
         name: Set(payload.name),
         password_hash: Set(Some(password_hash)),
-        email: Set(payload.email),
+        email: Set(email.unwrap()),
         external_email: Set(payload.external_email),
         period: Set(payload.period),
         joined_at: Set(payload.joined_at),
@@ -99,6 +111,18 @@ async fn put_user(
     Json(payload): Json<CreateUser>,
 ) -> impl IntoResponse {
     let password_hash = password::hash_password(&payload.password);
+    let mut email = payload.email;
+    if email.is_none() {
+        if payload.period.is_some() {
+            email = Some(format!(
+                "{}.{}@uniproject.jp",
+                payload.period.as_ref().unwrap(),
+                payload.custom_id
+            ));
+        } else {
+            email = Some(format!("temp_{}@uniproject.jp", payload.custom_id));
+        }
+    }
 
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
@@ -109,7 +133,7 @@ async fn put_user(
         am.joined_at = Set(payload.joined_at);
         am.is_system = Set(Some(payload.is_system.unwrap_or(false)));
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
-        am.email = Set(payload.email);
+        am.email = Set(email.unwrap());
         am.period = Set(payload.period);
         am.updated_at = Set(Some(Utc::now().naive_utc()));
         am.suspended_until = Set(payload.suspended_until);
