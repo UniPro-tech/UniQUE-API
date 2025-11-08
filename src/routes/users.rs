@@ -30,6 +30,7 @@ pub fn routes() -> Router<DbConn> {
         .merge(users_sub::discord::routes())
         .merge(users_sub::roles::routes())
         .merge(users_sub::password::routes())
+        .merge(users_sub::search::routes())
 }
 
 /// すべてのユーザーを取得するための関数
