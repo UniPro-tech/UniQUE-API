@@ -16,7 +16,7 @@ dotenvy = "0.15"
 thiserror = "2.0.17"
 anyhow = "1"
 validator = "0.20.0"
-jsonwebtoken = { version = "10.0.0", features = ["rust_crypto"] }
+jsonwebtoken = { version = "10.2.0", features = ["rust_crypto"] }
 hex = "0.4.3"
 sha2 = "0.10.9"
 futures = "0.3.31"
