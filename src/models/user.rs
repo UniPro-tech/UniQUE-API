@@ -73,14 +73,15 @@ impl Related<super::user_role::Entity> for Entity {
 }
 
 impl Related<super::role::Entity> for Entity {
+    // The final relation is User -> user_role -> Role
     fn to() -> RelationDef {
-        // Go to Role via the join table's relation to Role
-        super::user_role::Relation::Roles.def()
+        super::user_role::Relation::Role.def()
     }
 
     fn via() -> Option<RelationDef> {
-        // Use this entity's relation to the join table as the via
-        Some(Relation::Roles.def().rev())
+        // The original relation is CakeFilling -> Cake,
+        // after `rev` it becomes Cake -> CakeFilling
+        Some(super::user_role::Relation::Role.def().rev())
     }
 }
 

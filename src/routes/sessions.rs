@@ -36,12 +36,23 @@ async fn get_session(State(db): State<DbConn>, Path(id): Path<String>) -> impl I
     if let Some((session, related)) = joined.into_iter().next() {
         let mut body = serde_json::json!(session);
         body["user"] = serde_json::to_value(&related[0]).unwrap();
+        // "roles" フィールドを追加
+        let user_roles = crate::models::user_role::Entity::find()
+            .filter(crate::models::user_role::Column::UserId.eq(&session.user_id))
+            .find_with_related(crate::models::role::Entity)
+            .all(&db)
+            .await
+            .unwrap();
+        let roles: Vec<crate::models::role::Model> = user_roles
+            .into_iter()
+            .flat_map(|(_, roles)| roles)
+            .collect();
+        body["user"]["roles"] = serde_json::to_value(&roles).unwrap();
         // "user_id" フィールドを削除
         body.as_object_mut().unwrap().remove("user_id");
         return (StatusCode::OK, Json(body));
-    } else {
-        return (StatusCode::NOT_FOUND, Json(serde_json::json!(null)));
     }
+    (StatusCode::NOT_FOUND, Json(serde_json::json!(null)))
 }
 
 /// セッションを削除するための関数
