@@ -106,12 +106,38 @@ async fn create_user(
     (StatusCode::CREATED, Json(res))
 }
 
+#[derive(serde::Deserialize)]
+struct PutUser {
+    pub custom_id: String,
+    pub name: String,
+    pub password: Option<String>,
+    pub email: Option<String>,
+    pub external_email: String,
+    pub period: Option<String>,
+    pub joined_at: Option<chrono::NaiveDateTime>,
+    pub is_system: Option<bool>,
+    pub is_enable: Option<bool>,
+    pub is_suspended: Option<bool>,
+    pub suspended_until: Option<chrono::NaiveDateTime>,
+    pub suspended_reason: Option<String>,
+}
+
 async fn put_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
-    Json(payload): Json<CreateUser>,
+    Json(payload): Json<PutUser>,
 ) -> impl IntoResponse {
-    let password_hash = password::hash_password(&payload.password);
+    let password_hash = if let Some(password) = payload.password {
+        password::hash_password(&password)
+    } else {
+        // 既存のパスワードハッシュを保持する
+        let found = user::Entity::find_by_id(id.clone()).one(&db).await.unwrap();
+        if let Some(user) = found {
+            user.password_hash.unwrap_or_default()
+        } else {
+            "".to_string()
+        }
+    };
     let mut email = payload.email;
     if email.is_none() {
         if payload.period.is_some() {
