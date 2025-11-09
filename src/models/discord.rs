@@ -11,6 +11,8 @@ pub struct Model {
     pub id: i32,
     #[sea_orm(unique)]
     pub discord_id: String,
+    #[sea_orm(unique)]
+    pub discord_customid: String,
     pub user_id: String,
 }
 

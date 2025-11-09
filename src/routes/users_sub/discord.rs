@@ -39,6 +39,7 @@ async fn get_all_discord(State(db): State<DbConn>, Path(id): Path<String>) -> im
 #[derive(serde::Deserialize)]
 struct CreateDiscord {
     pub discord_id: String,
+    pub discord_customid: String,
 }
 
 /// ユーザーのDiscordアカウントを紐つけるための関数
@@ -51,6 +52,7 @@ async fn put_discord(
     if let Some(user) = found {
         let am = discord::ActiveModel {
             discord_id: Set(payload.discord_id),
+            discord_customid: Set(payload.discord_customid),
             user_id: Set(user.id),
             ..Default::default()
         };
