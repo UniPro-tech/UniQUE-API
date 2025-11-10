@@ -48,6 +48,19 @@ async fn get_session(State(db): State<DbConn>, Path(id): Path<String>) -> impl I
             .flat_map(|(_, roles)| roles)
             .collect();
         body["user"]["roles"] = serde_json::to_value(&roles).unwrap();
+        let user_discord = crate::models::discord::Entity::find()
+            .filter(crate::models::discord::Column::UserId.eq(&session.user_id))
+            .all(&db)
+            .await
+            .unwrap();
+        body["user"]["discords"] = serde_json::to_value(&user_discord).unwrap();
+        body["user"]["discords"]
+            .as_array_mut()
+            .unwrap()
+            .iter_mut()
+            .for_each(|discord| {
+                discord.as_object_mut().unwrap().remove("user_id");
+            });
         // "user_id" フィールドを削除
         body.as_object_mut().unwrap().remove("user_id");
         return (StatusCode::OK, Json(body));
