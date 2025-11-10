@@ -65,8 +65,7 @@ async fn put_discord(
 /// ユーザーのDiscordアカウントの紐付けを解除するための関数
 async fn delete_discord(
     State(db): State<DbConn>,
-    Path(id): Path<String>,
-    Path(discord_id): Path<String>,
+    Path((id, discord_id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let found = User::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
