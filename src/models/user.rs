@@ -11,6 +11,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub custom_id: String,
     pub name: String,
+    #[serde(skip_deserializing)]
     pub password_hash: Option<String>,
     #[sea_orm(unique)]
     pub email: String,
