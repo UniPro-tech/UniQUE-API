@@ -15,6 +15,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub email: String,
     pub external_email: String,
+    pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<DateTime>,
     pub is_system: Option<bool>,
@@ -39,6 +40,8 @@ pub enum Relation {
     UserApp,
     #[sea_orm(has_many = "super::user_role::Entity")]
     Roles,
+    #[sea_orm(has_many = "super::email_verification::Entity")]
+    EmailVerifications,
 }
 
 impl Related<super::auths::Entity> for Entity {
@@ -82,6 +85,12 @@ impl Related<super::role::Entity> for Entity {
         // The original relation is CakeFilling -> Cake,
         // after `rev` it becomes Cake -> CakeFilling
         Some(super::user_role::Relation::Role.def().rev())
+    }
+}
+
+impl Related<super::email_verification::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::EmailVerifications.def()
     }
 }
 
