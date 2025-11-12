@@ -9,6 +9,7 @@ use chrono::Utc;
 use sea_orm::*;
 use serde_json;
 use sha2::Digest;
+use ulid::Ulid;
 
 use crate::models::app::{self, Entity as App};
 //use crate::{db::DbConn, routes::users_sub};
@@ -53,7 +54,7 @@ struct CreateApp {
 /// システム専用
 async fn create_app(State(db): State<DbConn>, Json(payload): Json<CreateApp>) -> impl IntoResponse {
     let am = app::ActiveModel {
-        id: Set(uuid::Uuid::new_v4().to_string()),
+        id: Set(Ulid::new().to_string()),
         aud: Set(payload.aud),
         name: Set(payload.name),
         created_at: Set(Some(Utc::now())),

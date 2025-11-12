@@ -8,6 +8,7 @@ use axum::{
 use chrono::Utc;
 use sea_orm::*;
 use serde_json;
+use ulid::Ulid;
 
 use crate::models::role::{self, Entity as Role};
 //use crate::{db::DbConn, routes::users_sub};
@@ -57,7 +58,7 @@ async fn create_role(
     Json(payload): Json<CreateRole>,
 ) -> impl IntoResponse {
     let am = role::ActiveModel {
-        id: Set(uuid::Uuid::new_v4().to_string()),
+        id: Set(Ulid::new().to_string()),
         custom_id: Set(payload.custom_id),
         name: Set(Some(payload.name)),
         permission: Set(payload.permission),
