@@ -11,7 +11,10 @@ use serde_json;
 use ulid::Ulid;
 
 use crate::{
-    models::user::{self, Entity as User},
+    models::{
+        discord,
+        user::{self, Entity as User},
+    },
     routes::users_sub,
     utils::password,
 };
@@ -32,6 +35,7 @@ pub fn routes() -> Router<DbConn> {
         .merge(users_sub::password::routes())
         .merge(users_sub::search::routes())
         .merge(users_sub::sessions::routes())
+        .merge(users_sub::email_verify::routes())
 }
 
 /// すべてのユーザーを取得するための関数
@@ -42,12 +46,21 @@ async fn get_all_users(State(db): State<DbConn>) -> Json<serde_json::Value> {
 
 /// 特定のユーザーを取得するための関数
 async fn get_user(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
-    let user = User::find_by_id(id).one(&db).await.unwrap();
+    let user = User::find_by_id(id)
+        .find_with_related(discord::Entity)
+        .all(&db)
+        .await
+        .unwrap();
 
-    if let Some(user) = user {
-        (StatusCode::OK, Json(Some(user)))
+    if let Some((user, discord)) = user.into_iter().next() {
+        let mut res = serde_json::to_value(&user).unwrap();
+        res["discords"] = serde_json::to_value(&discord).unwrap();
+        (StatusCode::OK, Json(Some(res)))
     } else {
-        (StatusCode::NOT_FOUND, Json::<Option<user::Model>>(None))
+        (
+            StatusCode::NOT_FOUND,
+            Json::<Option<serde_json::Value>>(None),
+        )
     }
 }
 
@@ -58,6 +71,7 @@ struct CreateUser {
     pub password: String,
     pub email: Option<String>,
     pub external_email: String,
+    pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
     pub is_system: Option<bool>,
@@ -93,6 +107,7 @@ async fn create_user(
         password_hash: Set(Some(password_hash)),
         email: Set(email.unwrap()),
         external_email: Set(payload.external_email),
+        email_verified: Set(payload.email_verified.unwrap_or(false)),
         period: Set(payload.period),
         joined_at: Set(payload.joined_at),
         is_system: Set(Some(payload.is_system.unwrap_or(false))),
@@ -114,6 +129,7 @@ struct PutUser {
     pub password: Option<String>,
     pub email: Option<String>,
     pub external_email: String,
+    pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
     pub is_system: Option<bool>,
@@ -156,13 +172,14 @@ async fn put_user(
     if let Some(user) = found {
         let mut am: user::ActiveModel = user.into();
         am.name = Set(payload.name);
+        am.email = Set(email.unwrap());
         am.external_email = Set(payload.external_email);
+        am.email_verified = Set(payload.email_verified.unwrap_or(false));
+        am.period = Set(payload.period);
         am.password_hash = Set(Some(password_hash));
         am.joined_at = Set(payload.joined_at);
         am.is_system = Set(Some(payload.is_system.unwrap_or(false)));
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
-        am.email = Set(email.unwrap());
-        am.period = Set(payload.period);
         am.updated_at = Set(Some(Utc::now().naive_utc()));
         am.suspended_until = Set(payload.suspended_until);
         am.suspended_reason = Set(payload.suspended_reason);
@@ -180,6 +197,7 @@ struct UpdateUser {
     pub name: Option<String>,
     pub password_hash: Option<String>,
     pub external_email: Option<String>,
+    pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
     pub is_system: Option<bool>,
@@ -212,6 +230,9 @@ async fn patch_update_user(
         }
         if let Some(external_email) = payload.external_email {
             am.external_email = Set(external_email);
+        }
+        if let Some(email_verified) = payload.email_verified {
+            am.email_verified = Set(email_verified);
         }
         if let Some(password_hash) = payload.password_hash {
             am.password_hash = Set(Some(password_hash));

@@ -11,12 +11,12 @@ pub struct Model {
     #[sea_orm(unique)]
     pub custom_id: String,
     pub name: String,
-    #[serde(skip_deserializing)]
+    #[serde(skip_serializing)]
     pub password_hash: Option<String>,
     #[sea_orm(unique)]
     pub email: String,
     pub external_email: String,
-    pub email_verified: Option<bool>,
+    pub email_verified: bool,
     pub period: Option<String>,
     pub joined_at: Option<DateTime>,
     pub is_system: Option<bool>,

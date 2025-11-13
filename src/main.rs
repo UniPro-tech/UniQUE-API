@@ -21,6 +21,7 @@ async fn main() {
         .merge(routes::roles::routes())
         .merge(routes::apps::routes())
         .merge(routes::sessions::routes())
+        .merge(routes::email_verify::routes())
         .with_state(db);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8001));

@@ -8,6 +8,7 @@ pub mod auths;
 pub mod code;
 pub mod consents;
 pub mod discord;
+pub mod email_verification;
 pub mod id_tokens;
 pub mod oidc_authorizations;
 pub mod redirect_uris;

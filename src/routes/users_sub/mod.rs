@@ -1,4 +1,5 @@
 pub mod discord;
+pub mod email_verify;
 pub mod password;
 pub mod roles;
 pub mod search;
