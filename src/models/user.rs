@@ -16,6 +16,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub email: String,
     pub external_email: String,
+    pub birthdate: Option<chrono::NaiveDate>,
     pub email_verified: bool,
     pub period: Option<String>,
     pub joined_at: Option<DateTime>,

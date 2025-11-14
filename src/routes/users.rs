@@ -71,6 +71,7 @@ struct CreateUser {
     pub password: String,
     pub email: Option<String>,
     pub external_email: String,
+    pub birthdate: Option<chrono::NaiveDate>,
     pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
@@ -107,6 +108,7 @@ async fn create_user(
         password_hash: Set(Some(password_hash)),
         email: Set(email.unwrap()),
         external_email: Set(payload.external_email),
+        birthdate: Set(payload.birthdate),
         email_verified: Set(payload.email_verified.unwrap_or(false)),
         period: Set(payload.period),
         joined_at: Set(payload.joined_at),
@@ -129,6 +131,7 @@ struct PutUser {
     pub password: Option<String>,
     pub email: Option<String>,
     pub external_email: String,
+    pub birthdate: Option<chrono::NaiveDate>,
     pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
@@ -174,6 +177,7 @@ async fn put_user(
         am.name = Set(payload.name);
         am.email = Set(email.unwrap());
         am.external_email = Set(payload.external_email);
+        am.birthdate = Set(payload.birthdate);
         am.email_verified = Set(payload.email_verified.unwrap_or(false));
         am.period = Set(payload.period);
         am.password_hash = Set(Some(password_hash));
@@ -197,6 +201,7 @@ struct UpdateUser {
     pub name: Option<String>,
     pub password_hash: Option<String>,
     pub external_email: Option<String>,
+    pub birthdate: Option<chrono::NaiveDate>,
     pub email_verified: Option<bool>,
     pub period: Option<String>,
     pub joined_at: Option<chrono::NaiveDateTime>,
@@ -230,6 +235,9 @@ async fn patch_update_user(
         }
         if let Some(external_email) = payload.external_email {
             am.external_email = Set(external_email);
+        }
+        if let Some(birthdate) = payload.birthdate {
+            am.birthdate = Set(Some(birthdate));
         }
         if let Some(email_verified) = payload.email_verified {
             am.email_verified = Set(email_verified);
