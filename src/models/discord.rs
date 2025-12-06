@@ -12,7 +12,7 @@ pub struct Model {
     #[sea_orm(unique)]
     pub discord_id: String,
     #[sea_orm(unique)]
-    pub discord_customid: String,
+    pub custom_id: String,
     pub user_id: String,
 }
 
