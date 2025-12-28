@@ -4,6 +4,8 @@ WORKDIR /usr/src/app
 
 COPY . .
 
+RUN apk add --no-cache musl-dev mold clang build-base
+
 RUN cargo install --path .
 
 RUN cargo build --release
