@@ -11,18 +11,21 @@ use serde_json;
 use ulid::Ulid;
 
 use crate::models::role::{self, Entity as Role};
+use crate::routes::roles_sub;
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
-    Router::new().route("/roles", get(get_all_roles)).route(
-        "/roles/{id}",
-        get(get_role)
-            .patch(patch_update_role)
-            .delete(delete_role)
-            .post(create_role)
-            .put(put_role),
-    )
-    //.merge(users_sub::books::routes())
+    Router::new()
+        .route("/roles", get(get_all_roles))
+        .route(
+            "/roles/{id}",
+            get(get_role)
+                .patch(patch_update_role)
+                .delete(delete_role)
+                .post(create_role)
+                .put(put_role),
+        )
+        .merge(roles_sub::search::routes())
 }
 
 /// すべてのロールを取得するための関数
