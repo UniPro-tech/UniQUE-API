@@ -55,7 +55,6 @@ struct CreateApp {
 async fn create_app(State(db): State<DbConn>, Json(payload): Json<CreateApp>) -> impl IntoResponse {
     let am = app::ActiveModel {
         id: Set(Ulid::new().to_string()),
-        aud: Set(payload.aud),
         name: Set(payload.name),
         created_at: Set(Some(Utc::now())),
         updated_at: Set(Some(Utc::now())),
@@ -79,7 +78,6 @@ async fn put_app(
     if let Some(user) = found {
         let mut am: app::ActiveModel = user.into();
         am.name = Set(payload.name);
-        am.aud = Set(payload.aud);
         am.is_enable = Set(payload.is_enable);
         am.updated_at = Set(Some(Utc::now()));
         let res = am.update(&db).await.unwrap();
@@ -106,9 +104,6 @@ async fn patch_update_app(
         let mut am: app::ActiveModel = app.into();
         if let Some(name) = payload.name {
             am.name = Set(name);
-        }
-        if let Some(aud) = payload.aud {
-            am.aud = Set(aud);
         }
         if let Some(is_enable) = payload.is_enable {
             am.is_enable = Set(Some(is_enable));
