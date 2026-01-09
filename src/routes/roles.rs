@@ -10,9 +10,12 @@ use sea_orm::*;
 use serde_json;
 use ulid::Ulid;
 
-use crate::models::role::{self, Entity as Role};
-use crate::routes::roles_sub;
-//use crate::{db::DbConn, routes::users_sub};
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::role::{self, Entity as Role},
+    routes::roles_sub,
+};
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -29,19 +32,30 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのロールを取得するための関数
-async fn get_all_roles(State(db): State<DbConn>) -> Json<serde_json::Value> {
+async fn get_all_roles(
+    State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
+
     let roles = Role::find().all(&db).await.unwrap();
-    Json(serde_json::json!({ "data": roles }))
+    Ok(Json(serde_json::json!({ "data": roles })))
 }
 
 /// 特定のロールを取得するための関数
-async fn get_role(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn get_role(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
+
     let role = Role::find_by_id(id).one(&db).await.unwrap();
 
     if let Some(role) = role {
-        (StatusCode::OK, Json(Some(role)))
+        Ok((StatusCode::OK, Json(Some(role))))
     } else {
-        (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None))
+        Err(StatusCode::NOT_FOUND)
     }
 }
 
@@ -58,8 +72,11 @@ struct CreateRole {
 /// システム専用
 async fn create_role(
     State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateRole>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
+
     let am = role::ActiveModel {
         id: Set(Ulid::new().to_string()),
         custom_id: Set(payload.custom_id),
@@ -71,14 +88,17 @@ async fn create_role(
         is_system: Set(Some(payload.is_system.unwrap_or(false))),
     };
     let res = am.insert(&db).await.unwrap();
-    (StatusCode::CREATED, Json(res))
+    Ok((StatusCode::CREATED, Json(res)))
 }
 
 async fn put_role(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateRole>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
+
     let found = role::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: role::ActiveModel = user.into();
@@ -89,9 +109,9 @@ async fn put_role(
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
         am.updated_at = Set(Utc::now());
         let res = am.update(&db).await.unwrap();
-        return (StatusCode::OK, Json(Some(res)));
+        return Ok((StatusCode::OK, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
 #[derive(serde::Deserialize)]
@@ -103,17 +123,15 @@ struct UpdateRole {
     pub is_enable: Option<bool>,
 }
 
-/// ユーザーを差分アップデートするための関数
-///
-/// > このエンドポイントはOAuthの**アクセストークンでアクセス可能**です。
-/// > ただし、システムのユーザーではない場合は、以下のフィールドのみ書き換え可能です。
-/// > - name
-/// > - external_email
+/// ロールを差分アップデートするための関数
 async fn patch_update_role(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<UpdateRole>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
+
     let found = role::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: role::ActiveModel = user.into();
@@ -134,20 +152,24 @@ async fn patch_update_role(
         }
         am.updated_at = Set(Utc::now());
         let res = am.update(&db).await.unwrap();
-        return (StatusCode::OK, Json(Some(res)));
+        return Ok((StatusCode::OK, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
-/// ユーザーを削除するための関数
-/// > [!IMPORTANT]
-/// > このエンドポイントはOAuthの**アクセストークンでアクセス不可**です
-async fn delete_role(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+/// ロールを削除するための関数
+async fn delete_role(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
+
     let found = Role::find_by_id(id).one(&db).await.unwrap();
     if let Some(role) = found {
         let am: role::ActiveModel = role.into();
         am.delete(&db).await.unwrap();
-        return (StatusCode::NO_CONTENT, Json::<Option<role::Model>>(None));
+        return Ok((StatusCode::NO_CONTENT, Json::<Option<role::Model>>(None)));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }

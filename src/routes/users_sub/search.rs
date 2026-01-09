@@ -1,13 +1,19 @@
 use axum::{
     Json, Router,
     extract::{Query, State},
+    http::StatusCode,
+    response::IntoResponse,
     routing::get,
 };
 use chrono::{NaiveDate, NaiveDateTime, TimeZone, Utc};
 use sea_orm::*;
 use serde::Deserialize;
 
-use crate::models::user::{self, Entity as User};
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::user::{self, Entity as User},
+};
 
 pub fn routes() -> Router<DbConn> {
     Router::new().route("/users/search", get(search_users))
@@ -50,7 +56,11 @@ impl Default for Pagination {
 pub async fn search_users(
     State(db): State<crate::db::DbConn>,
     Query(params): Query<Pagination>,
-) -> Json<serde_json::Value> {
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::USER_READ, &db)
+        .await?;
+
     let (page, per_page, q, filter) = params.params();
     let page_index = page.saturating_sub(1);
 
@@ -160,12 +170,12 @@ pub async fn search_users(
         .unwrap_or_default();
     let total = paginator.num_items().await.unwrap_or(0);
 
-    Json(serde_json::json!({
+    Ok(Json(serde_json::json!({
         "data": users,
         "meta": {
             "page": page,
             "per_page": per_page,
             "total": total
         }
-    }))
+    })))
 }

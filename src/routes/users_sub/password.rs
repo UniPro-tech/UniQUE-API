@@ -8,8 +8,11 @@ use axum::{
 use sea_orm::*;
 use serde_json;
 
-use crate::models::user;
-use crate::utils::password;
+use crate::{
+    middleware::auth::AuthUser,
+    models::user,
+    utils::password,
+};
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
@@ -28,8 +31,14 @@ struct PasswordChange {
 async fn password_change(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<PasswordChange>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    // 自分のパスワード変更のみ許可
+    if auth_user.user_id != id {
+        return Err(StatusCode::FORBIDDEN);
+    }
+
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         // パスワードの検証
@@ -39,10 +48,7 @@ async fn password_change(
             .map(|h| password::verify_password(&payload.current_password, h))
             .unwrap_or(false);
         if !password_matches {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({ "error": "Invalid current password" })),
-            );
+            return Err(StatusCode::UNAUTHORIZED);
         }
 
         // 新しいパスワードのハッシュ化
@@ -52,9 +58,9 @@ async fn password_change(
         am.password_hash = Set(Some(new_password_hash));
         am.updated_at = Set(Some(chrono::Utc::now().naive_utc()));
         am.update(&db).await.unwrap();
-        return (StatusCode::CREATED, Json(serde_json::Value::Null));
+        return Ok((StatusCode::CREATED, Json(serde_json::Value::Null)));
     }
-    (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
+    Err(StatusCode::NOT_FOUND)
 }
 
 #[derive(serde::Deserialize)]

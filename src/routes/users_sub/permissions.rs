@@ -1,5 +1,8 @@
-use crate::constants::permissions::Permission;
-use crate::models::user::Entity as User;
+use crate::{
+    constants::permissions::Permission,
+    middleware::auth::AuthUser,
+    models::user::Entity as User,
+};
 use axum::{
     Json, Router,
     extract::{Path, State},
@@ -18,14 +21,42 @@ pub fn routes() -> Router<DbConn> {
 async fn get_permissions_bit(
     State(db): State<DbConn>,
     Path(id): Path<String>,
-) -> impl IntoResponse {
-    let user = User::find_by_id(id).one(&db).await.unwrap();
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    // Self-only access OR read permission
+    if auth_user.user_id != id {
+        let user_roles = crate::models::user_role::Entity::find()
+            .filter(crate::models::user_role::Column::UserId.eq(&auth_user.user_id))
+            .find_with_related(crate::models::role::Entity)
+            .all(&db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        let has_read_permission = user_roles
+            .iter()
+            .any(|(_, roles)| {
+                roles.iter().any(|r| {
+                    (r.permission as i64 & Permission::USER_READ.bits() as i64) != 0
+                })
+            });
+
+        if !has_read_permission {
+            return Err(StatusCode::FORBIDDEN);
+        }
+    }
+
+    let user = User::find_by_id(id)
+        .one(&db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     if let Some(user) = user {
         let roles = user
             .find_related(crate::models::role::Entity)
             .all(&db)
             .await
-            .unwrap();
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
         let mut permissions_bit: i64 = 0;
         for role in roles {
             permissions_bit |= role.permission as i64;
@@ -44,12 +75,12 @@ async fn get_permissions_bit(
                 permissions_text.push(format!("PERMISSION_{}", i));
             }
         }
-        return (
+        return Ok((
             StatusCode::OK,
             Json(
                 serde_json::json!({ "permissions_bit": permissions_bit, "permissions_text": permissions_text }),
             ),
-        );
+        ));
     }
-    (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
+    Err(StatusCode::NOT_FOUND)
 }

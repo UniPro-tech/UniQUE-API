@@ -8,8 +8,12 @@ use axum::{
 use sea_orm::*;
 use serde_json;
 
-use crate::models::discord::{self, Entity as Discord};
-use crate::models::user::{self, Entity as User};
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::discord::{self, Entity as Discord},
+    models::user::{self, Entity as User},
+};
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
@@ -20,7 +24,13 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// ユーザーのDiscordアカウント一覧を取得するための関数
-async fn get_all_discord(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn get_all_discord(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(&auth_user, Permission::USER_READ, &id, &db)
+        .await?;
     let user = User::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = user {
         let discord_accounts = user
@@ -28,12 +38,12 @@ async fn get_all_discord(State(db): State<DbConn>, Path(id): Path<String>) -> im
             .all(&db)
             .await
             .unwrap();
-        return (
+        return Ok((
             StatusCode::OK,
             Json(serde_json::json!({ "data": discord_accounts })),
-        );
+        ));
     }
-    (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
+    Err(StatusCode::NOT_FOUND)
 }
 
 #[derive(serde::Deserialize)]
@@ -46,8 +56,11 @@ struct CreateDiscord {
 async fn put_discord(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateDiscord>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(&auth_user, Permission::USER_UPDATE, &id, &db)
+        .await?;
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let am = discord::ActiveModel {
@@ -57,16 +70,19 @@ async fn put_discord(
             ..Default::default()
         };
         let res = am.insert(&db).await.unwrap();
-        return (StatusCode::CREATED, Json(Some(res)));
+        return Ok((StatusCode::CREATED, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<discord::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
 /// ユーザーのDiscordアカウントの紐付けを解除するための関数
 async fn delete_discord(
     State(db): State<DbConn>,
     Path((id, discord_id)): Path<(String, String)>,
-) -> impl IntoResponse {
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(&auth_user, Permission::USER_UPDATE, &id, &db)
+        .await?;
     let found = User::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let discord_account = Discord::find()
@@ -78,9 +94,9 @@ async fn delete_discord(
         if let Some(discord_account) = discord_account {
             let am: discord::ActiveModel = discord_account.into();
             am.delete(&db).await.unwrap();
-            return (StatusCode::NO_CONTENT, Json(serde_json::Value::Null));
+            return Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)));
         }
-        return (StatusCode::NOT_FOUND, Json(serde_json::Value::Null));
+        return Err(StatusCode::NOT_FOUND);
     }
-    (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
+    Err(StatusCode::NOT_FOUND)
 }

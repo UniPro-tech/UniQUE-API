@@ -8,8 +8,12 @@ use axum::{
 use sea_orm::*;
 use serde_json;
 
-use crate::models::role::{self, Entity as Role};
-use crate::models::user::Entity as User;
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::role::{self, Entity as Role},
+    models::user::Entity as User,
+};
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -19,21 +23,35 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのロールを取得するための関数
-async fn get_all_roles(State(db): State<DbConn>, Path(uid): Path<String>) -> impl IntoResponse {
+async fn get_all_roles(
+    State(db): State<DbConn>,
+    Path(uid): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(
+        &auth_user,
+        Permission::PERMISSION_MANAGE,
+        &uid,
+        &db,
+    )
+    .await?;
+
     let user = User::find_by_id(uid).one(&db).await.unwrap();
     if let Some(user) = user {
         let roles = user.find_related(Role).all(&db).await.unwrap();
-        return (StatusCode::OK, Json(serde_json::json!({ "data": roles })));
+        return Ok((StatusCode::OK, Json(serde_json::json!({ "data": roles }))));
     }
-    (StatusCode::NOT_FOUND, Json(serde_json::Value::Null))
+    Err(StatusCode::NOT_FOUND)
 }
 
 // ロール付与
 async fn put_role(
     State(db): State<DbConn>,
-    Path(uid): Path<String>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+    Path((uid, id)): Path<(String, String)>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::PERMISSION_MANAGE, &db).await?;
+
     // user と role を同時に取りに行く（並列）
     let (user_res, role_res) = futures::join!(
         User::find_by_id(uid.clone()).one(&db),
@@ -49,9 +67,9 @@ async fn put_role(
             };
             // 既にある場合はエラーになるかもしれないから、必要なら重複チェックを追加
             let _ = user_role.insert(&db).await.unwrap();
-            (StatusCode::CREATED, Json(Some(role)))
+            Ok((StatusCode::CREATED, Json(Some(role))))
         }
-        _ => (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None)),
+        _ => Err(StatusCode::NOT_FOUND),
     }
 }
 
@@ -60,9 +78,11 @@ async fn put_role(
 /// > このエンドポイントはOAuthの**アクセストークンでアクセス不可**です
 async fn delete_role(
     State(db): State<DbConn>,
-    Path(uid): Path<String>,
-    Path(id): Path<String>,
-) -> impl IntoResponse {
+    Path((uid, id)): Path<(String, String)>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::PERMISSION_MANAGE, &db).await?;
+
     // まず role の存在は確認しておくとレスポンスに role を返せる（現在の実装と同じ振る舞い）
     if let Some(role) = Role::find_by_id(id.clone()).one(&db).await.unwrap() {
         // 中間テーブルの該当行を直接削除
@@ -77,10 +97,10 @@ async fn delete_role(
             .unwrap();
 
         if res.rows_affected > 0 {
-            return (StatusCode::NO_CONTENT, Json(Some(role)));
+            return Ok((StatusCode::NO_CONTENT, Json(Some(role))));
         } else {
-            return (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None));
+            return Err(StatusCode::NOT_FOUND);
         }
     }
-    (StatusCode::NOT_FOUND, Json::<Option<role::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }

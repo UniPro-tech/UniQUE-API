@@ -11,6 +11,8 @@ use serde_json;
 use ulid::Ulid;
 
 use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
     models::{
         discord,
         user::{self, Entity as User},
@@ -40,13 +42,24 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのユーザーを取得するための関数
-async fn get_all_users(State(db): State<DbConn>) -> Json<serde_json::Value> {
+async fn get_all_users(
+    State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::USER_READ, &db).await?;
     let users = User::find().all(&db).await.unwrap();
-    Json(serde_json::json!({ "data": users }))
+    Ok(Json(serde_json::json!({ "data": users })))
 }
 
 /// 特定のユーザーを取得するための関数
-async fn get_user(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn get_user(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(&auth_user, Permission::USER_READ, &id, &db)
+        .await?;
+
     let user = User::find_by_id(id)
         .find_with_related(discord::Entity)
         .all(&db)
@@ -56,12 +69,9 @@ async fn get_user(State(db): State<DbConn>, Path(id): Path<String>) -> impl Into
     if let Some((user, discord)) = user.into_iter().next() {
         let mut res = serde_json::to_value(&user).unwrap();
         res["discords"] = serde_json::to_value(&discord).unwrap();
-        (StatusCode::OK, Json(Some(res)))
+        Ok((StatusCode::OK, Json(Some(res))))
     } else {
-        (
-            StatusCode::NOT_FOUND,
-            Json::<Option<serde_json::Value>>(None),
-        )
+        Err(StatusCode::NOT_FOUND)
     }
 }
 
@@ -86,8 +96,11 @@ struct CreateUser {
 /// 新しいユーザーを作成するための関数
 async fn create_user(
     State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateUser>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::USER_CREATE, &db).await?;
+
     let password_hash = password::hash_password(&payload.password);
     let mut email = payload.email;
     if email.is_none() {
@@ -122,7 +135,7 @@ async fn create_user(
         suspended_reason: Set(payload.suspended_reason),
     };
     let res = am.insert(&db).await.unwrap();
-    (StatusCode::CREATED, Json(res))
+    Ok((StatusCode::CREATED, Json(res)))
 }
 
 #[derive(serde::Deserialize)]
@@ -146,8 +159,11 @@ struct PutUser {
 async fn put_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<PutUser>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(&auth_user, Permission::USER_UPDATE, &id, &db)
+        .await?;
     let password_hash = if let Some(password) = payload.password {
         password::hash_password(&password)
     } else {
@@ -191,9 +207,9 @@ async fn put_user(
         am.is_suspended = Set(Some(payload.is_suspended.unwrap_or(false)));
         am.joined_at = Set(payload.joined_at);
         let res = am.update(&db).await.unwrap();
-        return (StatusCode::OK, Json(Some(res)));
+        return Ok((StatusCode::OK, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<user::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
 #[derive(serde::Deserialize)]
@@ -223,8 +239,11 @@ struct UpdateUser {
 async fn patch_update_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<UpdateUser>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission_or_self(&auth_user, Permission::USER_UPDATE, &id, &db)
+        .await?;
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: user::ActiveModel = user.into();
@@ -272,20 +291,25 @@ async fn patch_update_user(
         }
         am.updated_at = Set(Some(Utc::now().naive_utc()));
         let res = am.update(&db).await.unwrap();
-        return (StatusCode::OK, Json(Some(res)));
+        return Ok((StatusCode::OK, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<user::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
 /// ユーザーを削除するための関数
 /// > [!IMPORTANT]
 /// > このエンドポイントはOAuthの**アクセストークンでアクセス不可**です
-async fn delete_user(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn delete_user(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::USER_DELETE, &db).await?;
     let found = User::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let am: user::ActiveModel = user.into();
         am.delete(&db).await.unwrap();
-        return (StatusCode::NO_CONTENT, Json::<Option<user::Model>>(None));
+        return Ok((StatusCode::NO_CONTENT, Json::<Option<user::Model>>(None)));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<user::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }

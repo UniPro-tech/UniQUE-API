@@ -8,7 +8,11 @@ use axum::{
 use sea_orm::*;
 use serde_json;
 
-use crate::models::session::{self, Entity as Session};
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::session::{self, Entity as Session},
+};
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
@@ -18,13 +22,26 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのセッションを取得するための関数
-async fn get_all_sessions(State(db): State<DbConn>) -> Json<serde_json::Value> {
+async fn get_all_sessions(
+    State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
+        .await?;
+
     let sessions = Session::find().all(&db).await.unwrap();
-    Json(serde_json::json!({ "data": sessions }))
+    Ok(Json(serde_json::json!({ "data": sessions })))
 }
 
 /// 特定のセッションを取得するための関数
-async fn get_session(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn get_session(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
+        .await?;
+
     // セッションと関連のデータを結合して取得する（例: user を関連として取得する場合）
     let joined = Session::find()
         .filter(session::Column::Id.eq(id.clone()))
@@ -63,18 +80,25 @@ async fn get_session(State(db): State<DbConn>, Path(id): Path<String>) -> impl I
             });
         // "user_id" フィールドを削除
         body.as_object_mut().unwrap().remove("user_id");
-        return (StatusCode::OK, Json(body));
+        return Ok((StatusCode::OK, Json(body)));
     }
-    (StatusCode::NOT_FOUND, Json(serde_json::json!(null)))
+    Err(StatusCode::NOT_FOUND)
 }
 
 /// セッションを削除するための関数
-async fn delete_session(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn delete_session(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
+        .await?;
+
     let found = Session::find_by_id(id).one(&db).await.unwrap();
     if let Some(session) = found {
         let am: session::ActiveModel = session.into();
         am.delete(&db).await.unwrap();
-        return (StatusCode::NO_CONTENT, Json::<Option<session::Model>>(None));
+        return Ok((StatusCode::NO_CONTENT, Json::<Option<session::Model>>(None)));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<session::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
