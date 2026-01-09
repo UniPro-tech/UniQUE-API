@@ -46,6 +46,8 @@ pub enum Relation {
     EmailVerifications,
 }
 
+/* ---------- one-to-many ---------- */
+
 impl Related<super::auths::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::Auths.def()
@@ -70,29 +72,29 @@ impl Related<super::user_app::Entity> for Entity {
     }
 }
 
+impl Related<super::email_verification::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::EmailVerifications.def()
+    }
+}
+
+/* ---------- many-to-many ---------- */
+
+// User -> user_role (中間テーブル)
 impl Related<super::user_role::Entity> for Entity {
     fn to() -> RelationDef {
-        // User -> user_role (has_many)
         Relation::Roles.def()
     }
 }
 
+// User -> role (many-to-many 本体)
 impl Related<super::role::Entity> for Entity {
-    // The final relation is User -> user_role -> Role
     fn to() -> RelationDef {
         super::user_role::Relation::Role.def()
     }
 
     fn via() -> Option<RelationDef> {
-        // The original relation is CakeFilling -> Cake,
-        // after `rev` it becomes Cake -> CakeFilling
-        Some(super::user_role::Relation::Role.def().rev())
-    }
-}
-
-impl Related<super::email_verification::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::EmailVerifications.def()
+        Some(Relation::Roles.def())
     }
 }
 
