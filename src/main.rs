@@ -2,6 +2,7 @@ use axum::Router;
 use dotenvy::dotenv;
 use std::net::SocketAddr;
 
+mod constants;
 mod db;
 mod models;
 mod routes;

@@ -36,6 +36,7 @@ pub fn routes() -> Router<DbConn> {
         .merge(users_sub::search::routes())
         .merge(users_sub::sessions::routes())
         .merge(users_sub::email_verify::routes())
+        .merge(users_sub::permissions::routes())
 }
 
 /// すべてのユーザーを取得するための関数
