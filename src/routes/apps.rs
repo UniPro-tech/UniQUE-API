@@ -45,7 +45,6 @@ async fn get_app(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoR
 
 #[derive(serde::Deserialize)]
 struct CreateApp {
-    pub aud: String,
     pub name: String,
     pub is_enable: Option<bool>,
 }
@@ -89,7 +88,6 @@ async fn put_app(
 #[derive(serde::Deserialize)]
 struct UpdateApp {
     pub name: Option<String>,
-    pub aud: Option<String>,
     pub is_enable: Option<bool>,
 }
 
