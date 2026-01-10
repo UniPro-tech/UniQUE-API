@@ -62,7 +62,8 @@ async fn get_all_users(
             if !has_user_read {
                 let suspended = u.is_suspended.unwrap_or(false);
                 let enabled = u.is_enable.unwrap_or(true);
-                if suspended || !enabled {
+                let has_tmp_email = u.email.contains("tmp_");
+                if suspended || !enabled || has_tmp_email {
                     // 表示しない
                     return None;
                 }
@@ -109,7 +110,8 @@ async fn get_user(
         if !has_user_read && !is_self {
             let suspended = user_model.is_suspended.unwrap_or(false);
             let enabled = user_model.is_enable.unwrap_or(true);
-            if suspended || !enabled {
+            let has_tmp_email = user_model.email.contains("tmp_");
+            if suspended || !enabled || has_tmp_email {
                 return Err(StatusCode::NOT_FOUND);
             }
         }
