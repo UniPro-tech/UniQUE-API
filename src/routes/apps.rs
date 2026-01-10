@@ -11,7 +11,14 @@ use serde_json;
 use sha2::Digest;
 use ulid::Ulid;
 
-use crate::models::app::{self, Entity as App};
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::{
+        app::{self, Entity as App},
+        user_app,
+    },
+};
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
@@ -27,19 +34,61 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのアプリケーションを取得するための関数
-async fn get_all_apps(State(db): State<DbConn>) -> Json<serde_json::Value> {
+async fn get_all_apps(
+    State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
     let apps = App::find().all(&db).await.unwrap();
-    Json(serde_json::json!({ "data": apps }))
+
+    // client_secretは常に除外
+    let sanitized: Vec<serde_json::Value> = apps
+        .into_iter()
+        .map(|app| {
+            let mut v = serde_json::to_value(&app).unwrap();
+            if let Some(obj) = v.as_object_mut() {
+                obj.remove("client_secret");
+            }
+            v
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({ "data": sanitized })))
 }
 
 /// 特定のアプリケーションを取得するための関数
-async fn get_app(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
-    let app = App::find_by_id(id).one(&db).await.unwrap();
+/// 誰でもアクセス可能だが、所有者以外はclient_secretを見られない
+async fn get_app(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    let app = App::find_by_id(id.clone())
+        .one(&db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if let Some(app) = app {
-        (StatusCode::OK, Json(Some(app)))
+        // 所有者かどうかを確認
+        let is_owner = user_app::Entity::find()
+            .filter(user_app::Column::AppId.eq(&id))
+            .filter(user_app::Column::UserId.eq(&auth_user.user_id))
+            .one(&db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .is_some();
+
+        let mut res = serde_json::to_value(&app).unwrap();
+
+        // 所有者でない場合はclient_secretを除外
+        if !is_owner {
+            if let Some(obj) = res.as_object_mut() {
+                obj.remove("client_secret");
+            }
+        }
+
+        Ok((StatusCode::OK, Json(Some(res))))
     } else {
-        (StatusCode::NOT_FOUND, Json::<Option<app::Model>>(None))
+        Err(StatusCode::NOT_FOUND)
     }
 }
 
@@ -51,7 +100,13 @@ struct CreateApp {
 
 /// 新しいアプリケーションを作成するための関数
 /// システム専用
-async fn create_app(State(db): State<DbConn>, Json(payload): Json<CreateApp>) -> impl IntoResponse {
+async fn create_app(
+    State(db): State<DbConn>,
+    auth_user: axum::Extension<AuthUser>,
+    Json(payload): Json<CreateApp>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::APP_CREATE, &db).await?;
+
     let am = app::ActiveModel {
         id: Set(Ulid::new().to_string()),
         name: Set(payload.name),
@@ -65,14 +120,17 @@ async fn create_app(State(db): State<DbConn>, Json(payload): Json<CreateApp>) ->
         }),
     };
     let res = am.insert(&db).await.unwrap();
-    (StatusCode::CREATED, Json(res))
+    Ok((StatusCode::CREATED, Json(res)))
 }
 
 async fn put_app(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateApp>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::APP_UPDATE, &db).await?;
+
     let found = app::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let mut am: app::ActiveModel = user.into();
@@ -80,9 +138,9 @@ async fn put_app(
         am.is_enable = Set(payload.is_enable);
         am.updated_at = Set(Some(Utc::now()));
         let res = am.update(&db).await.unwrap();
-        return (StatusCode::OK, Json(Some(res)));
+        return Ok((StatusCode::OK, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<app::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
 #[derive(serde::Deserialize)]
@@ -95,8 +153,11 @@ struct UpdateApp {
 async fn patch_update_app(
     State(db): State<DbConn>,
     Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<UpdateApp>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::APP_UPDATE, &db).await?;
+
     let found = app::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(app) = found {
         let mut am: app::ActiveModel = app.into();
@@ -108,20 +169,26 @@ async fn patch_update_app(
         }
         am.updated_at = Set(Some(Utc::now()));
         let res = am.update(&db).await.unwrap();
-        return (StatusCode::OK, Json(Some(res)));
+        return Ok((StatusCode::OK, Json(Some(res))));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<app::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
 
 /// アプリケーションを削除するための関数
 /// > [!IMPORTANT]
 /// > このエンドポイントはOAuthの**アクセストークンでアクセス不可**です
-async fn delete_app(State(db): State<DbConn>, Path(id): Path<String>) -> impl IntoResponse {
+async fn delete_app(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::APP_DELETE, &db).await?;
+
     let found = App::find_by_id(id).one(&db).await.unwrap();
     if let Some(app) = found {
         let am: app::ActiveModel = app.into();
         am.delete(&db).await.unwrap();
-        return (StatusCode::NO_CONTENT, Json::<Option<app::Model>>(None));
+        return Ok((StatusCode::NO_CONTENT, Json::<Option<app::Model>>(None)));
     }
-    (StatusCode::NOT_FOUND, Json::<Option<app::Model>>(None))
+    Err(StatusCode::NOT_FOUND)
 }
