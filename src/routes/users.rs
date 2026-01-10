@@ -46,9 +46,43 @@ async fn get_all_users(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    permission_check::require_permission(&auth_user, Permission::USER_READ, &db).await?;
+    // USER_READ があるかどうかを判定（失敗しても許可し、後続でマスキング＆フィルタ）
+    let has_user_read =
+        permission_check::require_permission(&auth_user, Permission::USER_READ, &db)
+            .await
+            .is_ok();
+
     let users = User::find().all(&db).await.unwrap();
-    Ok(Json(serde_json::json!({ "data": users })))
+
+    // 権限なしの場合は、is_suspended=true または is_enable=false のユーザーを除外し、
+    // センシティブ情報をマスクして返す
+    let sanitized: Vec<serde_json::Value> = users
+        .into_iter()
+        .filter_map(|u| {
+            if !has_user_read {
+                let suspended = u.is_suspended.unwrap_or(false);
+                let enabled = u.is_enable.unwrap_or(true);
+                if suspended || !enabled {
+                    // 表示しない
+                    return None;
+                }
+            }
+
+            let mut v = serde_json::to_value(&u).unwrap();
+            if !has_user_read {
+                if let Some(obj) = v.as_object_mut() {
+                    obj.remove("external_email");
+                    obj.remove("birthdate");
+                    obj.remove("is_suspended");
+                    obj.remove("suspended_until");
+                    obj.remove("suspended_reason");
+                }
+            }
+            Some(v)
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({ "data": sanitized })))
 }
 
 /// 特定のユーザーを取得するための関数
@@ -57,18 +91,43 @@ async fn get_user(
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission_or_self(&auth_user, Permission::USER_READ, &id, &db)
-        .await?;
+    // 自分自身かどうか & USER_READ 権限の有無をチェック
+    let is_self = auth_user.user_id == id;
+    let has_user_read =
+        permission_check::require_permission(&auth_user, Permission::USER_READ, &db)
+            .await
+            .is_ok();
 
-    let user = User::find_by_id(id)
+    let user = User::find_by_id(id.clone())
         .find_with_related(discord::Entity)
         .all(&db)
         .await
         .unwrap();
 
-    if let Some((user, discord)) = user.into_iter().next() {
-        let mut res = serde_json::to_value(&user).unwrap();
+    if let Some((user_model, discord)) = user.into_iter().next() {
+        // 権限が無い場合は、is_suspended=true または is_enable=false のユーザーは非表示
+        if !has_user_read && !is_self {
+            let suspended = user_model.is_suspended.unwrap_or(false);
+            let enabled = user_model.is_enable.unwrap_or(true);
+            if suspended || !enabled {
+                return Err(StatusCode::NOT_FOUND);
+            }
+        }
+
+        let mut res = serde_json::to_value(&user_model).unwrap();
         res["discords"] = serde_json::to_value(&discord).unwrap();
+
+        // 自分自身でなければ、USER_READ が無いとセンシティブ情報をマスク
+        if !is_self && !has_user_read {
+            if let Some(obj) = res.as_object_mut() {
+                obj.remove("external_email");
+                obj.remove("birthdate");
+                obj.remove("is_suspended");
+                obj.remove("suspended_until");
+                obj.remove("suspended_reason");
+            }
+        }
+
         Ok((StatusCode::OK, Json(Some(res))))
     } else {
         Err(StatusCode::NOT_FOUND)
