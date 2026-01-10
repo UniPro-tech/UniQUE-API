@@ -6,8 +6,6 @@ COPY . .
 
 RUN apk add --no-cache musl-dev mold clang build-base
 
-RUN cargo install --path .
-
 RUN cargo fix --bin "UniQUE-API"
 
 RUN cargo build --release
