@@ -1,6 +1,6 @@
 use axum::{
     Json, Router,
-    extract::{Path, State},
+    extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
     routing::*,
@@ -34,10 +34,23 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのアプリケーションを取得するための関数
+/// ?all=trueがある場合、APP_READ権限が必要です
+#[derive(serde::Deserialize)]
+struct GetAllAppsQuery {
+    #[serde(default)]
+    all: bool,
+}
+
 async fn get_all_apps(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
+    Query(query): Query<GetAllAppsQuery>,
 ) -> Result<impl IntoResponse, StatusCode> {
+    // all=trueの場合はAPP_READ権限をチェック
+    if query.all {
+        permission_check::require_permission(&auth_user, Permission::APP_READ, &db).await?;
+    }
+
     let apps = App::find().all(&db).await.unwrap();
 
     // client_secretは常に除外

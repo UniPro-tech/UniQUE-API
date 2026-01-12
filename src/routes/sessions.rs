@@ -5,15 +5,30 @@ use axum::{
     response::IntoResponse,
     routing::*,
 };
-use sea_orm::*;
-use serde_json;
+use sea_orm::{prelude::DateTimeUtc, *};
+use serde::Serialize;
 
 use crate::{
     constants::permissions::Permission,
     middleware::{auth::AuthUser, permission_check},
     models::session::{self, Entity as Session},
+    routes::{common_dtos::array_dto::ApiResponse, users::PublicUserResponse},
 };
-//use crate::{db::DbConn, routes::users_sub};
+
+/// =======================
+/// DTO（レスポンス専用）
+/// =======================
+
+#[derive(Serialize)]
+pub struct SessionResponse {
+    pub id: String,
+    pub created_at: Option<DateTimeUtc>,
+    pub expires_at: Option<DateTimeUtc>,
+    pub ip_address: String,
+    pub user_agent: String,
+    pub is_enable: bool,
+    pub user: PublicUserResponse,
+}
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -28,8 +43,34 @@ async fn get_all_sessions(
 ) -> Result<impl IntoResponse, StatusCode> {
     permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db).await?;
 
-    let sessions = Session::find().all(&db).await.unwrap();
-    Ok(Json(serde_json::json!({ "data": sessions })))
+    // relatedでuserも取得する
+    let joined = Session::find()
+        .find_with_related(crate::models::user::Entity)
+        .all(&db)
+        .await
+        .unwrap();
+
+    let session_responses: Vec<SessionResponse> = joined
+        .into_iter()
+        .filter_map(|(session, users)| {
+            users.first().map(|user| SessionResponse {
+                id: session.id,
+                created_at: session.created_at,
+                expires_at: session.expires_at,
+                ip_address: session.ip_address,
+                user_agent: session.user_agent,
+                is_enable: session.is_enable,
+                user: PublicUserResponse::from(user.clone()),
+            })
+        })
+        .collect();
+
+    Ok((
+        StatusCode::OK,
+        Json(ApiResponse {
+            data: session_responses,
+        }),
+    ))
 }
 
 /// 特定のセッションを取得するための関数
@@ -53,36 +94,18 @@ async fn get_session(
                 .await?;
         }
 
-        let mut body = serde_json::json!(session);
-        body["user"] = serde_json::to_value(&related[0]).unwrap();
-        // "roles" フィールドを追加
-        let user_roles = crate::models::user_role::Entity::find()
-            .filter(crate::models::user_role::Column::UserId.eq(&session.user_id))
-            .find_with_related(crate::models::role::Entity)
-            .all(&db)
-            .await
-            .unwrap();
-        let roles: Vec<crate::models::role::Model> = user_roles
-            .into_iter()
-            .flat_map(|(_, roles)| roles)
-            .collect();
-        body["user"]["roles"] = serde_json::to_value(&roles).unwrap();
-        let user_discord = crate::models::discord::Entity::find()
-            .filter(crate::models::discord::Column::UserId.eq(&session.user_id))
-            .all(&db)
-            .await
-            .unwrap();
-        body["user"]["discords"] = serde_json::to_value(&user_discord).unwrap();
-        body["user"]["discords"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .for_each(|discord| {
-                discord.as_object_mut().unwrap().remove("user_id");
-            });
-        // "user_id" フィールドを削除
-        body.as_object_mut().unwrap().remove("user_id");
-        return Ok((StatusCode::OK, Json(body)));
+        if let Some(user) = related.first() {
+            let response = SessionResponse {
+                id: session.id,
+                created_at: session.created_at,
+                expires_at: session.expires_at,
+                ip_address: session.ip_address,
+                user_agent: session.user_agent,
+                is_enable: session.is_enable,
+                user: PublicUserResponse::from(user.clone()),
+            };
+            return Ok((StatusCode::OK, Json(response)));
+        }
     }
     Err(StatusCode::NOT_FOUND)
 }

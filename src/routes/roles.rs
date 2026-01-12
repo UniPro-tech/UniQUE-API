@@ -7,15 +7,46 @@ use axum::{
 };
 use chrono::Utc;
 use sea_orm::*;
-use serde_json;
+use serde::Serialize;
 use ulid::Ulid;
 
 use crate::{
     constants::permissions::Permission,
     middleware::{auth::AuthUser, permission_check},
     models::role::{self, Entity as Role},
-    routes::roles_sub,
+    routes::{common_dtos::array_dto::ApiResponse, roles_sub},
 };
+
+/// =======================
+/// DTO（レスポンス専用）
+/// =======================
+
+#[derive(Serialize)]
+pub struct RoleResponse {
+    pub id: String,
+    pub custom_id: String,
+    pub name: Option<String>,
+    pub permission: i32,
+    pub is_system: Option<bool>,
+    pub is_enable: Option<bool>,
+    pub created_at: chrono::DateTime<Utc>,
+    pub updated_at: chrono::DateTime<Utc>,
+}
+
+impl From<role::Model> for RoleResponse {
+    fn from(role: role::Model) -> Self {
+        Self {
+            id: role.id,
+            custom_id: role.custom_id,
+            name: role.name,
+            permission: role.permission,
+            is_system: role.is_system,
+            is_enable: role.is_enable,
+            created_at: role.created_at,
+            updated_at: role.updated_at,
+        }
+    }
+}
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -35,11 +66,12 @@ pub fn routes() -> Router<DbConn> {
 async fn get_all_roles(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<impl IntoResponse, StatusCode> {
     permission_check::require_permission(&auth_user, Permission::ROLE_MANAGE, &db).await?;
 
     let roles = Role::find().all(&db).await.unwrap();
-    Ok(Json(serde_json::json!({ "data": roles })))
+    let responses: Vec<RoleResponse> = roles.into_iter().map(RoleResponse::from).collect();
+    Ok((StatusCode::OK, Json(ApiResponse { data: responses })))
 }
 
 /// 特定のロールを取得するための関数
@@ -53,7 +85,7 @@ async fn get_role(
     let role = Role::find_by_id(id).one(&db).await.unwrap();
 
     if let Some(role) = role {
-        Ok((StatusCode::OK, Json(Some(role))))
+        Ok((StatusCode::OK, Json(RoleResponse::from(role))))
     } else {
         Err(StatusCode::NOT_FOUND)
     }
@@ -88,7 +120,7 @@ async fn create_role(
         is_system: Set(Some(payload.is_system.unwrap_or(false))),
     };
     let res = am.insert(&db).await.unwrap();
-    Ok((StatusCode::CREATED, Json(res)))
+    Ok((StatusCode::CREATED, Json(RoleResponse::from(res))))
 }
 
 async fn put_role(
@@ -109,7 +141,7 @@ async fn put_role(
         am.is_enable = Set(Some(payload.is_enable.unwrap_or(false)));
         am.updated_at = Set(Utc::now());
         let res = am.update(&db).await.unwrap();
-        return Ok((StatusCode::OK, Json(Some(res))));
+        return Ok((StatusCode::OK, Json(RoleResponse::from(res))));
     }
     Err(StatusCode::NOT_FOUND)
 }
@@ -152,7 +184,7 @@ async fn patch_update_role(
         }
         am.updated_at = Set(Utc::now());
         let res = am.update(&db).await.unwrap();
-        return Ok((StatusCode::OK, Json(Some(res))));
+        return Ok((StatusCode::OK, Json(RoleResponse::from(res))));
     }
     Err(StatusCode::NOT_FOUND)
 }

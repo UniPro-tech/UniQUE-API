@@ -1,4 +1,5 @@
 pub mod apps;
+mod common_dtos;
 pub mod email_verify;
 pub mod roles;
 mod roles_sub;

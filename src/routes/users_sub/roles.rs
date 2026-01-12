@@ -6,13 +6,13 @@ use axum::{
     routing::*,
 };
 use sea_orm::*;
-use serde_json;
 
 use crate::{
     constants::permissions::Permission,
     middleware::{auth::AuthUser, permission_check},
-    models::role::{self, Entity as Role},
+    models::role::Entity as Role,
     models::user::Entity as User,
+    routes::{common_dtos::array_dto::ApiResponse, roles::RoleResponse},
 };
 
 pub fn routes() -> Router<DbConn> {
@@ -39,7 +39,8 @@ async fn get_all_roles(
     let user = User::find_by_id(uid).one(&db).await.unwrap();
     if let Some(user) = user {
         let roles = user.find_related(Role).all(&db).await.unwrap();
-        return Ok((StatusCode::OK, Json(serde_json::json!({ "data": roles }))));
+        let responses: Vec<RoleResponse> = roles.into_iter().map(RoleResponse::from).collect();
+        return Ok((StatusCode::OK, Json(ApiResponse { data: responses })));
     }
     Err(StatusCode::NOT_FOUND)
 }
@@ -67,7 +68,7 @@ async fn put_role(
             };
             // 既にある場合はエラーになるかもしれないから、必要なら重複チェックを追加
             let _ = user_role.insert(&db).await.unwrap();
-            Ok((StatusCode::CREATED, Json(Some(role))))
+            Ok((StatusCode::CREATED, Json(RoleResponse::from(role))))
         }
         _ => Err(StatusCode::NOT_FOUND),
     }
@@ -97,7 +98,7 @@ async fn delete_role(
             .unwrap();
 
         if res.rows_affected > 0 {
-            return Ok((StatusCode::NO_CONTENT, Json(Some(role))));
+            return Ok((StatusCode::NO_CONTENT, Json(RoleResponse::from(role))));
         } else {
             return Err(StatusCode::NOT_FOUND);
         }

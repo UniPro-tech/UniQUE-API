@@ -6,17 +6,22 @@ use axum::{
     routing::*,
 };
 use sea_orm::*;
-use serde_json;
 
 use crate::{
     constants::permissions::Permission,
     middleware::{auth::AuthUser, permission_check},
     models::{
         session::{self, Entity as Session},
-        user::{self, Entity as User},
+        user::Entity as User,
+    },
+    routes::{
+        common_dtos::array_dto::ApiResponse, sessions::SessionResponse, users::PublicUserResponse,
     },
 };
-//use crate::{db::DbConn, routes::users_sub};
+
+/// =======================
+/// Router
+/// =======================
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -27,112 +32,115 @@ pub fn routes() -> Router<DbConn> {
         )
 }
 
-/// すべてのセッションを取得するための関数
+/// =======================
+/// handlers
+/// =======================
+
+/// ユーザーの全セッション取得
 async fn get_all_sessions(
     State(db): State<DbConn>,
     Path(uid): Path<String>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission_or_self(
-        &auth_user,
-        Permission::SESSION_MANAGE,
-        &uid,
-        &db,
-    )
-    .await?;
+    permission_check::require_permission_or_self(&auth_user, Permission::SESSION_MANAGE, &uid, &db)
+        .await?;
 
-    let user = User::find_by_id(uid).one(&db).await.unwrap();
-    if let Some(user) = user {
-        let sessions = user.find_related(Session).all(&db).await.unwrap();
-        return Ok((
-            StatusCode::OK,
-            Json(serde_json::json!({ "data": sessions })),
-        ));
-    }
-    Err(StatusCode::NOT_FOUND)
+    let user = User::find_by_id(&uid).one(&db).await.unwrap();
+    let Some(user) = user else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    // セッション取得
+    let sessions = user.find_related(Session).all(&db).await.unwrap();
+
+    // DTO 変換
+    let responses: Vec<SessionResponse> = sessions
+        .into_iter()
+        .map(|session| SessionResponse {
+            id: session.id,
+            created_at: session.created_at,
+            expires_at: session.expires_at,
+            ip_address: session.ip_address,
+            user_agent: session.user_agent,
+            is_enable: session.is_enable,
+            user: PublicUserResponse {
+                id: user.id.clone(),
+                custom_id: user.custom_id.clone(),
+                period: user.period.clone(),
+                name: user.name.clone(),
+                email: user.email.clone(),
+                is_enable: user.is_enable,
+            },
+        })
+        .collect();
+
+    Ok((StatusCode::OK, Json(ApiResponse { data: responses })))
 }
 
-/// 特定のセッションを取得するための関数
+/// 特定セッション取得（単体なので ApiResponse で包まない）
 async fn get_session(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission_or_self(
-        &auth_user,
-        Permission::SESSION_MANAGE,
-        &uid,
-        &db,
-    )
-    .await?;
+    permission_check::require_permission_or_self(&auth_user, Permission::SESSION_MANAGE, &uid, &db)
+        .await?;
 
-    // セッションと関連のデータを結合して取得する（例: user を関連として取得する場合）
     let joined = Session::find()
-        .filter(session::Column::Id.eq(id.clone()))
-        .filter(user::Column::Id.eq(uid.clone()))
-        .find_with_related(crate::models::user::Entity)
+        .filter(session::Column::Id.eq(&id))
+        .filter(session::Column::UserId.eq(&uid))
+        .find_with_related(User)
         .all(&db)
         .await
         .unwrap();
-    // find_with_related は Vec<(session::Model, Vec<related::Model>)> を返す
-    if let Some((session, related)) = joined.into_iter().next() {
-        let mut body = serde_json::json!(session);
-        body["user"] = serde_json::to_value(&related[0]).unwrap();
-        // "roles" フィールドを追加
-        let user_roles = crate::models::user_role::Entity::find()
-            .filter(crate::models::user_role::Column::UserId.eq(&session.user_id))
-            .find_with_related(crate::models::role::Entity)
-            .all(&db)
-            .await
-            .unwrap();
-        let roles: Vec<crate::models::role::Model> = user_roles
-            .into_iter()
-            .flat_map(|(_, roles)| roles)
-            .collect();
-        body["user"]["roles"] = serde_json::to_value(&roles).unwrap();
-        let user_discord = crate::models::discord::Entity::find()
-            .filter(crate::models::discord::Column::UserId.eq(&session.user_id))
-            .all(&db)
-            .await
-            .unwrap();
-        body["user"]["discords"] = serde_json::to_value(&user_discord).unwrap();
-        body["user"]["discords"]
-            .as_array_mut()
-            .unwrap()
-            .iter_mut()
-            .for_each(|discord| {
-                discord.as_object_mut().unwrap().remove("user_id");
-            });
-        // "user_id" フィールドを削除
-        body.as_object_mut().unwrap().remove("user_id");
-        return Ok((StatusCode::OK, Json(body)));
-    }
-    Err(StatusCode::NOT_FOUND)
+
+    let Some((session, mut users)) = joined.into_iter().next() else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+    let user = users.pop().unwrap();
+
+    let response = SessionResponse {
+        id: session.id,
+        created_at: session.created_at,
+        expires_at: session.expires_at,
+        ip_address: session.ip_address,
+        user_agent: session.user_agent,
+        is_enable: session.is_enable,
+        user: PublicUserResponse {
+            id: user.id,
+            custom_id: user.custom_id,
+            period: user.period,
+            name: user.name,
+            email: user.email,
+            is_enable: user.is_enable,
+        },
+    };
+
+    Ok((StatusCode::OK, Json(response)))
 }
 
-/// セッションを削除するための関数
+/// セッション削除
 async fn delete_session(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission_or_self(
-        &auth_user,
-        Permission::SESSION_MANAGE,
-        &uid,
-        &db,
-    )
-    .await?;
+    permission_check::require_permission_or_self(&auth_user, Permission::SESSION_MANAGE, &uid, &db)
+        .await?;
 
-    let found = Session::find_by_id(id)
-        .filter(user::Column::Id.eq(uid))
+    let found = Session::find()
+        .filter(session::Column::Id.eq(id))
+        .filter(session::Column::UserId.eq(uid))
         .one(&db)
         .await
         .unwrap();
-    if let Some(session) = found {
-        let am: session::ActiveModel = session.into();
-        am.delete(&db).await.unwrap();
-        return Ok((StatusCode::NO_CONTENT, Json::<Option<session::Model>>(None)));
-    }
-    Err(StatusCode::NOT_FOUND)
+
+    let Some(session) = found else {
+        return Err(StatusCode::NOT_FOUND);
+    };
+
+    let am: session::ActiveModel = session.into();
+    am.delete(&db).await.unwrap();
+
+    Ok(StatusCode::NO_CONTENT)
 }

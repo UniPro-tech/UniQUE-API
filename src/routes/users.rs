@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::Utc;
 use sea_orm::*;
-use serde_json;
+use serde::Serialize;
 use ulid::Ulid;
 
 use crate::{
@@ -17,10 +17,100 @@ use crate::{
         discord,
         user::{self, Entity as User},
     },
-    routes::users_sub,
+    routes::{common_dtos::array_dto::ApiResponse, users_sub},
     utils::password,
 };
-//use crate::{db::DbConn, routes::users_sub};
+
+/// =======================
+/// DTO（レスポンス専用）
+/// =======================
+
+/// 公開用ユーザー情報(権限なしでも見られる情報)
+#[derive(Serialize)]
+pub struct PublicUserResponse {
+    pub id: String,
+    pub custom_id: String,
+    pub name: String,
+    pub email: String,
+    pub period: Option<String>,
+    pub is_enable: Option<bool>,
+}
+
+/// 詳細ユーザー情報(権限あり or 本人のみ)
+#[derive(Serialize)]
+pub struct DetailedUserResponse {
+    pub id: String,
+    pub custom_id: String,
+    pub name: String,
+    pub email: String,
+    pub external_email: String,
+    pub birthdate: Option<chrono::NaiveDate>,
+    pub email_verified: bool,
+    pub period: Option<String>,
+    pub joined_at: Option<chrono::NaiveDateTime>,
+    pub is_system: Option<bool>,
+    pub is_enable: Option<bool>,
+    pub is_suspended: Option<bool>,
+    pub suspended_until: Option<chrono::NaiveDateTime>,
+    pub suspended_reason: Option<String>,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub updated_at: Option<chrono::NaiveDateTime>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub discords: Option<Vec<discord::Model>>,
+}
+
+/// ユーザーリストのレスポンス型（権限に応じて異なる型を返す）
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum UserListResponse {
+    Detailed(ApiResponse<Vec<DetailedUserResponse>>),
+    Public(ApiResponse<Vec<PublicUserResponse>>),
+}
+
+/// 単一ユーザーのレスポンス型（権限に応じて異なる型を返す）
+#[derive(Serialize)]
+#[serde(untagged)]
+pub enum UserResponse {
+    Detailed(DetailedUserResponse),
+    Public(PublicUserResponse),
+}
+
+impl From<user::Model> for PublicUserResponse {
+    fn from(user: user::Model) -> Self {
+        Self {
+            id: user.id,
+            custom_id: user.custom_id,
+            name: user.name,
+            email: user.email,
+            period: user.period,
+            is_enable: user.is_enable,
+        }
+    }
+}
+
+impl From<user::Model> for DetailedUserResponse {
+    fn from(user: user::Model) -> Self {
+        Self {
+            id: user.id,
+            custom_id: user.custom_id,
+            name: user.name,
+            email: user.email,
+            external_email: user.external_email,
+            birthdate: user.birthdate,
+            email_verified: user.email_verified,
+            period: user.period,
+            joined_at: user.joined_at,
+            is_system: user.is_system,
+            is_enable: user.is_enable,
+            is_suspended: user.is_suspended,
+            suspended_until: user.suspended_until,
+            suspended_reason: user.suspended_reason,
+            created_at: user.created_at,
+            updated_at: user.updated_at,
+            discords: None,
+        }
+    }
+}
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -45,7 +135,7 @@ pub fn routes() -> Router<DbConn> {
 async fn get_all_users(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
+) -> Result<impl IntoResponse, StatusCode> {
     // USER_READ があるかどうかを判定（失敗しても許可し、後続でマスキング＆フィルタ）
     let has_user_read =
         permission_check::require_permission(&auth_user, Permission::USER_READ, &db)
@@ -54,36 +144,34 @@ async fn get_all_users(
 
     let users = User::find().all(&db).await.unwrap();
 
-    // 権限なしの場合は、is_suspended=true または is_enable=false のユーザーを除外し、
-    // センシティブ情報をマスクして返す
-    let sanitized: Vec<serde_json::Value> = users
-        .into_iter()
-        .filter_map(|u| {
-            if !has_user_read {
+    if has_user_read {
+        // 権限ありの場合は詳細情報を返す
+        let detailed_users: Vec<DetailedUserResponse> =
+            users.into_iter().map(DetailedUserResponse::from).collect();
+        Ok((
+            StatusCode::OK,
+            Json(UserListResponse::Detailed(ApiResponse {
+                data: detailed_users,
+            })),
+        ))
+    } else {
+        // 権限なしの場合は公開情報のみを返す
+        // is_suspended=true または is_enable=false または tmp_ メールのユーザーを除外
+        let public_users: Vec<PublicUserResponse> = users
+            .into_iter()
+            .filter(|u| {
                 let suspended = u.is_suspended.unwrap_or(false);
                 let enabled = u.is_enable.unwrap_or(true);
                 let has_tmp_email = u.email.contains("tmp_");
-                if suspended || !enabled || has_tmp_email {
-                    // 表示しない
-                    return None;
-                }
-            }
-
-            let mut v = serde_json::to_value(&u).unwrap();
-            if !has_user_read {
-                if let Some(obj) = v.as_object_mut() {
-                    obj.remove("external_email");
-                    obj.remove("birthdate");
-                    obj.remove("is_suspended");
-                    obj.remove("suspended_until");
-                    obj.remove("suspended_reason");
-                }
-            }
-            Some(v)
-        })
-        .collect();
-
-    Ok(Json(serde_json::json!({ "data": sanitized })))
+                !suspended && enabled && !has_tmp_email
+            })
+            .map(PublicUserResponse::from)
+            .collect();
+        Ok((
+            StatusCode::OK,
+            Json(UserListResponse::Public(ApiResponse { data: public_users })),
+        ))
+    }
 }
 
 /// 特定のユーザーを取得するための関数
@@ -105,8 +193,8 @@ async fn get_user(
         .await
         .unwrap();
 
-    if let Some((user_model, discord)) = user.into_iter().next() {
-        // 権限が無い場合は、is_suspended=true または is_enable=false のユーザーは非表示
+    if let Some((user_model, discord_models)) = user.into_iter().next() {
+        // 権限が無く本人でもない場合は、is_suspended=true または is_enable=false のユーザーは非表示
         if !has_user_read && !is_self {
             let suspended = user_model.is_suspended.unwrap_or(false);
             let enabled = user_model.is_enable.unwrap_or(true);
@@ -116,21 +204,16 @@ async fn get_user(
             }
         }
 
-        let mut res = serde_json::to_value(&user_model).unwrap();
-        res["discords"] = serde_json::to_value(&discord).unwrap();
-
-        // 自分自身でなければ、USER_READ が無いとセンシティブ情報をマスク
-        if !is_self && !has_user_read {
-            if let Some(obj) = res.as_object_mut() {
-                obj.remove("external_email");
-                obj.remove("birthdate");
-                obj.remove("is_suspended");
-                obj.remove("suspended_until");
-                obj.remove("suspended_reason");
-            }
+        // 自分自身または権限ありの場合は詳細情報を返す
+        if is_self || has_user_read {
+            let mut detailed = DetailedUserResponse::from(user_model);
+            detailed.discords = Some(discord_models);
+            Ok((StatusCode::OK, Json(UserResponse::Detailed(detailed))))
+        } else {
+            // それ以外は公開情報のみ
+            let public = PublicUserResponse::from(user_model);
+            Ok((StatusCode::OK, Json(UserResponse::Public(public))))
         }
-
-        Ok((StatusCode::OK, Json(Some(res))))
     } else {
         Err(StatusCode::NOT_FOUND)
     }
