@@ -26,7 +26,7 @@ bitflags! {
     // また、自身がOwnerである App に対しては別途許可される.
     // ここでは他者が所有する App に対する操作権限を定義する.
     const APP_READ     = 1 << 8; // App読み取り
-    const APP_CREATE   = 1 << 9; // App作成
+    // const APP_CREATE   = 1 << 9; // App作成(廃止・欠番)
     const APP_UPDATE   = 1 << 10; // App更新
     const APP_DELETE   = 1 << 11; // App削除
     const APP_SECRET_ROTATE = 1 << 12; // Appシークレットの再発行
@@ -56,7 +56,7 @@ impl Permission {
             PermissionString::USER_DISABLE => Some(Permission::USER_DISABLE),
 
             PermissionString::APP_READ => Some(Permission::APP_READ),
-            PermissionString::APP_CREATE => Some(Permission::APP_CREATE),
+            // PermissionString::APP_CREATE => Some(Permission::APP_CREATE),
             PermissionString::APP_UPDATE => Some(Permission::APP_UPDATE),
             PermissionString::APP_DELETE => Some(Permission::APP_DELETE),
             PermissionString::APP_SECRET_ROTATE => Some(Permission::APP_SECRET_ROTATE),
@@ -107,7 +107,7 @@ impl Permission {
                 PermissionString::USER_DISABLE,
             ),
             (Permission::APP_READ.bits(), PermissionString::APP_READ),
-            (Permission::APP_CREATE.bits(), PermissionString::APP_CREATE),
+            // (Permission::APP_CREATE.bits(), PermissionString::APP_CREATE),
             (Permission::APP_UPDATE.bits(), PermissionString::APP_UPDATE),
             (Permission::APP_DELETE.bits(), PermissionString::APP_DELETE),
             (
@@ -161,7 +161,7 @@ impl PermissionString {
     pub const USER_DISABLE: &'static str = "USER_DISABLE";
 
     pub const APP_READ: &'static str = "APP_READ";
-    pub const APP_CREATE: &'static str = "APP_CREATE";
+    // pub const APP_CREATE: &'static str = "APP_CREATE";
     pub const APP_UPDATE: &'static str = "APP_UPDATE";
     pub const APP_DELETE: &'static str = "APP_DELETE";
     pub const APP_SECRET_ROTATE: &'static str = "APP_SECRET_ROTATE";

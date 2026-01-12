@@ -99,14 +99,11 @@ struct CreateApp {
 }
 
 /// 新しいアプリケーションを作成するための関数
-/// システム専用
 async fn create_app(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateApp>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission(&auth_user, Permission::APP_CREATE, &db).await?;
-
     let am = app::ActiveModel {
         id: Set(Ulid::new().to_string()),
         name: Set(payload.name),
