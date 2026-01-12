@@ -26,8 +26,7 @@ async fn get_all_sessions(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
-        .await?;
+    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db).await?;
 
     let sessions = Session::find().all(&db).await.unwrap();
     Ok(Json(serde_json::json!({ "data": sessions })))
@@ -39,9 +38,6 @@ async fn get_session(
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
-        .await?;
-
     // セッションと関連のデータを結合して取得する（例: user を関連として取得する場合）
     let joined = Session::find()
         .filter(session::Column::Id.eq(id.clone()))
@@ -51,6 +47,12 @@ async fn get_session(
         .unwrap();
     // find_with_related は Vec<(session::Model, Vec<related::Model>)> を返す
     if let Some((session, related)) = joined.into_iter().next() {
+        // 自分のセッションでない場合は SESSION_MANAGE 権限が必要
+        if session.user_id != auth_user.user_id {
+            permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
+                .await?;
+        }
+
         let mut body = serde_json::json!(session);
         body["user"] = serde_json::to_value(&related[0]).unwrap();
         // "roles" フィールドを追加
@@ -91,11 +93,14 @@ async fn delete_session(
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
-        .await?;
-
     let found = Session::find_by_id(id).one(&db).await.unwrap();
     if let Some(session) = found {
+        // 自分のセッションでない場合は SESSION_MANAGE 権限が必要
+        if session.user_id != auth_user.user_id {
+            permission_check::require_permission(&auth_user, Permission::SESSION_MANAGE, &db)
+                .await?;
+        }
+
         let am: session::ActiveModel = session.into();
         am.delete(&db).await.unwrap();
         return Ok((StatusCode::NO_CONTENT, Json::<Option<session::Model>>(None)));
