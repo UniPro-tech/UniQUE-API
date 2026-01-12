@@ -1,9 +1,4 @@
-use axum::{
-    extract::{Request, State, rejection::JsonRejection},
-    http::StatusCode,
-    middleware::Next,
-    response::{IntoResponse, Response},
-};
+use axum::http::StatusCode;
 use sea_orm::*;
 
 use crate::{
@@ -46,6 +41,9 @@ pub async fn require_permission(
     required: Permission,
     db: &DbConn,
 ) -> Result<(), StatusCode> {
+    if auth_user.is_system.unwrap_or(false) {
+        return Ok(());
+    }
     let user_permissions = get_user_permissions(auth_user, db).await?;
     if !user_permissions.contains(required) {
         return Err(StatusCode::FORBIDDEN);
