@@ -16,30 +16,26 @@ pub enum Relation {
     #[sea_orm(
         belongs_to = "super::app::Entity",
         from = "Column::AppId",
-        to = "super::app::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        to = "super::app::Column::Id"
     )]
-    Apps,
+    App,
     #[sea_orm(
         belongs_to = "super::user::Entity",
         from = "Column::UserId",
-        to = "super::user::Column::Id",
-        on_update = "NoAction",
-        on_delete = "NoAction"
+        to = "super::user::Column::Id"
     )]
-    Users,
+    User,
 }
 
 impl Related<super::app::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Apps.def()
+        Relation::App.def()
     }
 }
 
 impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::Users.def()
+        Relation::User.def()
     }
 }
 

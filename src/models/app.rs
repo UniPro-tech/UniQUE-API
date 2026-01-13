@@ -19,11 +19,16 @@ pub struct Model {
 pub enum Relation {
     #[sea_orm(has_many = "super::auths::Entity")]
     Auths,
+
     #[sea_orm(has_many = "super::redirect_uris::Entity")]
     RedirectUris,
+
+    // 中間テーブル user_app
     #[sea_orm(has_many = "super::user_app::Entity")]
-    UserApp,
+    Users,
 }
+
+/* ---------- one-to-many ---------- */
 
 impl Related<super::auths::Entity> for Entity {
     fn to() -> RelationDef {
@@ -37,9 +42,23 @@ impl Related<super::redirect_uris::Entity> for Entity {
     }
 }
 
+/* ---------- many-to-many ---------- */
+
+// App -> user_app (中間テーブル)
 impl Related<super::user_app::Entity> for Entity {
     fn to() -> RelationDef {
-        Relation::UserApp.def()
+        Relation::Users.def()
+    }
+}
+
+// App -> user (many-to-many 本体)
+impl Related<super::user::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::user_app::Relation::User.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(Relation::Users.def())
     }
 }
 

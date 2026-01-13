@@ -39,7 +39,7 @@ pub enum Relation {
     #[sea_orm(has_many = "super::session::Entity")]
     Sessions,
     #[sea_orm(has_many = "super::user_app::Entity")]
-    UserApp,
+    Apps,
     #[sea_orm(has_many = "super::user_role::Entity")]
     Roles,
     #[sea_orm(has_many = "super::email_verification::Entity")]
@@ -66,12 +66,6 @@ impl Related<super::session::Entity> for Entity {
     }
 }
 
-impl Related<super::user_app::Entity> for Entity {
-    fn to() -> RelationDef {
-        Relation::UserApp.def()
-    }
-}
-
 impl Related<super::email_verification::Entity> for Entity {
     fn to() -> RelationDef {
         Relation::EmailVerifications.def()
@@ -95,6 +89,24 @@ impl Related<super::role::Entity> for Entity {
 
     fn via() -> Option<RelationDef> {
         Some(Relation::Roles.def())
+    }
+}
+
+// User -> user_app (中間テーブル)
+impl Related<super::user_app::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Apps.def()
+    }
+}
+
+// User -> app (many-to-many 本体)
+impl Related<super::app::Entity> for Entity {
+    fn to() -> RelationDef {
+        super::user_app::Relation::App.def()
+    }
+
+    fn via() -> Option<RelationDef> {
+        Some(Relation::Apps.def())
     }
 }
 

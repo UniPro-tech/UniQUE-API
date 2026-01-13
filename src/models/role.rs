@@ -21,19 +21,24 @@ pub struct Model {
 #[derive(Copy, Clone, Debug, EnumIter, DeriveRelation)]
 pub enum Relation {
     #[sea_orm(has_many = "super::user_role::Entity")]
-    User,
+    Users,
 }
 
+// Role -> user_role (中間テーブル)
+impl Related<super::user_role::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::Users.def()
+    }
+}
+
+// User -> role (many-to-many 本体)
 impl Related<super::role::Entity> for Entity {
-    // The final relation is User -> user_role -> Role
     fn to() -> RelationDef {
         super::user_role::Relation::User.def()
     }
 
     fn via() -> Option<RelationDef> {
-        // The original relation is CakeFilling -> Cake,
-        // after `rev` it becomes Cake -> CakeFilling
-        Some(super::user_role::Relation::User.def().rev())
+        Some(Relation::Users.def())
     }
 }
 
