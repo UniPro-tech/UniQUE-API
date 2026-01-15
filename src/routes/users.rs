@@ -252,7 +252,7 @@ pub async fn get_user(
 }
 
 #[derive(serde::Deserialize, ToSchema)]
-struct CreateUser {
+pub struct CreateUser {
     pub custom_id: String,
     pub name: String,
     pub password: String,
@@ -328,7 +328,7 @@ pub async fn create_user(
 }
 
 #[derive(serde::Deserialize, ToSchema)]
-struct PutUser {
+pub struct PutUser {
     pub custom_id: String,
     pub name: String,
     pub password: Option<String>,
@@ -419,7 +419,7 @@ pub async fn put_user(
 }
 
 #[derive(serde::Deserialize, ToSchema)]
-struct UpdateUser {
+pub struct UpdateUser {
     pub custom_id: Option<String>,
     pub name: Option<String>,
     pub password_hash: Option<String>,

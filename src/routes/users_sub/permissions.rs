@@ -10,12 +10,13 @@ use axum::{
 };
 use sea_orm::*;
 use serde::Serialize;
+use utoipa::ToSchema;
 
 /// =======================
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PermissionsResponse {
     pub permissions_bit: i64,
     pub permissions_text: Vec<String>,
@@ -26,7 +27,23 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// ユーザーのロール一覧を取得し権限bitを合成する
-async fn get_permissions_bit(
+#[utoipa::path(
+    get,
+    path = "/users/{id}/permissions",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 200, description = "権限情報取得成功", body = PermissionsResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_permissions_bit(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
