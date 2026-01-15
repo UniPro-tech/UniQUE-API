@@ -7,6 +7,7 @@ use axum::{
 };
 use sea_orm::*;
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
     constants::permissions::Permission,
@@ -20,7 +21,7 @@ use crate::{
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DiscordResponse {
     pub discord_id: String,
     pub custom_id: String,
