@@ -7,8 +7,7 @@ use axum::{
 };
 use chrono::Utc;
 use sea_orm::*;
-use serde_json;
-use serde_json::json;
+use serde::Serialize;
 use ulid::Ulid;
 
 use crate::{
@@ -16,6 +15,31 @@ use crate::{
     models::email_verification,
     models::user::{self, Entity as User},
 };
+
+/// =======================
+/// DTO（レスポンス専用）
+/// =======================
+
+#[derive(Serialize)]
+pub struct EmailVerificationResponse {
+    pub id: Option<i32>,
+    pub user_id: String,
+    pub verification_code: String,
+    pub created_at: Option<chrono::NaiveDateTime>,
+    pub expires_at: chrono::NaiveDateTime,
+}
+
+impl From<email_verification::Model> for EmailVerificationResponse {
+    fn from(model: email_verification::Model) -> Self {
+        Self {
+            id: Some(model.id),
+            user_id: model.user_id,
+            verification_code: model.verification_code,
+            created_at: model.created_at,
+            expires_at: model.expires_at,
+        }
+    }
+}
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
@@ -37,21 +61,27 @@ async fn get_email_verifications(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let found = User::find_by_id(uid).one(&db).await
+    let found = User::find_by_id(uid)
+        .one(&db)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if let Some(user) = found {
         if id.chars().all(|c| c.is_numeric()) {
-            let verifications =
-                email_verification::Entity::find_by_id(id.parse::<i32>().map_err(|_| StatusCode::BAD_REQUEST)?)
-                    .filter(email_verification::Column::UserId.eq(user.id))
-                    .filter(email_verification::Column::ExpiresAt.gt(Utc::now().naive_utc()))
-                    .one(&db)
-                    .await
-                    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let verifications = email_verification::Entity::find_by_id(
+                id.parse::<i32>().map_err(|_| StatusCode::BAD_REQUEST)?,
+            )
+            .filter(email_verification::Column::UserId.eq(user.id))
+            .filter(email_verification::Column::ExpiresAt.gt(Utc::now().naive_utc()))
+            .one(&db)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
             if let Some(verification) = verifications {
-                return Ok((StatusCode::OK, Json(json!(verification))));
+                return Ok((
+                    StatusCode::OK,
+                    Json(EmailVerificationResponse::from(verification)),
+                ));
             }
 
             return Err(StatusCode::NOT_FOUND);
@@ -65,7 +95,10 @@ async fn get_email_verifications(
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         if let Some(verification) = verification {
-            return Ok((StatusCode::OK, Json(json!(verification))));
+            return Ok((
+                StatusCode::OK,
+                Json(EmailVerificationResponse::from(verification)),
+            ));
         }
     }
     Err(StatusCode::NOT_FOUND)
@@ -88,7 +121,9 @@ async fn post_challenge(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let found = user::Entity::find_by_id(uid).one(&db).await
+    let found = user::Entity::find_by_id(uid)
+        .one(&db)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let expires_at = payload
@@ -105,7 +140,12 @@ async fn post_challenge(
             ..Default::default()
         };
         match challenge.insert(&db).await {
-            Ok(res) => return Ok((StatusCode::CREATED, Json(json!(res)))),
+            Ok(res) => {
+                return Ok((
+                    StatusCode::CREATED,
+                    Json(EmailVerificationResponse::from(res)),
+                ));
+            }
             Err(_) => {
                 return Err(StatusCode::INTERNAL_SERVER_ERROR);
             }
@@ -125,21 +165,28 @@ async fn delete_email_verification(
         return Err(StatusCode::FORBIDDEN);
     }
 
-    let found = User::find_by_id(uid).one(&db).await
+    let found = User::find_by_id(uid)
+        .one(&db)
+        .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     if let Some(user) = found {
         if id.chars().all(|c| c.is_numeric()) {
-            email_verification::Entity::delete_by_id(id.parse::<i32>().map_err(|_| StatusCode::BAD_REQUEST)?)
-                .filter(email_verification::Column::UserId.eq(user.id))
-                .exec(&db)
-                .await
-                .map_err(|e| match e {
-                    DbErr::RecordNotFound(_) => StatusCode::NOT_FOUND,
-                    _ => StatusCode::INTERNAL_SERVER_ERROR,
-                })?;
+            email_verification::Entity::delete_by_id(
+                id.parse::<i32>().map_err(|_| StatusCode::BAD_REQUEST)?,
+            )
+            .filter(email_verification::Column::UserId.eq(user.id))
+            .exec(&db)
+            .await
+            .map_err(|e| match e {
+                DbErr::RecordNotFound(_) => StatusCode::NOT_FOUND,
+                _ => StatusCode::INTERNAL_SERVER_ERROR,
+            })?;
 
-            return Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)));
+            return Ok((
+                StatusCode::NO_CONTENT,
+                Json::<Option<email_verification::Model>>(None),
+            ));
         }
         let found = email_verification::Entity::find()
             .filter(email_verification::Column::UserId.eq(user.id))
@@ -149,9 +196,13 @@ async fn delete_email_verification(
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         if let Some(found) = found {
             let am: email_verification::ActiveModel = found.into();
-            am.delete(&db).await
+            am.delete(&db)
+                .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-            return Ok((StatusCode::NO_CONTENT, Json(serde_json::Value::Null)));
+            return Ok((
+                StatusCode::NO_CONTENT,
+                Json::<Option<email_verification::Model>>(None),
+            ));
         }
     }
 

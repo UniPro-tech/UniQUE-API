@@ -10,6 +10,7 @@ use sea_orm::*;
 use serde::Serialize;
 use ulid::Ulid;
 
+use crate::routes::users_sub::discord::DiscordResponse;
 use crate::{
     constants::permissions::Permission,
     middleware::{auth::AuthUser, permission_check},
@@ -55,8 +56,7 @@ pub struct DetailedUserResponse {
     pub suspended_reason: Option<String>,
     pub created_at: Option<chrono::NaiveDateTime>,
     pub updated_at: Option<chrono::NaiveDateTime>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub discords: Option<Vec<discord::Model>>,
+    pub discords: Vec<DiscordResponse>,
 }
 
 /// ユーザーリストのレスポンス型（権限に応じて異なる型を返す）
@@ -107,7 +107,7 @@ impl From<user::Model> for DetailedUserResponse {
             suspended_reason: user.suspended_reason,
             created_at: user.created_at,
             updated_at: user.updated_at,
-            discords: None,
+            discords: Vec::new(),
         }
     }
 }
@@ -207,7 +207,10 @@ async fn get_user(
         // 自分自身または権限ありの場合は詳細情報を返す
         if is_self || has_user_read {
             let mut detailed = DetailedUserResponse::from(user_model);
-            detailed.discords = Some(discord_models);
+            detailed.discords = discord_models
+                .into_iter()
+                .map(DiscordResponse::from)
+                .collect();
             Ok((StatusCode::OK, Json(UserResponse::Detailed(detailed))))
         } else {
             // それ以外は公開情報のみ
