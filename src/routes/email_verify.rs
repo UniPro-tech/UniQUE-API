@@ -8,7 +8,6 @@ use axum::{
 use chrono::Utc;
 use sea_orm::*;
 use serde::Serialize;
-use serde_json;
 use utoipa::ToSchema;
 
 use crate::{middleware::auth::AuthUser, models::email_verification};

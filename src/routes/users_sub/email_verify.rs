@@ -7,7 +7,6 @@ use axum::{
 };
 use chrono::Utc;
 use sea_orm::*;
-use serde::Serialize;
 use ulid::Ulid;
 use utoipa::ToSchema;
 
@@ -19,33 +18,6 @@ use crate::{
     },
     routes::email_verify::EmailVerificationResponse,
 };
-
-/// =======================
-/// DTO（レスポンス専用）
-/// =======================
-
-#[derive(Serialize, ToSchema)]
-pub struct EmailVerificationResponse {
-    pub id: Option<i32>,
-    pub user_id: String,
-    pub verification_code: String,
-    #[schema(value_type = String, format = "date-time")]
-    pub created_at: Option<chrono::NaiveDateTime>,
-    #[schema(value_type = String, format = "date-time")]
-    pub expires_at: chrono::NaiveDateTime,
-}
-
-impl From<email_verification::Model> for EmailVerificationResponse {
-    fn from(model: email_verification::Model) -> Self {
-        Self {
-            id: Some(model.id),
-            user_id: model.user_id,
-            verification_code: model.verification_code,
-            created_at: model.created_at,
-            expires_at: model.expires_at,
-        }
-    }
-}
 
 pub fn routes() -> Router<DbConn> {
     Router::new()

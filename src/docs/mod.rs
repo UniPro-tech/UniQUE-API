@@ -102,7 +102,6 @@ use utoipa::OpenApi;
             crate::routes::email_verify::EmailVerificationResponse,
             
             // Users sub: Email Verify
-            crate::routes::users_sub::email_verify::EmailVerificationResponse,
             crate::routes::users_sub::email_verify::CreateVerifyChallenge,
             
             // Users sub: Password
