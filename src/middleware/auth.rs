@@ -22,6 +22,14 @@ pub async fn auth_middleware(
     mut req: Request,
     next: Next,
 ) -> Result<Response, StatusCode> {
+    // swagger-uiのみ許可
+    if req.uri().path().starts_with("/swagger-ui")
+        || req.uri().path().starts_with("/api-docs")
+        || req.uri().path().starts_with("/openapi.json")
+    {
+        return Ok(next.run(req).await);
+    }
+
     // ヘッダーからAPI_KEYを取得
     let api_key = req.headers().get("x-api-key").and_then(|h| h.to_str().ok());
 
