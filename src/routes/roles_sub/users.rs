@@ -1,0 +1,154 @@
+use axum::{
+    Json, Router,
+    extract::{Path, State},
+    http::StatusCode,
+    response::IntoResponse,
+    routing::*,
+};
+use sea_orm::*;
+
+use crate::{
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
+    models::role::Entity as Role,
+    models::user::Entity as User,
+    routes::{common_dtos::array_dto::ApiResponse, roles::RoleResponse},
+};
+
+pub fn routes() -> Router<DbConn> {
+    Router::new()
+        .route("/roles/{id}/users", get(get_all_users))
+        .route("/roles/{id}/users/{uid}", delete(delete_role).put(put_role))
+    //.merge(users_sub::books::routes())
+}
+
+/// すべてのロールを取得するための関数
+#[utoipa::path(
+    get,
+    path = "/roles/{id}/users",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID")
+    ),
+    responses(
+        (status = 200, description = "ロールに紐つくユーザー一覧取得成功"),
+        (status = 404, description = "ロールが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_users(
+    State(db): State<DbConn>,
+    Path(id): Path<String>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::PERMISSION_MANAGE, &db).await?;
+
+    let role_with_users = Role::find_by_id(id.clone())
+        .find_with_related(User)
+        .all(&db)
+        .await
+        .unwrap();
+    if let Some((_, users)) = role_with_users.into_iter().next() {
+        let responses: Vec<crate::routes::users::DetailedUserResponse> = users
+            .into_iter()
+            .map(crate::routes::users::DetailedUserResponse::from)
+            .collect();
+        return Ok((StatusCode::OK, Json(ApiResponse { data: responses })));
+    }
+    Err(StatusCode::NOT_FOUND)
+}
+
+// ユーザーにロールを付与する
+#[utoipa::path(
+    put,
+    path = "/roles/{id}/users/{uid}",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID"),
+        ("uid" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 201, description = "ロール付与成功", body = crate::routes::roles::RoleResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーまたはロールが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn put_role(
+    State(db): State<DbConn>,
+    Path((id, uid)): Path<(String, String)>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::PERMISSION_MANAGE, &db).await?;
+
+    // user と role を同時に取りに行く（並列）
+    let (user_res, role_res) = futures::join!(
+        User::find_by_id(uid.clone()).one(&db),
+        Role::find_by_id(id.clone()).one(&db)
+    );
+
+    match (user_res.unwrap(), role_res.unwrap()) {
+        (Some(user), Some(role)) => {
+            let user_role = crate::models::user_role::ActiveModel {
+                user_id: Set(user.id.clone()),
+                role_id: Set(role.id.clone()),
+                ..Default::default()
+            };
+            // 既にある場合はエラーになるかもしれないから、必要なら重複チェックを追加
+            let _ = user_role.insert(&db).await.unwrap();
+            Ok((StatusCode::CREATED, Json(RoleResponse::from(role))))
+        }
+        _ => Err(StatusCode::NOT_FOUND),
+    }
+}
+
+/// ユーザーからロールを削除する
+#[utoipa::path(
+    delete,
+    path = "/roles/{id}/users/{uid}",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID"),
+        ("uid" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 204, description = "ロール削除成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーまたはロールが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_role(
+    State(db): State<DbConn>,
+    Path((uid, id)): Path<(String, String)>,
+    auth_user: axum::Extension<AuthUser>,
+) -> Result<impl IntoResponse, StatusCode> {
+    permission_check::require_permission(&auth_user, Permission::PERMISSION_MANAGE, &db).await?;
+
+    // まず role の存在は確認しておくとレスポンスに role を返せる（現在の実装と同じ振る舞い）
+    if let Some(role) = Role::find_by_id(id.clone()).one(&db).await.unwrap() {
+        // 中間テーブルの該当行を直接削除
+        let res = crate::models::user_role::Entity::delete_many()
+            .filter(
+                crate::models::user_role::Column::UserId
+                    .eq(uid.clone())
+                    .and(crate::models::user_role::Column::RoleId.eq(id.clone())),
+            )
+            .exec(&db)
+            .await
+            .unwrap();
+
+        if res.rows_affected > 0 {
+            return Ok((StatusCode::NO_CONTENT, Json(RoleResponse::from(role))));
+        } else {
+            return Err(StatusCode::NOT_FOUND);
+        }
+    }
+    Err(StatusCode::NOT_FOUND)
+}

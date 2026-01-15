@@ -32,7 +32,7 @@ impl Related<super::user_role::Entity> for Entity {
 }
 
 // User -> role (many-to-many 本体)
-impl Related<super::role::Entity> for Entity {
+impl Related<super::user::Entity> for Entity {
     fn to() -> RelationDef {
         super::user_role::Relation::User.def()
     }

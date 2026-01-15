@@ -61,6 +61,8 @@ pub fn routes() -> Router<DbConn> {
                 .put(put_role),
         )
         .merge(roles_sub::search::routes())
+        .merge(roles_sub::permissions::routes())
+        .merge(roles_sub::users::routes())
 }
 
 /// すべてのロールを取得するための関数
