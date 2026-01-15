@@ -5,15 +5,34 @@ use axum::{
     response::IntoResponse,
     routing::get,
 };
-use chrono::{NaiveDate, NaiveDateTime, TimeZone, Utc};
+use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use sea_orm::*;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     constants::permissions::Permission,
     middleware::{auth::AuthUser, permission_check},
     models::user::{self, Entity as User},
+    routes::users::PublicUserResponse,
 };
+
+/// =======================
+/// DTO（レスポンス専用）
+/// =======================
+
+#[derive(Serialize)]
+pub struct SearchMetadata {
+    pub page: usize,
+    pub per_page: usize,
+    pub total: u64,
+    pub total_pages: u64,
+}
+
+#[derive(Serialize)]
+pub struct SearchUsersResponse {
+    pub data: Vec<PublicUserResponse>,
+    pub meta: SearchMetadata,
+}
 
 pub fn routes() -> Router<DbConn> {
     Router::new().route("/users/search", get(search_users))
@@ -21,54 +40,76 @@ pub fn routes() -> Router<DbConn> {
 
 #[derive(Debug, Deserialize)]
 #[serde(default)]
-pub struct Pagination {
+pub struct SearchParams {
     pub page: Option<usize>,
     pub per_page: Option<usize>,
     pub q: Option<String>,
-    pub filter: Option<String>,
+    // 個別フィルタ
+    pub is_enable: Option<bool>,
+    pub is_suspended: Option<bool>,
+    pub name: Option<String>,
+    pub email: Option<String>,
+    pub external_email: Option<String>,
+    pub period: Option<String>,
+    pub joined_before: Option<String>,
+    pub joined_after: Option<String>,
+    pub created_before: Option<String>,
+    pub created_after: Option<String>,
+    pub suspended_before: Option<String>,
+    pub suspended_after: Option<String>,
 }
 
-impl Pagination {
+impl SearchParams {
     const DEFAULT_PAGE: usize = 1;
     const DEFAULT_PER_PAGE: usize = 10;
 
-    pub fn params(&self) -> (usize, usize, Option<String>, Option<String>) {
-        (
-            self.page.unwrap_or(Self::DEFAULT_PAGE),
-            self.per_page.unwrap_or(Self::DEFAULT_PER_PAGE),
-            self.q.clone(),
-            self.filter.clone(),
-        )
+    pub fn page(&self) -> usize {
+        self.page.unwrap_or(Self::DEFAULT_PAGE)
+    }
+
+    pub fn per_page(&self) -> usize {
+        self.per_page.unwrap_or(Self::DEFAULT_PER_PAGE)
     }
 }
 
-impl Default for Pagination {
+impl Default for SearchParams {
     fn default() -> Self {
         Self {
-            page: Some(Self::DEFAULT_PAGE),
-            per_page: Some(Self::DEFAULT_PER_PAGE),
+            page: None,
+            per_page: None,
             q: None,
-            filter: None,
+            is_enable: None,
+            is_suspended: None,
+            name: None,
+            email: None,
+            external_email: None,
+            period: None,
+            joined_before: None,
+            joined_after: None,
+            created_before: None,
+            created_after: None,
+            suspended_before: None,
+            suspended_after: None,
         }
     }
 }
 
-pub async fn search_users(
-    State(db): State<crate::db::DbConn>,
-    Query(params): Query<Pagination>,
-    auth_user: axum::Extension<AuthUser>,
+async fn search_users(
+    State(db): State<DbConn>,
+    Query(params): Query<SearchParams>,
+    axum::Extension(auth_user): axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    permission_check::require_permission(&auth_user, Permission::USER_READ, &db)
-        .await?;
+    permission_check::require_permission(&auth_user, Permission::USER_READ, &db).await?;
 
-    let (page, per_page, q, filter) = params.params();
+    let page = params.page();
+    let per_page = params.per_page();
     let page_index = page.saturating_sub(1);
 
     // 検索条件をためる Condition
     let mut cond = Condition::all();
 
     // q 検索（部分一致：名前・メール・カスタムID）
-    if let Some(ref kw) = q {
+    if let Some(ref kw) = params.q {
         let kw = kw.trim();
         if !kw.is_empty() {
             let like_kw = format!("%{}%", kw);
@@ -81,81 +122,74 @@ pub async fn search_users(
         }
     }
 
-    // filter パラメータを解析
-    if let Some(ref f) = filter {
-        let f = f.trim();
-        if !f.is_empty() {
-            for pair in f.split(',') {
-                if let Some((key, value)) = pair.split_once(':') {
-                    let key = key.trim().to_lowercase();
-                    let value = value.trim();
+    // 個別フィルタの適用
+    if let Some(v) = params.is_enable {
+        cond = cond.add(user::Column::IsEnable.eq(v));
+    }
 
-                    // 日付パース（YYYY-MM-DD or YYYY-MM-DD HH:MM:SS）
-                    let parsed_date = NaiveDateTime::parse_from_str(value, "%Y-%m-%d %H:%M:%S")
-                        .or_else(|_| {
-                            NaiveDate::parse_from_str(value, "%Y-%m-%d")
-                                .map(|d| d.and_hms_opt(0, 0, 0).unwrap())
-                        })
-                        .ok()
-                        .map(|d| Utc.from_utc_datetime(&d));
+    if let Some(v) = params.is_suspended {
+        cond = cond.add(user::Column::IsSuspended.eq(v));
+    }
 
-                    match key.as_str() {
-                        // bool系
-                        "is_enable" => {
-                            if let Ok(v) = value.parse::<bool>() {
-                                cond = cond.add(user::Column::IsEnable.eq(v));
-                            }
-                        }
-                        "is_suspended" => {
-                            if let Ok(v) = value.parse::<bool>() {
-                                cond = cond.add(user::Column::IsSuspended.eq(v));
-                            }
-                        }
+    if let Some(ref v) = params.name {
+        cond = cond.add(user::Column::Name.contains(v));
+    }
 
-                        // 文字列系
-                        "name" => cond = cond.add(user::Column::Name.contains(value)),
-                        "email" => cond = cond.add(user::Column::Email.contains(value)),
-                        "external_email" => {
-                            cond = cond.add(user::Column::ExternalEmail.contains(value))
-                        }
-                        "period" => cond = cond.add(user::Column::Period.contains(value)),
+    if let Some(ref v) = params.email {
+        cond = cond.add(user::Column::Email.contains(v));
+    }
 
-                        // 日付系（before / after）
-                        "joined_before" => {
-                            if let Some(date) = parsed_date {
-                                cond = cond.add(user::Column::JoinedAt.lt(date));
-                            }
-                        }
-                        "joined_after" => {
-                            if let Some(date) = parsed_date {
-                                cond = cond.add(user::Column::JoinedAt.gt(date));
-                            }
-                        }
-                        "created_before" => {
-                            if let Some(date) = parsed_date {
-                                cond = cond.add(user::Column::CreatedAt.lt(date));
-                            }
-                        }
-                        "created_after" => {
-                            if let Some(date) = parsed_date {
-                                cond = cond.add(user::Column::CreatedAt.gt(date));
-                            }
-                        }
-                        "suspended_before" => {
-                            if let Some(date) = parsed_date {
-                                cond = cond.add(user::Column::SuspendedUntil.lt(date));
-                            }
-                        }
-                        "suspended_after" => {
-                            if let Some(date) = parsed_date {
-                                cond = cond.add(user::Column::SuspendedUntil.gt(date));
-                            }
-                        }
+    if let Some(ref v) = params.external_email {
+        cond = cond.add(user::Column::ExternalEmail.contains(v));
+    }
 
-                        _ => {}
-                    }
-                }
-            }
+    if let Some(ref v) = params.period {
+        cond = cond.add(user::Column::Period.contains(v));
+    }
+
+    // ヘルパー関数：文字列から日時をパース
+    let parse_datetime = |s: &str| -> Option<DateTime<Utc>> {
+        NaiveDateTime::parse_from_str(s, "%Y-%m-%d %H:%M:%S")
+            .or_else(|_| {
+                NaiveDate::parse_from_str(s, "%Y-%m-%d").map(|d| d.and_hms_opt(0, 0, 0).unwrap())
+            })
+            .ok()
+            .map(|d| Utc.from_utc_datetime(&d))
+    };
+
+    if let Some(ref v) = params.joined_before {
+        if let Some(date) = parse_datetime(v) {
+            cond = cond.add(user::Column::JoinedAt.lt(date));
+        }
+    }
+
+    if let Some(ref v) = params.joined_after {
+        if let Some(date) = parse_datetime(v) {
+            cond = cond.add(user::Column::JoinedAt.gt(date));
+        }
+    }
+
+    if let Some(ref v) = params.created_before {
+        if let Some(date) = parse_datetime(v) {
+            cond = cond.add(user::Column::CreatedAt.lt(date));
+        }
+    }
+
+    if let Some(ref v) = params.created_after {
+        if let Some(date) = parse_datetime(v) {
+            cond = cond.add(user::Column::CreatedAt.gt(date));
+        }
+    }
+
+    if let Some(ref v) = params.suspended_before {
+        if let Some(date) = parse_datetime(v) {
+            cond = cond.add(user::Column::SuspendedUntil.lt(date));
+        }
+    }
+
+    if let Some(ref v) = params.suspended_after {
+        if let Some(date) = parse_datetime(v) {
+            cond = cond.add(user::Column::SuspendedUntil.gt(date));
         }
     }
 
@@ -170,12 +204,19 @@ pub async fn search_users(
         .unwrap_or_default();
     let total = paginator.num_items().await.unwrap_or(0);
 
-    Ok(Json(serde_json::json!({
-        "data": users,
-        "meta": {
-            "page": page,
-            "per_page": per_page,
-            "total": total
-        }
-    })))
+    let total_pages = (total as usize + per_page - 1) / per_page;
+    let data: Vec<PublicUserResponse> = users.into_iter().map(PublicUserResponse::from).collect();
+
+    Ok((
+        StatusCode::OK,
+        Json(SearchUsersResponse {
+            data,
+            meta: SearchMetadata {
+                page,
+                per_page,
+                total,
+                total_pages: total_pages as u64,
+            },
+        }),
+    ))
 }
