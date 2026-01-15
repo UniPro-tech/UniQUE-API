@@ -9,6 +9,7 @@ use chrono::Utc;
 use sea_orm::*;
 use serde::Serialize;
 use ulid::Ulid;
+use utoipa::ToSchema;
 
 use crate::routes::users_sub::discord::DiscordResponse;
 use crate::{
@@ -27,7 +28,7 @@ use crate::{
 /// =======================
 
 /// 公開用ユーザー情報(権限なしでも見られる情報)
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct PublicUserResponse {
     pub id: String,
     pub custom_id: String,
@@ -38,7 +39,7 @@ pub struct PublicUserResponse {
 }
 
 /// 詳細ユーザー情報(権限あり or 本人のみ)
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct DetailedUserResponse {
     pub id: String,
     pub custom_id: String,
@@ -60,7 +61,7 @@ pub struct DetailedUserResponse {
 }
 
 /// ユーザーリストのレスポンス型（権限に応じて異なる型を返す）
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum UserListResponse {
     Detailed(ApiResponse<Vec<DetailedUserResponse>>),
@@ -68,7 +69,7 @@ pub enum UserListResponse {
 }
 
 /// 単一ユーザーのレスポンス型（権限に応じて異なる型を返す）
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 #[serde(untagged)]
 pub enum UserResponse {
     Detailed(DetailedUserResponse),
@@ -132,7 +133,19 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのユーザーを取得するための関数
-async fn get_all_users(
+#[utoipa::path(
+    get,
+    path = "/users",
+    tag = "users",
+    responses(
+        (status = 200, description = "ユーザー一覧の取得に成功", body = UserListResponse),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_users(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -175,7 +188,23 @@ async fn get_all_users(
 }
 
 /// 特定のユーザーを取得するための関数
-async fn get_user(
+#[utoipa::path(
+    get,
+    path = "/users/{id}",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 200, description = "ユーザー情報の取得に成功", body = UserResponse),
+        (status = 404, description = "ユーザーが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -222,8 +251,8 @@ async fn get_user(
     }
 }
 
-#[derive(serde::Deserialize)]
-struct CreateUser {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct CreateUser {
     pub custom_id: String,
     pub name: String,
     pub password: String,
@@ -241,7 +270,20 @@ struct CreateUser {
 }
 
 /// 新しいユーザーを作成するための関数
-async fn create_user(
+#[utoipa::path(
+    post,
+    path = "/users",
+    tag = "users",
+    request_body = CreateUser,
+    responses(
+        (status = 201, description = "ユーザーの作成に成功"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn create_user(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateUser>,
@@ -285,8 +327,8 @@ async fn create_user(
     Ok((StatusCode::CREATED, Json(res)))
 }
 
-#[derive(serde::Deserialize)]
-struct PutUser {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct PutUser {
     pub custom_id: String,
     pub name: String,
     pub password: Option<String>,
@@ -303,7 +345,24 @@ struct PutUser {
     pub suspended_reason: Option<String>,
 }
 
-async fn put_user(
+#[utoipa::path(
+    put,
+    path = "/users/{id}",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    request_body = PutUser,
+    responses(
+        (status = 200, description = "ユーザーの更新に成功"),
+        (status = 404, description = "ユーザーが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn put_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -359,8 +418,8 @@ async fn put_user(
     Err(StatusCode::NOT_FOUND)
 }
 
-#[derive(serde::Deserialize)]
-struct UpdateUser {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct UpdateUser {
     pub custom_id: Option<String>,
     pub name: Option<String>,
     pub password_hash: Option<String>,
@@ -383,7 +442,24 @@ struct UpdateUser {
 /// > ただし、システムのユーザーではない場合は、以下のフィールドのみ書き換え可能です。
 /// > - name
 /// > - external_email
-async fn patch_update_user(
+#[utoipa::path(
+    patch,
+    path = "/users/{id}",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    request_body = UpdateUser,
+    responses(
+        (status = 200, description = "ユーザーの部分更新に成功"),
+        (status = 404, description = "ユーザーが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn patch_update_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -446,7 +522,23 @@ async fn patch_update_user(
 /// ユーザーを削除するための関数
 /// > [!IMPORTANT]
 /// > このエンドポイントはOAuthの**アクセストークンでアクセス不可**です
-async fn delete_user(
+#[utoipa::path(
+    delete,
+    path = "/users/{id}",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 204, description = "ユーザーの削除に成功"),
+        (status = 404, description = "ユーザーが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_user(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,

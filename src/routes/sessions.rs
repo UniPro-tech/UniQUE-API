@@ -7,6 +7,7 @@ use axum::{
 };
 use sea_orm::{prelude::DateTimeUtc, *};
 use serde::Serialize;
+use utoipa::ToSchema;
 
 use crate::{
     constants::permissions::Permission,
@@ -19,10 +20,12 @@ use crate::{
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SessionResponse {
     pub id: String,
+    #[schema(value_type = String, format = "date-time")]
     pub created_at: Option<DateTimeUtc>,
+    #[schema(value_type = String, format = "date-time")]
     pub expires_at: Option<DateTimeUtc>,
     pub ip_address: String,
     pub user_agent: String,
@@ -37,7 +40,19 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのセッションを取得するための関数
-async fn get_all_sessions(
+#[utoipa::path(
+    get,
+    path = "/sessions",
+    tag = "sessions",
+    responses(
+        (status = 200, description = "セッション一覧の取得に成功", body = ApiResponse<Vec<SessionResponse>>),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_sessions(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -74,7 +89,23 @@ async fn get_all_sessions(
 }
 
 /// 特定のセッションを取得するための関数
-async fn get_session(
+#[utoipa::path(
+    get,
+    path = "/sessions/{id}",
+    tag = "sessions",
+    params(
+        ("id" = String, Path, description = "セッションID")
+    ),
+    responses(
+        (status = 200, description = "セッション情報の取得に成功", body = SessionResponse),
+        (status = 404, description = "セッションが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_session(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -111,7 +142,23 @@ async fn get_session(
 }
 
 /// セッションを削除するための関数
-async fn delete_session(
+#[utoipa::path(
+    delete,
+    path = "/sessions/{id}",
+    tag = "sessions",
+    params(
+        ("id" = String, Path, description = "セッションID")
+    ),
+    responses(
+        (status = 204, description = "セッションの削除に成功"),
+        (status = 404, description = "セッションが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_session(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,

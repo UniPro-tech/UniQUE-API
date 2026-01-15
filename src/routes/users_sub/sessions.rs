@@ -37,7 +37,23 @@ pub fn routes() -> Router<DbConn> {
 /// =======================
 
 /// ユーザーの全セッション取得
-async fn get_all_sessions(
+#[utoipa::path(
+    get,
+    path = "/users/{uid}/sessions",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 200, description = "ユーザーのセッション一覧取得成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_sessions(
     State(db): State<DbConn>,
     Path(uid): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -78,7 +94,24 @@ async fn get_all_sessions(
 }
 
 /// 特定セッション取得（単体なので ApiResponse で包まない）
-async fn get_session(
+#[utoipa::path(
+    get,
+    path = "/users/{uid}/sessions/{id}",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID"),
+        ("id" = String, Path, description = "セッションID")
+    ),
+    responses(
+        (status = 200, description = "セッション取得成功", body = crate::routes::sessions::SessionResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "セッションが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_session(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,
@@ -120,7 +153,24 @@ async fn get_session(
 }
 
 /// セッション削除
-async fn delete_session(
+#[utoipa::path(
+    delete,
+    path = "/users/{uid}/sessions/{id}",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID"),
+        ("id" = String, Path, description = "セッションID")
+    ),
+    responses(
+        (status = 204, description = "セッション削除成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "セッションが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_session(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,

@@ -25,3 +25,4 @@ serde_with = "3.15.1"
 tracing-subscriber = "0.3.20"
 tracing = "0.1.41"
 bitflags = "2.10.0"
+utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }

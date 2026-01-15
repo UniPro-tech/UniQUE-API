@@ -7,12 +7,9 @@ use axum::{
 };
 use sea_orm::*;
 use serde_json;
+use utoipa::ToSchema;
 
-use crate::{
-    middleware::auth::AuthUser,
-    models::user,
-    utils::password,
-};
+use crate::{middleware::auth::AuthUser, models::user, utils::password};
 //use crate::{db::DbConn, routes::users_sub};
 
 pub fn routes() -> Router<DbConn> {
@@ -21,14 +18,32 @@ pub fn routes() -> Router<DbConn> {
         .route("/users/password/reset", post(password_reset))
 }
 
-#[derive(serde::Deserialize)]
-struct PasswordChange {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct PasswordChange {
     pub current_password: String,
     pub new_password: String,
 }
 
 /// ユーザーのパスワードをチェンジするための関数
-async fn password_change(
+#[utoipa::path(
+    put,
+    path = "/users/{id}/password/change",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    request_body = PasswordChange,
+    responses(
+        (status = 201, description = "パスワード変更成功"),
+        (status = 401, description = "現在のパスワードが不正確"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn password_change(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -63,13 +78,23 @@ async fn password_change(
     Err(StatusCode::NOT_FOUND)
 }
 
-#[derive(serde::Deserialize)]
-struct PasswordReset {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct PasswordReset {
     pub username: String,
 }
 
 /// ユーザーのパスワードをリセットするための関数
-async fn password_reset(
+#[utoipa::path(
+    post,
+    path = "/users/password/reset",
+    tag = "users",
+    request_body = PasswordReset,
+    responses(
+        (status = 200, description = "パスワードリセットリンク送信成功"),
+        (status = 404, description = "ユーザーが見つからない")
+    )
+)]
+pub async fn password_reset(
     State(db): State<DbConn>,
     Json(payload): Json<PasswordReset>,
 ) -> impl IntoResponse {
