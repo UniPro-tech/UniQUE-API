@@ -1,4 +1,4 @@
-use axum::{response::Html, routing::get, Json, Router};
+use axum::{Json, Router, response::Html, routing::get};
 use dotenvy::dotenv;
 use std::net::SocketAddr;
 use utoipa::OpenApi;
@@ -47,7 +47,8 @@ async fn openapi_json() -> Json<utoipa::openapi::OpenApi> {
 }
 
 async fn swagger_ui_html() -> Html<&'static str> {
-    Html(r#"
+    Html(
+        r#"
 <!DOCTYPE html>
 <html lang="ja">
   <head>
@@ -70,5 +71,6 @@ async fn swagger_ui_html() -> Html<&'static str> {
     </script>
   </body>
 </html>
-    "#)
+    "#,
+    )
 }

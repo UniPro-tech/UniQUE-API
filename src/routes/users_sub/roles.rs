@@ -23,7 +23,22 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのロールを取得するための関数
-async fn get_all_roles(
+#[utoipa::path(
+    get,
+    path = "/users/{uid}/roles",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 200, description = "ユーザーのロール一覧取得成功"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_roles(
     State(db): State<DbConn>,
     Path(uid): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -46,7 +61,24 @@ async fn get_all_roles(
 }
 
 // ロール付与
-async fn put_role(
+#[utoipa::path(
+    put,
+    path = "/users/{uid}/roles/{id}",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID"),
+        ("id" = String, Path, description = "ロールID")
+    ),
+    responses(
+        (status = 201, description = "ロール付与成功", body = crate::routes::roles::RoleResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーまたはロールが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn put_role(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,
@@ -77,7 +109,24 @@ async fn put_role(
 /// ユーザーを削除するための関数
 /// > [!IMPORTANT]
 /// > このエンドポイントはOAuthの**アクセストークンでアクセス不可**です
-async fn delete_role(
+#[utoipa::path(
+    delete,
+    path = "/users/{uid}/roles/{id}",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID"),
+        ("id" = String, Path, description = "ロールID")
+    ),
+    responses(
+        (status = 204, description = "ロール削除成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーまたはロールが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_role(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,

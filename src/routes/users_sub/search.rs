@@ -8,6 +8,7 @@ use axum::{
 use chrono::{DateTime, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 
 use crate::{
     constants::permissions::Permission,
@@ -20,7 +21,7 @@ use crate::{
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SearchMetadata {
     pub page: usize,
     pub per_page: usize,
@@ -28,9 +29,9 @@ pub struct SearchMetadata {
     pub total_pages: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SearchUsersResponse {
-    pub data: Vec<PublicUserResponse>,
+    pub data: Vec<crate::routes::users::PublicUserResponse>,
     pub meta: SearchMetadata,
 }
 
@@ -38,7 +39,7 @@ pub fn routes() -> Router<DbConn> {
     Router::new().route("/users/search", get(search_users))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, IntoParams, ToSchema)]
 #[serde(default)]
 pub struct SearchParams {
     pub page: Option<usize>,
@@ -94,7 +95,20 @@ impl Default for SearchParams {
     }
 }
 
-async fn search_users(
+#[utoipa::path(
+    get,
+    path = "/users/search",
+    tag = "users",
+    params(SearchParams),
+    responses(
+        (status = 200, description = "ユーザー検索成功", body = SearchUsersResponse),
+        (status = 403, description = "アクセス権限なし")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn search_users(
     State(db): State<DbConn>,
     Query(params): Query<SearchParams>,
     axum::Extension(auth_user): axum::Extension<AuthUser>,

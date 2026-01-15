@@ -46,7 +46,23 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// ユーザーのDiscordアカウント一覧を取得するための関数
-async fn get_all_discord(
+#[utoipa::path(
+    get,
+    path = "/users/{id}/discord",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    responses(
+        (status = 200, description = "Discordアカウント一覧取得成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_discord(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -69,14 +85,31 @@ async fn get_all_discord(
     Err(StatusCode::NOT_FOUND)
 }
 
-#[derive(serde::Deserialize)]
-struct CreateDiscord {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct CreateDiscord {
     pub discord_id: String,
     pub custom_id: String,
 }
 
 /// ユーザーのDiscordアカウントを紐つけるための関数
-async fn put_discord(
+#[utoipa::path(
+    put,
+    path = "/users/{id}/discord",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID")
+    ),
+    request_body = CreateDiscord,
+    responses(
+        (status = 201, description = "Discordアカウント紐づけ成功", body = DiscordResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn put_discord(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -99,7 +132,24 @@ async fn put_discord(
 }
 
 /// ユーザーのDiscordアカウントの紐付けを解除するための関数
-async fn delete_discord(
+#[utoipa::path(
+    delete,
+    path = "/users/{id}/discord/{discord_id}",
+    tag = "users",
+    params(
+        ("id" = String, Path, description = "ユーザーID"),
+        ("discord_id" = String, Path, description = "Discord ID")
+    ),
+    responses(
+        (status = 204, description = "Discordアカウント紐づけ解除成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーまたはDiscordアカウントが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_discord(
     State(db): State<DbConn>,
     Path((id, discord_id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,

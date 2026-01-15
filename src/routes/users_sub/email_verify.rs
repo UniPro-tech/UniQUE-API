@@ -9,6 +9,7 @@ use chrono::Utc;
 use sea_orm::*;
 use serde::Serialize;
 use ulid::Ulid;
+use utoipa::ToSchema;
 
 use crate::{
     middleware::auth::AuthUser,
@@ -20,12 +21,14 @@ use crate::{
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct EmailVerificationResponse {
     pub id: Option<i32>,
     pub user_id: String,
     pub verification_code: String,
+    #[schema(value_type = String, format = "date-time")]
     pub created_at: Option<chrono::NaiveDateTime>,
+    #[schema(value_type = String, format = "date-time")]
     pub expires_at: chrono::NaiveDateTime,
 }
 
@@ -51,7 +54,24 @@ pub fn routes() -> Router<DbConn> {
     //.merge(users_sub::books::routes())
 }
 
-async fn get_email_verifications(
+#[utoipa::path(
+    get,
+    path = "/users/{uid}/email_verify/{id}",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID"),
+        ("id" = String, Path, description = "Email検証ID or 検証コード")
+    ),
+    responses(
+        (status = 200, description = "Email検証情報取得成功", body = EmailVerificationResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "Email検証が見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_email_verifications(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,
@@ -104,13 +124,31 @@ async fn get_email_verifications(
     Err(StatusCode::NOT_FOUND)
 }
 
-#[derive(serde::Deserialize)]
-struct CreateVerifyChallenge {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct CreateVerifyChallenge {
+    #[schema(value_type = String, format = "date-time")]
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
 /// ユーザーのEmail検証チャレンジを作成するための関数
-async fn post_challenge(
+#[utoipa::path(
+    post,
+    path = "/users/{uid}/email_verify",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID")
+    ),
+    request_body = CreateVerifyChallenge,
+    responses(
+        (status = 201, description = "Email検証チャレンジ作成成功", body = EmailVerificationResponse),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "ユーザーが見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn post_challenge(
     State(db): State<DbConn>,
     Path(uid): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -155,7 +193,24 @@ async fn post_challenge(
 }
 
 /// ユーザーのEmail検証チャレンジを削除するための関数
-async fn delete_email_verification(
+#[utoipa::path(
+    delete,
+    path = "/users/{uid}/email_verify/{id}",
+    tag = "users",
+    params(
+        ("uid" = String, Path, description = "ユーザーID"),
+        ("id" = String, Path, description = "Email検証ID or 検証コード")
+    ),
+    responses(
+        (status = 204, description = "Email検証削除成功"),
+        (status = 403, description = "アクセス権限なし"),
+        (status = 404, description = "Email検証が見つからない")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_email_verification(
     State(db): State<DbConn>,
     Path((uid, id)): Path<(String, String)>,
     auth_user: axum::Extension<AuthUser>,

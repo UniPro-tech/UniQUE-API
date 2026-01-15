@@ -1,8 +1,8 @@
 pub mod apps;
-mod common_dtos;
+pub mod common_dtos;
 pub mod email_verify;
 pub mod roles;
-mod roles_sub;
+pub mod roles_sub;
 pub mod sessions;
 pub mod users;
-mod users_sub;
+pub mod users_sub;

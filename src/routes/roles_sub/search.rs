@@ -7,6 +7,7 @@ use axum::{
 };
 use sea_orm::*;
 use serde::{Deserialize, Serialize};
+use utoipa::{IntoParams, ToSchema};
 
 use crate::{
     constants::permissions::Permission,
@@ -19,7 +20,7 @@ use crate::{
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SearchMetadata {
     pub page: usize,
     pub per_page: usize,
@@ -27,9 +28,9 @@ pub struct SearchMetadata {
     pub total_pages: u64,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct SearchRolesResponse {
-    pub data: Vec<RoleResponse>,
+    pub data: Vec<crate::routes::roles::RoleResponse>,
     pub meta: SearchMetadata,
 }
 
@@ -37,7 +38,7 @@ pub fn routes() -> Router<DbConn> {
     Router::new().route("/roles/search", get(search_roles))
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, IntoParams)]
 #[serde(default)]
 pub struct SearchParams {
     pub page: Option<usize>,
@@ -72,6 +73,19 @@ impl Default for SearchParams {
     }
 }
 
+#[utoipa::path(
+    get,
+    path = "/roles/search",
+    tag = "roles",
+    params(SearchParams),
+    responses(
+        (status = 200, description = "ロール検索成功", body = SearchRolesResponse),
+        (status = 403, description = "アクセス権限なし")
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
 pub async fn search_roles(
     State(db): State<crate::db::DbConn>,
     Query(params): Query<SearchParams>,

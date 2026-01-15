@@ -9,6 +9,7 @@ use chrono::Utc;
 use sea_orm::*;
 use serde::Serialize;
 use ulid::Ulid;
+use utoipa::ToSchema;
 
 use crate::{
     constants::permissions::Permission,
@@ -21,7 +22,7 @@ use crate::{
 /// DTO（レスポンス専用）
 /// =======================
 
-#[derive(Serialize)]
+#[derive(Serialize, ToSchema)]
 pub struct RoleResponse {
     pub id: String,
     pub custom_id: String,
@@ -63,7 +64,19 @@ pub fn routes() -> Router<DbConn> {
 }
 
 /// すべてのロールを取得するための関数
-async fn get_all_roles(
+#[utoipa::path(
+    get,
+    path = "/roles",
+    tag = "roles",
+    responses(
+        (status = 200, description = "ロール一覧の取得に成功", body = ApiResponse<Vec<RoleResponse>>),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_all_roles(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
@@ -75,7 +88,23 @@ async fn get_all_roles(
 }
 
 /// 特定のロールを取得するための関数
-async fn get_role(
+#[utoipa::path(
+    get,
+    path = "/roles/{id}",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID")
+    ),
+    responses(
+        (status = 200, description = "ロール情報の取得に成功", body = RoleResponse),
+        (status = 404, description = "ロールが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn get_role(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -91,8 +120,8 @@ async fn get_role(
     }
 }
 
-#[derive(serde::Deserialize)]
-struct CreateRole {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct CreateRole {
     pub custom_id: String,
     pub name: String,
     pub permission: i32,
@@ -102,7 +131,20 @@ struct CreateRole {
 
 /// 新しいロールを作成するための関数
 /// システム専用
-async fn create_role(
+#[utoipa::path(
+    post,
+    path = "/roles/{id}",
+    tag = "roles",
+    request_body = CreateRole,
+    responses(
+        (status = 201, description = "ロールの作成に成功", body = RoleResponse),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn create_role(
     State(db): State<DbConn>,
     auth_user: axum::Extension<AuthUser>,
     Json(payload): Json<CreateRole>,
@@ -123,7 +165,24 @@ async fn create_role(
     Ok((StatusCode::CREATED, Json(RoleResponse::from(res))))
 }
 
-async fn put_role(
+#[utoipa::path(
+    put,
+    path = "/roles/{id}",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID")
+    ),
+    request_body = CreateRole,
+    responses(
+        (status = 200, description = "ロールの更新に成功", body = RoleResponse),
+        (status = 404, description = "ロールが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn put_role(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -146,8 +205,8 @@ async fn put_role(
     Err(StatusCode::NOT_FOUND)
 }
 
-#[derive(serde::Deserialize)]
-struct UpdateRole {
+#[derive(serde::Deserialize, ToSchema)]
+pub struct UpdateRole {
     pub name: Option<String>,
     pub custom_id: Option<String>,
     pub permission: Option<i32>,
@@ -156,7 +215,24 @@ struct UpdateRole {
 }
 
 /// ロールを差分アップデートするための関数
-async fn patch_update_role(
+#[utoipa::path(
+    patch,
+    path = "/roles/{id}",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID")
+    ),
+    request_body = UpdateRole,
+    responses(
+        (status = 200, description = "ロールの部分更新に成功", body = RoleResponse),
+        (status = 404, description = "ロールが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn patch_update_role(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
@@ -190,7 +266,23 @@ async fn patch_update_role(
 }
 
 /// ロールを削除するための関数
-async fn delete_role(
+#[utoipa::path(
+    delete,
+    path = "/roles/{id}",
+    tag = "roles",
+    params(
+        ("id" = String, Path, description = "ロールID")
+    ),
+    responses(
+        (status = 204, description = "ロールの削除に成功"),
+        (status = 404, description = "ロールが見つからない"),
+        (status = 403, description = "権限なし"),
+    ),
+    security(
+        ("session_token" = [])
+    )
+)]
+pub async fn delete_role(
     State(db): State<DbConn>,
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
