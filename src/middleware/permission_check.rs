@@ -1,5 +1,6 @@
 use axum::http::StatusCode;
 use sea_orm::*;
+use tracing::info;
 
 use crate::{
     constants::permissions::Permission,
@@ -27,9 +28,17 @@ pub async fn get_user_permissions(
 
     let mut user_permissions = Permission::empty();
     for role_model in roles {
-        if let Some(perm) = Permission::from_bits(role_model.permission as u32) {
-            user_permissions |= perm;
+        let bits = role_model.permission as u32;
+        let (names, mask) = Permission::names_from_bits(bits);
+        if mask != bits {
+            info!(
+                "Role {} has unknown permission bits: {:#x}",
+                role_model.id,
+                bits & !mask
+            );
         }
+        let perm = Permission::from_bits_truncate(bits);
+        user_permissions |= perm;
     }
 
     Ok(user_permissions)
