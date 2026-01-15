@@ -1,5 +1,7 @@
+use crate::models::role::Entity as Role;
 use crate::{
-    constants::permissions::Permission, middleware::auth::AuthUser, models::user::Entity as User,
+    constants::permissions::Permission,
+    middleware::{auth::AuthUser, permission_check},
 };
 use axum::{
     Json, Router,
@@ -23,21 +25,21 @@ pub struct PermissionsResponse {
 }
 
 pub fn routes() -> Router<DbConn> {
-    Router::new().route("/users/{id}/permissions", get(get_permissions_bit))
+    Router::new().route("/roles/{id}/permissions", get(get_permissions_bit))
 }
 
 /// ユーザーのロール一覧を取得し権限bitを合成する
 #[utoipa::path(
     get,
-    path = "/users/{id}/permissions",
-    tag = "users",
+    path = "/roles/{id}/permissions",
+    tag = "roles",
     params(
-        ("id" = String, Path, description = "ユーザーID")
+        ("id" = String, Path, description = "ロールID")
     ),
     responses(
         (status = 200, description = "権限情報取得成功", body = PermissionsResponse),
         (status = 403, description = "アクセス権限なし"),
-        (status = 404, description = "ユーザーが見つからない")
+        (status = 404, description = "ロールが見つからない")
     ),
     security(
         ("session_token" = [])
@@ -48,46 +50,34 @@ pub async fn get_permissions_bit(
     Path(id): Path<String>,
     auth_user: axum::Extension<AuthUser>,
 ) -> Result<impl IntoResponse, StatusCode> {
-    // Self-only access OR read permission
-    if auth_user.user_id != id {
-        let user_roles = crate::models::user_role::Entity::find()
-            .filter(crate::models::user_role::Column::UserId.eq(&auth_user.user_id))
-            .find_with_related(crate::models::role::Entity)
-            .all(&db)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        let has_read_permission = user_roles.iter().any(|(_, roles)| {
-            roles
-                .iter()
-                .any(|r| (r.permission as i64 & Permission::USER_READ.bits() as i64) != 0)
-        });
-
-        if !has_read_permission {
-            return Err(StatusCode::FORBIDDEN);
-        }
+    // Check if the auth_user has permission to view roles
+    let user_roles = crate::models::user_role::Entity::find()
+        .filter(crate::models::user_role::Column::UserId.eq(&auth_user.user_id))
+        .find_with_related(Role)
+        .all(&db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    let check_permission = permission_check::get_user_permissions(&auth_user, &db)
+        .await?
+        .contains(Permission::ROLE_MANAGE);
+    if !check_permission
+        || user_roles
+            .iter()
+            .all(|(_, roles)| roles.iter().all(|role| role.id != id))
+    {
+        return Err(StatusCode::FORBIDDEN);
     }
 
-    let user = User::find_by_id(id)
+    let role = Role::find_by_id(id)
         .one(&db)
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    if let Some(user) = user {
-        let roles = user
-            .find_related(crate::models::role::Entity)
-            .all(&db)
-            .await
-            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-        let mut permissions_bit: i64 = 0;
-        for role in roles {
-            permissions_bit |= role.permission as i64;
-        }
+    if let Some(role) = role {
         // bitだけではなく、テキストベースでも返す
         let mut permissions_text = Vec::new();
 
-        let perm_u32 = permissions_bit as u32;
+        let perm_u32 = role.permission as u32;
         let (mut known_names, known_mask) = Permission::names_from_bits(perm_u32);
         permissions_text.append(&mut known_names);
 
@@ -101,7 +91,7 @@ pub async fn get_permissions_bit(
         return Ok((
             StatusCode::OK,
             Json(PermissionsResponse {
-                permissions_bit,
+                permissions_bit: role.permission as i64,
                 permissions_text,
             }),
         ));
