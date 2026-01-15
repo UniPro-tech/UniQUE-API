@@ -7,39 +7,16 @@ use axum::{
 };
 use chrono::Utc;
 use sea_orm::*;
-use serde::Serialize;
 use ulid::Ulid;
 
 use crate::{
     middleware::auth::AuthUser,
-    models::email_verification,
-    models::user::{self, Entity as User},
+    models::{
+        email_verification,
+        user::{self, Entity as User},
+    },
+    routes::email_verify::EmailVerificationResponse,
 };
-
-/// =======================
-/// DTO（レスポンス専用）
-/// =======================
-
-#[derive(Serialize)]
-pub struct EmailVerificationResponse {
-    pub id: Option<i32>,
-    pub user_id: String,
-    pub verification_code: String,
-    pub created_at: Option<chrono::NaiveDateTime>,
-    pub expires_at: chrono::NaiveDateTime,
-}
-
-impl From<email_verification::Model> for EmailVerificationResponse {
-    fn from(model: email_verification::Model) -> Self {
-        Self {
-            id: Some(model.id),
-            user_id: model.user_id,
-            verification_code: model.verification_code,
-            created_at: model.created_at,
-            expires_at: model.expires_at,
-        }
-    }
-}
 
 pub fn routes() -> Router<DbConn> {
     Router::new()
