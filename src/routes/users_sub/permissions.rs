@@ -1,7 +1,5 @@
 use crate::{
-    constants::permissions::Permission,
-    middleware::auth::AuthUser,
-    models::user::Entity as User,
+    constants::permissions::Permission, middleware::auth::AuthUser, models::user::Entity as User,
 };
 use axum::{
     Json, Router,
@@ -11,7 +9,17 @@ use axum::{
     routing::*,
 };
 use sea_orm::*;
-use serde_json;
+use serde::Serialize;
+
+/// =======================
+/// DTO（レスポンス専用）
+/// =======================
+
+#[derive(Serialize)]
+pub struct PermissionsResponse {
+    pub permissions_bit: i64,
+    pub permissions_text: Vec<String>,
+}
 
 pub fn routes() -> Router<DbConn> {
     Router::new().route("/users/{id}/permissions", get(get_permissions_bit))
@@ -32,13 +40,11 @@ async fn get_permissions_bit(
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-        let has_read_permission = user_roles
-            .iter()
-            .any(|(_, roles)| {
-                roles.iter().any(|r| {
-                    (r.permission as i64 & Permission::USER_READ.bits() as i64) != 0
-                })
-            });
+        let has_read_permission = user_roles.iter().any(|(_, roles)| {
+            roles
+                .iter()
+                .any(|r| (r.permission as i64 & Permission::USER_READ.bits() as i64) != 0)
+        });
 
         if !has_read_permission {
             return Err(StatusCode::FORBIDDEN);
@@ -77,9 +83,10 @@ async fn get_permissions_bit(
         }
         return Ok((
             StatusCode::OK,
-            Json(
-                serde_json::json!({ "permissions_bit": permissions_bit, "permissions_text": permissions_text }),
-            ),
+            Json(PermissionsResponse {
+                permissions_bit,
+                permissions_text,
+            }),
         ));
     }
     Err(StatusCode::NOT_FOUND)
