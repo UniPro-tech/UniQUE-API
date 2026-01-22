@@ -20,6 +20,7 @@ async fn main() {
         .init();
     let db = db::connect().await.expect("DB connection failed");
 
+    // configure CORS
     let app = Router::new()
         .route("/api-docs/openapi.json", get(openapi_json))
         .route("/swagger-ui", get(swagger_ui_html))
@@ -28,6 +29,8 @@ async fn main() {
         .merge(routes::apps::routes())
         .merge(routes::sessions::routes())
         .merge(routes::email_verify::routes())
+        // apply simple CORS middleware (handles preflight and adds headers)
+        .layer(axum::middleware::from_fn(cors_middleware))
         .layer(axum::middleware::from_fn_with_state(
             db.clone(),
             middleware::auth::auth_middleware,
@@ -73,4 +76,45 @@ async fn swagger_ui_html() -> Html<&'static str> {
 </html>
     "#,
     )
+}
+
+async fn cors_middleware(
+    req: axum::http::Request<axum::body::Body>,
+    next: axum::middleware::Next,
+) -> impl axum::response::IntoResponse {
+    use axum::http::{HeaderName, HeaderValue};
+
+    if req.method() == &axum::http::Method::OPTIONS {
+        let mut res = axum::http::Response::new(axum::body::Body::empty());
+        let headers = res.headers_mut();
+        headers.insert(
+            HeaderName::from_static("access-control-allow-origin"),
+            HeaderValue::from_static("*"),
+        );
+        headers.insert(
+            HeaderName::from_static("access-control-allow-headers"),
+            HeaderValue::from_static("*"),
+        );
+        headers.insert(
+            HeaderName::from_static("access-control-allow-methods"),
+            HeaderValue::from_static("GET,POST,PUT,DELETE,OPTIONS"),
+        );
+        return res;
+    }
+
+    let mut res = next.run(req).await;
+    let headers = res.headers_mut();
+    headers.insert(
+        HeaderName::from_static("access-control-allow-origin"),
+        HeaderValue::from_static("*"),
+    );
+    headers.insert(
+        HeaderName::from_static("access-control-allow-headers"),
+        HeaderValue::from_static("*"),
+    );
+    headers.insert(
+        HeaderName::from_static("access-control-allow-methods"),
+        HeaderValue::from_static("GET,POST,PUT,DELETE,OPTIONS"),
+    );
+    res
 }
