@@ -28,4 +28,4 @@ bitflags = "2.10.0"
 utoipa = { version = "5", features = ["axum_extras", "chrono", "uuid"] }
 
 tower-http = { version = "0.6", features = ["cors"] }
-tower = "0.4"
+tower = "0.5"
