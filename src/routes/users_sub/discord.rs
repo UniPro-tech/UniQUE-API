@@ -120,13 +120,25 @@ pub async fn put_discord(
     let found = user::Entity::find_by_id(id).one(&db).await.unwrap();
     if let Some(user) = found {
         let am = discord::ActiveModel {
-            discord_id: Set(payload.discord_id),
+            discord_id: Set(payload.discord_id.clone()),
             custom_id: Set(payload.custom_id),
             user_id: Set(user.id),
             ..Default::default()
         };
-        let res = am.insert(&db).await.unwrap();
-        return Ok((StatusCode::CREATED, Json(DiscordResponse::from(res))));
+        match am.insert(&db).await {
+            Ok(res) => return Ok((StatusCode::CREATED, Json(DiscordResponse::from(res)))),
+            Err(e) => {
+                // 重複エラーは複数の DbErr で発生する可能性があるため広くチェックする
+                let is_unique = matches!(
+                    e.sql_err(),
+                    Some(sea_orm::SqlErr::UniqueConstraintViolation(_))
+                );
+                if is_unique {
+                    return Err(StatusCode::CONFLICT);
+                }
+                return Err(StatusCode::INTERNAL_SERVER_ERROR);
+            }
+        }
     }
     Err(StatusCode::NOT_FOUND)
 }
