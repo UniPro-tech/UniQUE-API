@@ -1,6 +1,13 @@
-use axum::{Json, Router, response::Html, routing::get};
+use axum::{
+    Json, Router,
+    http::{HeaderValue, Method, header},
+    response::Html,
+    routing::get,
+};
 use dotenvy::dotenv;
 use std::net::SocketAddr;
+use tower_http::cors::AllowOrigin;
+use tower_http::cors::CorsLayer;
 use utoipa::OpenApi;
 
 mod constants;
@@ -20,6 +27,36 @@ async fn main() {
         .init();
     let db = db::connect().await.expect("DB connection failed");
 
+    // front end url from env
+    // e.g. FRONTEND_URL="http://localhost:3000,https://mydomain.com"
+    let env_frontend_url =
+        std::env::var("FRONTEND_URL").unwrap_or_else(|_| "http://localhost:3000".to_string());
+    let frontend_urls: Vec<HeaderValue> = env_frontend_url
+        .split(',')
+        .map(|s| {
+            s.trim()
+                .parse::<HeaderValue>()
+                .expect("invalid FRONTEND_URL")
+        })
+        .collect();
+    let cors = CorsLayer::new()
+        .allow_origin(AllowOrigin::list(frontend_urls))
+        .allow_credentials(true)
+        .allow_methods([
+            Method::GET,
+            Method::POST,
+            Method::PUT,
+            Method::PATCH,
+            Method::DELETE,
+            Method::OPTIONS,
+        ])
+        .allow_headers([
+            header::CONTENT_TYPE,
+            header::AUTHORIZATION,
+            header::ACCEPT,
+            header::ORIGIN,
+        ]);
+
     // configure CORS
     let app = Router::new()
         .route("/api-docs/openapi.json", get(openapi_json))
@@ -30,11 +67,11 @@ async fn main() {
         .merge(routes::sessions::routes())
         .merge(routes::email_verify::routes())
         // apply simple CORS middleware (handles preflight and adds headers)
-        .layer(axum::middleware::from_fn(cors_middleware))
         .layer(axum::middleware::from_fn_with_state(
             db.clone(),
             middleware::auth::auth_middleware,
         ))
+        .layer(cors)
         .with_state(db);
 
     let addr = SocketAddr::from(([0, 0, 0, 0], 8001));
@@ -76,45 +113,4 @@ async fn swagger_ui_html() -> Html<&'static str> {
 </html>
     "#,
     )
-}
-
-async fn cors_middleware(
-    req: axum::http::Request<axum::body::Body>,
-    next: axum::middleware::Next,
-) -> impl axum::response::IntoResponse {
-    use axum::http::{HeaderName, HeaderValue};
-
-    if req.method() == &axum::http::Method::OPTIONS {
-        let mut res = axum::http::Response::new(axum::body::Body::empty());
-        let headers = res.headers_mut();
-        headers.insert(
-            HeaderName::from_static("access-control-allow-origin"),
-            HeaderValue::from_static("*"),
-        );
-        headers.insert(
-            HeaderName::from_static("access-control-allow-headers"),
-            HeaderValue::from_static("*"),
-        );
-        headers.insert(
-            HeaderName::from_static("access-control-allow-methods"),
-            HeaderValue::from_static("GET,POST,PUT,DELETE,OPTIONS"),
-        );
-        return res;
-    }
-
-    let mut res = next.run(req).await;
-    let headers = res.headers_mut();
-    headers.insert(
-        HeaderName::from_static("access-control-allow-origin"),
-        HeaderValue::from_static("*"),
-    );
-    headers.insert(
-        HeaderName::from_static("access-control-allow-headers"),
-        HeaderValue::from_static("*"),
-    );
-    headers.insert(
-        HeaderName::from_static("access-control-allow-methods"),
-        HeaderValue::from_static("GET,POST,PUT,DELETE,OPTIONS"),
-    );
-    res
 }
