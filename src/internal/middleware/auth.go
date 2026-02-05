@@ -29,6 +29,12 @@ const jwksCacheTTL = 24 * time.Hour
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// swagger用のパスはスキップ
+		if strings.HasPrefix(c.Request.URL.Path, "/swagger/") || c.Request.URL.Path == "/swagger.json" {
+			c.Next()
+			return
+		}
+
 		// AuthorizationヘッダーからJWTを取得
 		authorization := c.GetHeader("Authorization")
 		token := extractToken(authorization)
