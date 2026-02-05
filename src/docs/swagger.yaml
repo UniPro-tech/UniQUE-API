@@ -27,6 +27,13 @@ definitions:
           $ref: '#/definitions/routes.ApplicationDTO'
         type: array
     type: object
+  routes.CreateApplicationOwnerRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
   routes.CreateApplicationRequest:
     properties:
       client_secret:
@@ -74,6 +81,13 @@ definitions:
     required:
     - custom_id
     - email
+    type: object
+  routes.CreateUserRoleRequest:
+    properties:
+      role_id:
+        type: string
+    required:
+    - role_id
     type: object
   routes.ProfileDTO:
     properties:
@@ -274,6 +288,32 @@ paths:
       summary: List owners for an application
       tags:
       - applications
+    post:
+      consumes:
+      - application/json
+      description: Set or replace the owner (user) of the application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assign owner
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateApplicationOwnerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Assign an owner to an application
+      tags:
+      - applications
   /health:
     get:
       consumes:
@@ -466,6 +506,25 @@ paths:
       summary: Update a user
       tags:
       - users
+  /users/{id}/apps:
+    get:
+      description: Get applications owned by a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationListResponse'
+      summary: List applications for a user
+      tags:
+      - users
   /users/{id}/roles:
     get:
       description: Get roles assigned to a user
@@ -483,6 +542,54 @@ paths:
           schema:
             $ref: '#/definitions/routes.RoleListResponse'
       summary: List roles for a user
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Assign the specified role to the user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateUserRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Assign a role to a user
+      tags:
+      - users
+  /users/{id}/roles/{roleId}:
+    delete:
+      description: Unassign the specified role from the user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Remove a role from a user
       tags:
       - users
 swagger: "2.0"

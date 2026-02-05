@@ -152,6 +152,45 @@
                         }
                     }
                 }
+            },
+            "post": {
+                "description": "Set or replace the owner (user) of the application",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Assign an owner to an application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Assign owner",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.CreateApplicationOwnerRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.ApplicationDTO"
+                        }
+                    }
+                }
             }
         },
         "/health": {
@@ -446,6 +485,35 @@
                 }
             }
         },
+        "/users/{id}/apps": {
+            "get": {
+                "description": "Get applications owned by a user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "List applications for a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.ApplicationListResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}/roles": {
             "get": {
                 "description": "Get roles assigned to a user",
@@ -471,6 +539,78 @@
                         "schema": {
                             "$ref": "#/definitions/routes.RoleListResponse"
                         }
+                    }
+                }
+            },
+            "post": {
+                "description": "Assign the specified role to the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Assign a role to a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Role assignment",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.CreateUserRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/routes.RoleDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/roles/{roleId}": {
+            "delete": {
+                "description": "Unassign the specified role from the user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Remove a role from a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "roleId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
                     }
                 }
             }
@@ -516,6 +656,17 @@
                     "items": {
                         "$ref": "#/definitions/routes.ApplicationDTO"
                     }
+                }
+            }
+        },
+        "routes.CreateApplicationOwnerRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "string"
                 }
             }
         },
@@ -587,6 +738,17 @@
                 },
                 "profile": {
                     "$ref": "#/definitions/routes.ProfileDTO"
+                }
+            }
+        },
+        "routes.CreateUserRoleRequest": {
+            "type": "object",
+            "required": [
+                "role_id"
+            ],
+            "properties": {
+                "role_id": {
+                    "type": "string"
                 }
             }
         },
