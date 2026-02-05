@@ -6,6 +6,7 @@ import (
 
 	"github.com/UniPro-tech/UniQUE-API/internal/config"
 	"github.com/UniPro-tech/UniQUE-API/internal/db"
+	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/swag/example/basic/docs"
@@ -47,10 +48,11 @@ func main() {
 
 	// loggerとrecoveryミドルウェア付きGinルーター作成
 	r := gin.Default()
+	r.Use(middleware.AuthMiddleware())
 
 	// Swagger Info
 	docs.SwaggerInfo.BasePath = "/"
-	docs.SwaggerInfo.Title = environmentConfigs.AppName + " Auth API"
+	docs.SwaggerInfo.Title = environmentConfigs.AppName + " API"
 	docs.SwaggerInfo.Version = environmentConfigs.Version
 
 	// Add contexts
