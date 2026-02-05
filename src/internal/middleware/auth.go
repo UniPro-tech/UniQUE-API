@@ -13,6 +13,8 @@ import (
 	"time"
 
 	"github.com/UniPro-tech/UniQUE-API/internal/config"
+	"github.com/UniPro-tech/UniQUE-API/internal/model"
+	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -44,12 +46,13 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		// トークン検証
 		cfg := c.MustGet("config").(config.Config)
-		claims := validateToken(token, c, cfg)
+		claims, user := validateToken(token, cfg)
 		if claims == nil {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid token"})
 			return
 		}
 		c.Set("claims", claims)
+		c.Set("user", user)
 		c.Next()
 	}
 }
@@ -114,7 +117,7 @@ type AccessTokenClaims struct {
 	Scope string `json:"scope,omitempty"`
 }
 
-func validateToken(token string, c *gin.Context, cfg config.Config) *jwt.RegisteredClaims {
+func validateToken(token string, cfg config.Config) (*jwt.RegisteredClaims, *model.User) {
 	// issuer を config -> 環境変数 -> デフォルト の順で取得
 	issuer := cfg.IssuerURL
 	if issuer == "" {
@@ -160,7 +163,7 @@ func validateToken(token string, c *gin.Context, cfg config.Config) *jwt.Registe
 
 	parsed, err := jwt.Parse(token, keyFunc, jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}), jwt.WithStrictDecoding())
 	if err != nil {
-		return nil
+		return nil, nil
 	}
 	var claims *jwt.RegisteredClaims
 	var ok bool
@@ -175,32 +178,33 @@ func validateToken(token string, c *gin.Context, cfg config.Config) *jwt.Registe
 		}
 	}
 	if !ok {
-		return nil
+		return nil, nil
 	}
 
 	// claimからの検証
 	if claims.Issuer != issuer {
-		return nil
+		return nil, nil
 	}
 	if claims.ExpiresAt == nil || time.Until(claims.ExpiresAt.Time) <= 0 {
-		return nil
+		return nil, nil
 	}
 	if claims.NotBefore != nil && time.Until(claims.NotBefore.Time) < 0 {
-		return nil
+		return nil, nil
 	}
 	if claims.IssuedAt != nil && time.Until(claims.IssuedAt.Time.Add(time.Hour*24*7)) < 0 {
-		return nil
+		return nil, nil
 	}
 	var isValidToken bool = true
+	var user *model.User
 	if strings.HasPrefix(claims.Subject, "SID_") {
-		isValidToken = verifyJTI(claims.ID, cfg, "/internal/session_verify")
+		isValidToken, user = verifyJTI(claims.ID, cfg, "/internal/session_verify")
 	} else {
-		isValidToken = verifyJTI(claims.ID, cfg, "/internal/token_verify")
+		isValidToken, _ = verifyJTI(claims.ID, cfg, "/internal/token_verify")
 	}
 	if !isValidToken {
-		return nil
+		return nil, nil
 	}
-	return claims
+	return claims, user
 }
 
 type SessionVerifyResponse struct {
@@ -209,32 +213,39 @@ type SessionVerifyResponse struct {
 }
 
 // verifyJTI calls the issuer's internal endpoint to verify a jti.
-func verifyJTI(jti string, cfg config.Config, path string) bool {
+func verifyJTI(jti string, cfg config.Config, path string) (bool, *model.User) {
 	issuer := strings.TrimRight(cfg.IssuerURL, "/")
 	url := issuer + path
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return false
+		return false, nil
 	}
 	q := req.URL.Query()
 	q.Add("jti", jti)
 	req.URL.RawQuery = q.Encode()
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return false
+		return false, nil
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return false
+		return false, nil
 	}
 	var res struct {
 		Valid     bool      `json:"valid"`
+		UserID    string    `json:"user_id,omitempty"`
 		ExpiresAt time.Time `json:"expires_at,omitempty"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return false
+		return false, nil
 	}
-	return res.Valid
+	if res.UserID != "" {
+		user, err := query.User.Where(query.User.ID.Eq(res.UserID)).First()
+		if err == nil {
+			return res.Valid, user
+		}
+	}
+	return res.Valid, nil
 }
 
 type TokenVerifyResponse struct {

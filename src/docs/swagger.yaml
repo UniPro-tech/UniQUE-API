@@ -1,0 +1,488 @@
+basePath: /
+definitions:
+  main.HealthResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  routes.ApplicationDTO:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      privacy_policy_url:
+        type: string
+      user_id:
+        type: string
+      website_url:
+        type: string
+    type: object
+  routes.ApplicationListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.ApplicationDTO'
+        type: array
+    type: object
+  routes.CreateApplicationRequest:
+    properties:
+      client_secret:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      privacy_policy_url:
+        type: string
+      user_id:
+        type: string
+      website_url:
+        type: string
+    required:
+    - client_secret
+    - name
+    - user_id
+    type: object
+  routes.CreateRoleRequest:
+    properties:
+      custom_id:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    required:
+    - custom_id
+    - name
+    - permission_bitmask
+    type: object
+  routes.CreateUserRequest:
+    properties:
+      custom_id:
+        type: string
+      email:
+        type: string
+      password:
+        type: string
+      profile:
+        $ref: '#/definitions/routes.ProfileDTO'
+    required:
+    - custom_id
+    - email
+    type: object
+  routes.ProfileDTO:
+    properties:
+      bio:
+        type: string
+      display_name:
+        type: string
+      joined_at:
+        type: string
+      user_id:
+        type: string
+      website_url:
+        type: string
+    type: object
+  routes.RoleDTO:
+    properties:
+      custom_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    type: object
+  routes.RoleListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.RoleDTO'
+        type: array
+    type: object
+  routes.UpdateApplicationRequest:
+    properties:
+      client_secret:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      privacy_policy_url:
+        type: string
+      website_url:
+        type: string
+    type: object
+  routes.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    type: object
+  routes.UpdateUserRequest:
+    properties:
+      affiliation_period:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      profile:
+        $ref: '#/definitions/routes.ProfileDTO'
+      status:
+        type: string
+    type: object
+  routes.UserDTO:
+    properties:
+      affiliation_period:
+        type: string
+      created_at:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      external_email:
+        type: string
+      id:
+        type: string
+      profile:
+        $ref: '#/definitions/routes.ProfileDTO'
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  routes.UserListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.UserDTO'
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /applications:
+    get:
+      description: List third-party applications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationListResponse'
+      summary: List applications
+      tags:
+      - applications
+    post:
+      consumes:
+      - application/json
+      description: Register a new third-party application
+      parameters:
+      - description: Create application
+        in: body
+        name: app
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Create an application
+      tags:
+      - applications
+  /applications/{id}:
+    get:
+      description: Get a single application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Get an application
+      tags:
+      - applications
+    put:
+      consumes:
+      - application/json
+      description: Update application fields
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update application
+        in: body
+        name: app
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Update an application
+      tags:
+      - applications
+  /applications/{id}/owners:
+    get:
+      description: Get the user(s) who own the application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserListResponse'
+      summary: List owners for an application
+      tags:
+      - applications
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: システムの稼働状況を確認するためのエンドポイントです。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.HealthResponse'
+      summary: health check endpoint
+      tags:
+      - system info
+  /roles:
+    get:
+      description: List roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleListResponse'
+      summary: List roles
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new role
+      parameters:
+      - description: Create role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Create a role
+      tags:
+      - roles
+  /roles/{id}:
+    get:
+      description: Get a single role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Get a role
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Update role fields
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Update a role
+      tags:
+      - roles
+  /roles/{id}/users:
+    get:
+      description: Get users assigned to a role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserListResponse'
+      summary: List users for a role
+      tags:
+      - roles
+  /users:
+    get:
+      description: List users with embedded profile
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserListResponse'
+      summary: List users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with optional profile
+      parameters:
+      - description: Create user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Create a user
+      tags:
+      - users
+  /users/{id}:
+    get:
+      description: Get a single user with optional profile
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Get a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update a user's fields and optional profile
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Update a user
+      tags:
+      - users
+  /users/{id}/roles:
+    get:
+      description: Get roles assigned to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleListResponse'
+      summary: List roles for a user
+      tags:
+      - users
+swagger: "2.0"

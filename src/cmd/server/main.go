@@ -4,13 +4,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/UniPro-tech/UniQUE-API/docs"
 	"github.com/UniPro-tech/UniQUE-API/internal/config"
 	"github.com/UniPro-tech/UniQUE-API/internal/db"
 	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
+	"github.com/UniPro-tech/UniQUE-API/internal/routes"
 	swaggerfiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
-	"github.com/swaggo/swag/example/basic/docs"
-	"gorm.io/gorm/logger"
 
 	"github.com/gin-gonic/gin"
 )
@@ -41,7 +41,6 @@ func main() {
 
 	// Initialize database
 	dbConnection, err := db.NewDB()
-	dbConnection.Logger = dbConnection.Logger.LogMode(logger.Info)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -57,13 +56,18 @@ func main() {
 
 	// Add contexts
 	r.Use(func(c *gin.Context) {
-		c.Set("config", environmentConfigs)
+		c.Set("config", *environmentConfigs)
 		c.Set("db", dbConnection)
 		c.Next()
 	})
 
 	// Routes
 	r.GET("/health", healthCheck)
+
+	// Register resource routes
+	routes.RegisterUserRoutes(r)
+	routes.RegisterRoleRoutes(r)
+	routes.RegisterApplicationRoutes(r)
 
 	// Start server
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
