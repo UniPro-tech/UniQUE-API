@@ -1,19 +1,35 @@
-FROM rust:1-alpine AS builder
+FROM golang:1.20-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
 
+RUN apk add --no-cache git ca-certificates
+
+# Cache dependencies
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copy rest of the sources
 COPY . .
 
-RUN apk add --no-cache musl-dev mold clang build-base
+# Optional: install swag to generate docs if present (non-fatal)
+RUN go install github.com/swaggo/swag/cmd/swag@latest || true
+RUN swag init -g cmd/server/main.go || true
 
-RUN cargo fix --bin "UniQUE-API"
+# Build arguments for embedding version metadata
+ARG VERSION=dev
+ARG COMMIT=none
+ARG BRANCH=none
 
-RUN cargo build --release
+ENV CGO_ENABLED=0
+RUN go build -ldflags "-s -w -X unibot/internal/config.Version=${VERSION} -X unibot/internal/config.GitCommit=${COMMIT} -X unibot/internal/config.GitBranch=${BRANCH}" -o /usr/local/bin/server cmd/server/main.go
 
 FROM alpine:latest
 
+RUN apk add --no-cache ca-certificates
 WORKDIR /root/
 
-COPY --from=builder /usr/src/app/target/release/UniQUE-API .
+COPY --from=builder /usr/local/bin/server .
 
-CMD ["./UniQUE-API"]
+ENV GIN_MODE=release
+EXPOSE 8080
+CMD ["./server"]
