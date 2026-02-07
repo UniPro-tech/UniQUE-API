@@ -15,6 +15,7 @@ type EmailVerificationCode struct {
 	ID          string    `gorm:"column:id;primaryKey" json:"id"`
 	UserID      string    `gorm:"column:user_id;not null" json:"user_id"`
 	Code        string    `gorm:"column:code;not null" json:"code"`
+	NewEmail    string    `gorm:"column:new_email;comment:changeの場合の変更先" json:"new_email"` // changeの場合の変更先
 	ExpiresAt   time.Time `gorm:"column:expires_at;not null" json:"expires_at"`
 	RequestType string    `gorm:"column:request_type;not null" json:"request_type"`
 	CreatedAt   time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`

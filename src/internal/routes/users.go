@@ -1,8 +1,13 @@
 package routes
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
+	"strings"
+	"time"
 
+	"github.com/UniPro-tech/UniQUE-API/internal/config"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
@@ -123,6 +128,11 @@ func createUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	err := sendRegistrationEmailVerification(user.ID, user.Email, "", q, config.LoadConfig())
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	var profileDTO *ProfileDTO
 	if input.Profile != nil {
 		p := &model.Profile{
@@ -232,10 +242,12 @@ func updateUser(c *gin.Context) {
 	// apply updates to user
 	updates := map[string]interface{}{}
 	if input.Email != nil {
-		updates["email"] = *input.Email
+		c.JSON(http.StatusNotImplemented, gin.H{"error": "email change not implemented"})
+		return
 	}
-	if input.EmailVerified != nil {
-		updates["email_verified"] = *input.EmailVerified
+	if input.ExternalEmail != nil {
+		sendEmailChangeVerification(id, *input.ExternalEmail, "", q, config.LoadConfig())
+		updates["email_verified"] = false
 	}
 	if input.AffiliationPeriod != nil {
 		updates["affiliation_period"] = *input.AffiliationPeriod
@@ -483,4 +495,99 @@ func listRolesForUser(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, RoleListResponse{Data: out})
+}
+
+func sendRegistrationEmailVerification(user_id, email, name string, q *query.Query, config *config.Config) error {
+	// コードを生成してDBに保存する
+	// 6桁のコードを生成
+	code := strings.ToUpper(uuid.New().String()[:6])
+
+	err := q.EmailVerificationCode.Create(&model.EmailVerificationCode{
+		Code:        code,
+		RequestType: "registration",
+		UserID:      user_id,
+		ExpiresAt:   time.Now().Add(10 * time.Minute),
+	})
+	if err != nil {
+		return err
+	}
+
+	// Email APIを呼び出す
+	// HTTP /register { code, email, name }
+	endpoint := config.EmailSenderURL + "/register"
+	payload := map[string]string{
+		"code":  code,
+		"email": email,
+		"name":  name,
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	reqBody, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", endpoint, strings.NewReader(string(reqBody)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("failed to send email verification")
+	}
+
+	return nil
+}
+
+func sendEmailChangeVerification(user_id, email, name string, q *query.Query, config *config.Config) error {
+	// コードを生成してDBに保存する
+	// 6桁のコードを生成
+	code := strings.ToUpper(uuid.New().String()[:6])
+
+	err := q.EmailVerificationCode.Create(&model.EmailVerificationCode{
+		Code:        code,
+		RequestType: "email_change",
+		UserID:      user_id,
+		ExpiresAt:   time.Now().Add(10 * time.Minute),
+		NewEmail:    email,
+	})
+	if err != nil {
+		return err
+	}
+
+	// Email APIを呼び出す
+	// HTTP /email-change { code, email, name }
+	endpoint := config.EmailSenderURL + "/email-change"
+	payload := map[string]string{
+		"code":  code,
+		"email": email,
+		"name":  name,
+	}
+	client := &http.Client{Timeout: 10 * time.Second}
+	reqBody, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	req, err := http.NewRequest("POST", endpoint, strings.NewReader(string(reqBody)))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return errors.New("failed to send email verification")
+	}
+
+	return nil
 }

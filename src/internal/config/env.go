@@ -5,10 +5,11 @@ import (
 )
 
 type Config struct {
-	AppName     string
-	Version     string
-	FrontendURL string
-	IssuerURL   string
+	AppName        string
+	Version        string
+	FrontendURL    string
+	IssuerURL      string
+	EmailSenderURL string
 }
 
 // envが設定されていない場合のデフォルト値
@@ -19,9 +20,10 @@ var (
 )
 
 var (
-	AppName     = "UniQUE"
-	FrontendURL = "http://localhost:3000"
-	IssuerURL   = "http://localhost:8080"
+	AppName        = "UniQUE"
+	FrontendURL    = "http://localhost:3000"
+	IssuerURL      = "http://localhost:8080"
+	EmailSenderURL = "http://localhost:8080"
 )
 
 func LoadConfig() *Config {
@@ -46,10 +48,15 @@ func LoadConfig() *Config {
 	if IssuerURLEnv == "" {
 		IssuerURLEnv = IssuerURL
 	}
+	EmailSenderURLEnv := os.Getenv("CONFIG_EMAIL_SENDER_URL")
+	if EmailSenderURLEnv == "" {
+		EmailSenderURLEnv = EmailSenderURL
+	}
 	return &Config{
-		AppName:     AppNameEnv,
-		FrontendURL: FrontendURLEnv,
-		IssuerURL:   IssuerURLEnv,
-		Version:     version,
+		AppName:        AppNameEnv,
+		FrontendURL:    FrontendURLEnv,
+		IssuerURL:      IssuerURLEnv,
+		EmailSenderURL: EmailSenderURLEnv,
+		Version:        version,
 	}
 }
