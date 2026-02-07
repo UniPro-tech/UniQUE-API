@@ -28,6 +28,7 @@ func RegisterUserRoutes(r *gin.Engine) {
 		g.PUT(":id", updateUser)
 		g.DELETE(":id", deleteUser)
 		g.POST("email_verify", emailCodeCheck)
+		g.POST(":id/approve", approveUserRegist)
 	}
 }
 
@@ -575,6 +576,31 @@ func emailCodeCheck(c *gin.Context) {
 	// delete used code
 	_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
 	c.JSON(http.StatusOK, EmailCodeCheckResponse{Valid: true})
+}
+
+// approveUserRegist godoc
+// @Summary Approve user registration
+// @Description ユーザ登録を承認する
+// @Tags users
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200
+// @Router /users/{id}/approve [post]
+func approveUserRegist(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	user_id := c.Param("id")
+	q := query.Use(db)
+	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(map[string]interface{}{
+		"status": "active",
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusOK)
 }
 
 func sendRegistrationEmailVerification(user_id, email, name string, q *query.Query, config *config.Config) error {
