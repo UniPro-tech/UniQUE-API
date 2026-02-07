@@ -89,6 +89,18 @@ definitions:
     required:
     - role_id
     type: object
+  routes.EmailCodeCheckRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  routes.EmailCodeCheckResponse:
+    properties:
+      valid:
+        type: boolean
+    type: object
   routes.ProfileDTO:
     properties:
       bio:
@@ -148,10 +160,12 @@ definitions:
     properties:
       affiliation_period:
         type: string
+      custom_id:
+        type: string
       email:
         type: string
-      email_verified:
-        type: boolean
+      external_email:
+        type: string
       profile:
         $ref: '#/definitions/routes.ProfileDTO'
       status:
@@ -506,6 +520,23 @@ paths:
       summary: Update a user
       tags:
       - users
+  /users/{id}/approve:
+    post:
+      description: ユーザ登録を承認する
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Approve user registration
+      tags:
+      - users
   /users/{id}/apps:
     get:
       description: Get applications owned by a user
@@ -590,6 +621,28 @@ paths:
         "204":
           description: No Content
       summary: Remove a role from a user
+      tags:
+      - users
+  /users/email_verify:
+    post:
+      consumes:
+      - application/json
+      description: 認証コードを検証する
+      parameters:
+      - description: Email code verification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.EmailCodeCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.EmailCodeCheckResponse'
+      summary: Verify email code
       tags:
       - users
 swagger: "2.0"

@@ -427,6 +427,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/email_verify": {
+            "post": {
+                "description": "認証コードを検証する",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Verify email code",
+                "parameters": [
+                    {
+                        "description": "Email code verification",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.EmailCodeCheckRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.EmailCodeCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}": {
             "get": {
                 "description": "Get a single user with optional profile",
@@ -491,6 +525,32 @@ const docTemplate = `{
                         "schema": {
                             "$ref": "#/definitions/routes.UserDTO"
                         }
+                    }
+                }
+            }
+        },
+        "/users/{id}/approve": {
+            "post": {
+                "description": "ユーザ登録を承認する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Approve user registration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -762,6 +822,25 @@ const docTemplate = `{
                 }
             }
         },
+        "routes.EmailCodeCheckRequest": {
+            "type": "object",
+            "required": [
+                "code"
+            ],
+            "properties": {
+                "code": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.EmailCodeCheckResponse": {
+            "type": "object",
+            "properties": {
+                "valid": {
+                    "type": "boolean"
+                }
+            }
+        },
         "routes.ProfileDTO": {
             "type": "object",
             "properties": {
@@ -853,11 +932,14 @@ const docTemplate = `{
                 "affiliation_period": {
                     "type": "string"
                 },
+                "custom_id": {
+                    "type": "string"
+                },
                 "email": {
                     "type": "string"
                 },
-                "email_verified": {
-                    "type": "boolean"
+                "external_email": {
+                    "type": "string"
                 },
                 "profile": {
                     "$ref": "#/definitions/routes.ProfileDTO"
