@@ -574,6 +574,104 @@
                 }
             }
         },
+        "/users/{id}/external_identities": {
+            "get": {
+                "description": "Get external identities linked to a user",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "List external identities for a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.ExternalIdentityListResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Link an external identity to the user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Link an external account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "External identity",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.CreateExternalIdentityRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/routes.ExternalIdentityDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/external_identities/{eid}": {
+            "delete": {
+                "description": "Remove an external identity linked to a user",
+                "tags": [
+                    "users"
+                ],
+                "summary": "Unlink an external account",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "External identity ID",
+                        "name": "eid",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/users/{id}/roles": {
             "get": {
                 "description": "Get roles assigned to a user",
@@ -758,6 +856,33 @@
                 }
             }
         },
+        "routes.CreateExternalIdentityRequest": {
+            "type": "object",
+            "required": [
+                "external_user_id",
+                "provider"
+            ],
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "external_user_id": {
+                    "type": "string"
+                },
+                "id_token": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token_expires_at": {
+                    "type": "string"
+                }
+            }
+        },
         "routes.CreateRoleRequest": {
             "type": "object",
             "required": [
@@ -828,6 +953,43 @@
             "properties": {
                 "valid": {
                     "type": "boolean"
+                }
+            }
+        },
+        "routes.ExternalIdentityDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "external_user_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "token_expires_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.ExternalIdentityListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/routes.ExternalIdentityDTO"
+                    }
                 }
             }
         },

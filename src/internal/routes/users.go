@@ -25,6 +25,9 @@ func RegisterUserRoutes(r *gin.Engine) {
 		g.POST(":id/roles", addRoleForUser)
 		g.DELETE(":id/roles/:roleId", removeRoleForUser)
 		g.GET(":id/roles", listRolesForUser)
+		g.GET(":id/external_identities", listExternalIdentities)
+		g.POST(":id/external_identities", addExternalIdentity)
+		g.DELETE(":id/external_identities/:eid", removeExternalIdentity)
 		g.PUT(":id", updateUser)
 		g.DELETE(":id", deleteUser)
 		g.POST("email_verify", emailCodeCheck)
@@ -521,6 +524,132 @@ func listRolesForUser(c *gin.Context) {
 		})
 	}
 	c.JSON(http.StatusOK, RoleListResponse{Data: out})
+}
+
+// listExternalIdentities godoc
+// @Summary List external identities for a user
+// @Description Get external identities linked to a user
+// @Tags users
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200 {object} routes.ExternalIdentityListResponse
+// @Router /users/{id}/external_identities [get]
+func listExternalIdentities(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	q := query.Use(db)
+	eis, err := q.ExternalIdentity.Where(query.ExternalIdentity.UserID.Eq(id)).Find()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(eis) == 0 {
+		c.JSON(http.StatusOK, ExternalIdentityListResponse{Data: []ExternalIdentityDTO{}})
+		return
+	}
+	var out []ExternalIdentityDTO
+	for _, e := range eis {
+		out = append(out, ExternalIdentityDTO{
+			ID:             e.ID,
+			UserID:         e.UserID,
+			Provider:       e.Provider,
+			ExternalUserID: e.ExternalUserID,
+			TokenExpiresAt: e.TokenExpiresAt,
+			CreatedAt:      e.CreatedAt,
+			UpdatedAt:      e.UpdatedAt,
+		})
+	}
+	c.JSON(http.StatusOK, ExternalIdentityListResponse{Data: out})
+}
+
+// addExternalIdentity godoc
+// @Summary Link an external account
+// @Description Link an external identity to the user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param body body routes.CreateExternalIdentityRequest true "External identity"
+// @Success 201 {object} routes.ExternalIdentityDTO
+// @Router /users/{id}/external_identities [post]
+func addExternalIdentity(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	var input CreateExternalIdentityRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	q := query.Use(db)
+	// ensure user exists
+	if _, err := q.User.Where(query.User.ID.Eq(id)).First(); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+	ei := &model.ExternalIdentity{
+		ID:             uuid.NewString(),
+		UserID:         id,
+		Provider:       input.Provider,
+		ExternalUserID: input.ExternalUserID,
+		IDToken:        input.IDToken,
+		AccessToken:    input.AccessToken,
+		RefreshToken:   input.RefreshToken,
+	}
+	if input.TokenExpiresAt != nil {
+		ei.TokenExpiresAt = *input.TokenExpiresAt
+	}
+	if err := q.ExternalIdentity.Create(ei); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	resp := ExternalIdentityDTO{
+		ID:             ei.ID,
+		UserID:         ei.UserID,
+		Provider:       ei.Provider,
+		ExternalUserID: ei.ExternalUserID,
+		TokenExpiresAt: ei.TokenExpiresAt,
+		CreatedAt:      ei.CreatedAt,
+		UpdatedAt:      ei.UpdatedAt,
+	}
+	c.JSON(http.StatusCreated, resp)
+}
+
+// removeExternalIdentity godoc
+// @Summary Unlink an external account
+// @Description Remove an external identity linked to a user
+// @Tags users
+// @Param id path string true "User ID"
+// @Param eid path string true "External identity ID"
+// @Success 204
+// @Router /users/{id}/external_identities/{eid} [delete]
+func removeExternalIdentity(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	eid := c.Param("eid")
+	q := query.Use(db)
+	// ensure exists and belongs to user
+	if _, err := q.ExternalIdentity.Where(query.ExternalIdentity.ID.Eq(eid), query.ExternalIdentity.UserID.Eq(id)).First(); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if _, err := q.ExternalIdentity.Delete(&model.ExternalIdentity{ID: eid}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
 }
 
 // EmailCodeCheck godoc

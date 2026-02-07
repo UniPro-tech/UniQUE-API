@@ -53,6 +53,24 @@ definitions:
     - name
     - user_id
     type: object
+  routes.CreateExternalIdentityRequest:
+    properties:
+      access_token:
+        type: string
+      external_user_id:
+        type: string
+      id_token:
+        type: string
+      provider:
+        type: string
+      refresh_token:
+        type: string
+      token_expires_at:
+        type: string
+    required:
+    - external_user_id
+    - provider
+    type: object
   routes.CreateRoleRequest:
     properties:
       custom_id:
@@ -100,6 +118,30 @@ definitions:
     properties:
       valid:
         type: boolean
+    type: object
+  routes.ExternalIdentityDTO:
+    properties:
+      created_at:
+        type: string
+      external_user_id:
+        type: string
+      id:
+        type: string
+      provider:
+        type: string
+      token_expires_at:
+        type: string
+      updated_at:
+        type: string
+      user_id:
+        type: string
+    type: object
+  routes.ExternalIdentityListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.ExternalIdentityDTO'
+        type: array
     type: object
   routes.ProfileDTO:
     properties:
@@ -554,6 +596,71 @@ paths:
           schema:
             $ref: '#/definitions/routes.ApplicationListResponse'
       summary: List applications for a user
+      tags:
+      - users
+  /users/{id}/external_identities:
+    get:
+      description: Get external identities linked to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ExternalIdentityListResponse'
+      summary: List external identities for a user
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Link an external identity to the user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: External identity
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateExternalIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.ExternalIdentityDTO'
+      summary: Link an external account
+      tags:
+      - users
+  /users/{id}/external_identities/{eid}:
+    delete:
+      description: Remove an external identity linked to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: External identity ID
+        in: path
+        name: eid
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Unlink an external account
       tags:
       - users
   /users/{id}/roles:

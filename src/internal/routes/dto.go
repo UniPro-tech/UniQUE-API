@@ -92,6 +92,32 @@ type ApplicationListResponse struct {
 	Data []ApplicationDTO `json:"data"`
 }
 
+// ExternalIdentityDTO represents an external identity linked to a user
+type ExternalIdentityDTO struct {
+	ID             string    `json:"id"`
+	UserID         string    `json:"user_id"`
+	Provider       string    `json:"provider"`
+	ExternalUserID string    `json:"external_user_id"`
+	TokenExpiresAt time.Time `json:"token_expires_at,omitempty"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
+}
+
+// ExternalIdentityListResponse wraps a list of external identities
+type ExternalIdentityListResponse struct {
+	Data []ExternalIdentityDTO `json:"data"`
+}
+
+// CreateExternalIdentityRequest is used for linking an external account
+type CreateExternalIdentityRequest struct {
+	Provider       string     `json:"provider" binding:"required"`
+	ExternalUserID string     `json:"external_user_id" binding:"required"`
+	IDToken        string     `json:"id_token,omitempty"`
+	AccessToken    string     `json:"access_token,omitempty"`
+	RefreshToken   string     `json:"refresh_token,omitempty"`
+	TokenExpiresAt *time.Time `json:"token_expires_at,omitempty"`
+}
+
 // CreateApplicationRequest is used for POST /applications
 type CreateApplicationRequest struct {
 	Name             string `json:"name" binding:"required"`
