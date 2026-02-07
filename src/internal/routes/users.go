@@ -111,16 +111,40 @@ func createUser(c *gin.Context) {
 	if db == nil {
 		return
 	}
+	config := c.MustGet("config").(config.Config)
 	var input CreateUserRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	// auth-server/internal/password_hash
+	req := map[string]string{
+		"password": input.Password,
+	}
+	reqBody, err := json.Marshal(req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	resp, err := http.Post(config.IssuerURL+"/hash-password", "application/json", strings.NewReader(string(reqBody)))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+	defer resp.Body.Close()
+	var respData struct {
+		PasswordHash string `json:"password_hash"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse password hash response"})
+		return
+	}
+
 	user := model.User{
 		ID:           uuid.NewString(),
 		CustomID:     input.CustomID,
 		Email:        input.Email,
-		PasswordHash: "", // password handling left to auth service
+		PasswordHash: respData.PasswordHash,
 		Status:       "established",
 	}
 	q := query.Use(db)
@@ -128,7 +152,7 @@ func createUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	err := sendRegistrationEmailVerification(user.ID, user.Email, "", q, config.LoadConfig())
+	err = sendRegistrationEmailVerification(user.ID, user.Email, "", q, &config)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -153,7 +177,7 @@ func createUser(c *gin.Context) {
 			JoinedAt:    p.JoinedAt,
 		}
 	}
-	resp := UserDTO{
+	dbResp := UserDTO{
 		ID:        user.ID,
 		CustomID:  user.CustomID,
 		Email:     user.Email,
@@ -162,7 +186,7 @@ func createUser(c *gin.Context) {
 		UpdatedAt: user.UpdatedAt,
 		Profile:   profileDTO,
 	}
-	c.JSON(http.StatusCreated, resp)
+	c.JSON(http.StatusCreated, dbResp)
 }
 
 // getUser godoc
