@@ -120,3 +120,13 @@ type CreateUserRoleRequest struct {
 type CreateApplicationOwnerRequest struct {
 	UserID string `json:"user_id" binding:"required"`
 }
+
+// EmailCodeCheckRequest is used to verify email codes
+type EmailCodeCheckRequest struct {
+	Code string `json:"code" binding:"required"`
+}
+
+// EmailCodeCheckResponse is the response for email code verification
+type EmailCodeCheckResponse struct {
+	Valid bool `json:"valid"`
+}

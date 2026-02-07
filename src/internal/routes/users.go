@@ -497,6 +497,61 @@ func listRolesForUser(c *gin.Context) {
 	c.JSON(http.StatusOK, RoleListResponse{Data: out})
 }
 
+// EmailCodeCheck godoc
+// @Summary Verify email code
+// @Description 認証コードを検証する
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param body body routes.EmailCodeCheckRequest true "Email code verification"
+// @Success 200 {object} routes.EmailCodeCheckResponse
+// @Router /users/email_verify [post]
+func emailCodeCheck(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	var input EmailCodeCheckRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	q := query.Use(db)
+	evc, err := q.EmailVerificationCode.Where(
+		query.EmailVerificationCode.Code.Eq(input.Code),
+	).First()
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_code"})
+		return
+	}
+	if time.Now().After(evc.ExpiresAt) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "code_expired"})
+		return
+	}
+	// mark email as verified
+	switch evc.RequestType {
+	case "registration":
+		_, err = q.User.Where(query.User.ID.Eq(evc.UserID)).Updates(map[string]interface{}{
+			"email_verified": true,
+		})
+	case "email_change":
+		_, err = q.User.Where(query.User.ID.Eq(evc.UserID)).Updates(map[string]interface{}{
+			"email":          evc.NewEmail,
+			"email_verified": true,
+		})
+	default:
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_type"})
+		return
+	}
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// delete used code
+	_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
+	c.JSON(http.StatusOK, EmailCodeCheckResponse{Valid: true})
+}
+
 func sendRegistrationEmailVerification(user_id, email, name string, q *query.Query, config *config.Config) error {
 	// コードを生成してDBに保存する
 	// 6桁のコードを生成
