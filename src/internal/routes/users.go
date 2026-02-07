@@ -27,6 +27,7 @@ func RegisterUserRoutes(r *gin.Engine) {
 		g.GET(":id/roles", listRolesForUser)
 		g.PUT(":id", updateUser)
 		g.DELETE(":id", deleteUser)
+		g.POST("email_verify", emailCodeCheck)
 	}
 }
 
