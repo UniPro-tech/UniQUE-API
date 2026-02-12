@@ -1,19 +1,30 @@
-FROM rust:1-alpine AS builder
+FROM golang:1.24-alpine AS builder
 
-WORKDIR /usr/src/app
+WORKDIR /app
+
+RUN apk add --no-cache git ca-certificates
+
+# Cache Go modules
+COPY ./src/go.mod ./src/go.sum ./src/
+RUN cd src && go mod download
 
 COPY . .
 
-RUN apk add --no-cache musl-dev mold clang build-base
+# Build arguments for embedding version metadata
+ARG VERSION=dev
+ARG COMMIT=none
+ARG BRANCH=none
 
-RUN cargo fix --bin "UniQUE-API"
-
-RUN cargo build --release
+ENV CGO_ENABLED=0
+RUN cd src && go build -ldflags "-s -w -X github.com/UniPro-tech/UniQUE-API/internal/config.Version=${VERSION} -X github.com/UniPro-tech/UniQUE-API/internal/config.GitCommit=${COMMIT} -X github.com/UniPro-tech/UniQUE-API/internal/config.GitBranch=${BRANCH}" ./cmd/server/main.go
 
 FROM alpine:latest
 
+RUN apk add --no-cache ca-certificates
 WORKDIR /root/
 
-COPY --from=builder /usr/src/app/target/release/UniQUE-API .
+COPY --from=builder /app/src/main ./server
 
-CMD ["./UniQUE-API"]
+ENV GIN_MODE=release
+EXPOSE 8080
+CMD ["./server"]

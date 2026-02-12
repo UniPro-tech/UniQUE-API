@@ -1,0 +1,979 @@
+basePath: /
+definitions:
+  main.HealthResponse:
+    properties:
+      status:
+        type: string
+    type: object
+  routes.ApplicationDTO:
+    properties:
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      privacy_policy_url:
+        type: string
+      user_id:
+        type: string
+      website_url:
+        type: string
+    type: object
+  routes.ApplicationListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.ApplicationDTO'
+        type: array
+    type: object
+  routes.CreateApplicationOwnerRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  routes.CreateApplicationRequest:
+    properties:
+      client_secret:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      privacy_policy_url:
+        type: string
+      user_id:
+        type: string
+      website_url:
+        type: string
+    required:
+    - client_secret
+    - name
+    - user_id
+    type: object
+  routes.CreateExternalIdentityRequest:
+    properties:
+      access_token:
+        type: string
+      external_user_id:
+        type: string
+      id_token:
+        type: string
+      provider:
+        type: string
+      refresh_token:
+        type: string
+      token_expires_at:
+        type: string
+    required:
+    - external_user_id
+    - provider
+    type: object
+  routes.CreateRoleRequest:
+    properties:
+      custom_id:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    required:
+    - custom_id
+    - name
+    - permission_bitmask
+    type: object
+  routes.CreateUserRequest:
+    properties:
+      affiliation_period:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      password:
+        type: string
+      profile:
+        $ref: '#/definitions/routes.ProfileDTO'
+      status:
+        type: string
+    required:
+    - custom_id
+    - email
+    type: object
+  routes.CreateUserRoleRequest:
+    properties:
+      role_id:
+        type: string
+    required:
+    - role_id
+    type: object
+  routes.EmailCodeCheckRequest:
+    properties:
+      code:
+        type: string
+    required:
+    - code
+    type: object
+  routes.EmailCodeCheckResponse:
+    properties:
+      type:
+        description: '"signup", "change", or "migration"'
+        type: string
+      valid:
+        type: boolean
+    type: object
+  routes.EmailVerifyDiscordLinkRequest:
+    properties:
+      access_token:
+        type: string
+      code:
+        type: string
+      external_user_id:
+        type: string
+      refresh_token:
+        type: string
+      token_expires_at:
+        type: string
+    required:
+    - access_token
+    - code
+    - external_user_id
+    type: object
+  routes.ExternalIdentityDTO:
+    properties:
+      avatar_url:
+        type: string
+      created_at:
+        type: string
+      display_name:
+        type: string
+      email:
+        type: string
+      external_user_id:
+        type: string
+      id:
+        type: string
+      id_token_claims:
+        additionalProperties: true
+        description: Decoded ID Token claims (JWT payload)
+        type: object
+      provider:
+        type: string
+      provider_data:
+        additionalProperties: true
+        description: Raw provider-specific userinfo data
+        type: object
+      updated_at:
+        type: string
+      user_id:
+        type: string
+      username:
+        description: Common normalised fields from provider userinfo
+        type: string
+    type: object
+  routes.ExternalIdentityListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.ExternalIdentityDTO'
+        type: array
+    type: object
+  routes.PermissionsResponse:
+    properties:
+      permission_bitmask:
+        type: integer
+      permissions_text:
+        items:
+          type: string
+        type: array
+    type: object
+  routes.ProfileDTO:
+    properties:
+      bio:
+        type: string
+      birthdate:
+        type: string
+      birthdate_visible:
+        type: boolean
+      display_name:
+        type: string
+      joined_at:
+        type: string
+      twitter_handle:
+        type: string
+      user_id:
+        type: string
+      website_url:
+        type: string
+    type: object
+  routes.RedirectURIDTO:
+    properties:
+      application_id:
+        type: string
+      created_at:
+        type: string
+      updated_at:
+        type: string
+      uri:
+        type: string
+    type: object
+  routes.RoleDTO:
+    properties:
+      custom_id:
+        type: string
+      description:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    type: object
+  routes.RoleListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.RoleDTO'
+        type: array
+    type: object
+  routes.UpdateApplicationRequest:
+    properties:
+      client_secret:
+        type: string
+      description:
+        type: string
+      name:
+        type: string
+      privacy_policy_url:
+        type: string
+      website_url:
+        type: string
+    type: object
+  routes.UpdateRoleRequest:
+    properties:
+      description:
+        type: string
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    type: object
+  routes.UpdateUserRequest:
+    properties:
+      affiliation_period:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      profile:
+        $ref: '#/definitions/routes.ProfileDTO'
+      status:
+        type: string
+    type: object
+  routes.UserDTO:
+    properties:
+      affiliation_period:
+        type: string
+      created_at:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      email_verified:
+        type: boolean
+      external_email:
+        type: string
+      id:
+        type: string
+      pending_email:
+        type: string
+      profile:
+        $ref: '#/definitions/routes.ProfileDTO'
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  routes.UserListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.UserDTO'
+        type: array
+    type: object
+info:
+  contact: {}
+paths:
+  /applications:
+    get:
+      description: List third-party applications
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationListResponse'
+      summary: List applications
+      tags:
+      - applications
+    post:
+      consumes:
+      - application/json
+      description: Register a new third-party application
+      parameters:
+      - description: Create application
+        in: body
+        name: app
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Create an application
+      tags:
+      - applications
+  /applications/{id}:
+    get:
+      description: Get a single application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Get an application
+      tags:
+      - applications
+    put:
+      consumes:
+      - application/json
+      description: Update application fields
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update application
+        in: body
+        name: app
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Update an application
+      tags:
+      - applications
+  /applications/{id}/owners:
+    get:
+      description: Get the user(s) who own the application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserListResponse'
+      summary: List owners for an application
+      tags:
+      - applications
+    post:
+      consumes:
+      - application/json
+      description: Set or replace the owner (user) of the application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Assign owner
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateApplicationOwnerRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Assign an owner to an application
+      tags:
+      - applications
+  /applications/{id}/redirect_uris:
+    delete:
+      description: Delete a registered redirect URI by application id and uri (query
+        param)
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Redirect URI
+        in: query
+        name: uri
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete redirect URI for an application
+      tags:
+      - applications
+    get:
+      description: Get redirect URIs registered for a given application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/routes.RedirectURIDTO'
+            type: array
+      summary: List redirect URIs for an application
+      tags:
+      - applications
+    post:
+      consumes:
+      - application/json
+      description: Register a new redirect URI for the application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'payload: {\'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.RedirectURIDTO'
+      summary: Create redirect URI for an application
+      tags:
+      - applications
+  /health:
+    get:
+      consumes:
+      - application/json
+      description: システムの稼働状況を確認するためのエンドポイントです。
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.HealthResponse'
+      summary: health check endpoint
+      tags:
+      - system info
+  /internal/users/email_verify:
+    post:
+      consumes:
+      - application/json
+      description: 認証コードを検証する
+      parameters:
+      - description: Email code verification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.EmailCodeCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.EmailCodeCheckResponse'
+      summary: Verify email code
+      tags:
+      - users
+  /internal/users/email_verify/{code}:
+    get:
+      description: メール検証コードからユーザーIDを取得する（メール認証フロー用）
+      parameters:
+      - description: Email verification code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get email verification code info
+      tags:
+      - users
+  /internal/users/email_verify/discord_link:
+    post:
+      consumes:
+      - application/json
+      description: メール検証コードを使ってDiscord連携を行う
+      parameters:
+      - description: Discord link request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.EmailVerifyDiscordLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.ExternalIdentityDTO'
+      summary: Link Discord account by email verification code
+      tags:
+      - users
+  /roles:
+    get:
+      description: List roles
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleListResponse'
+      summary: List roles
+      tags:
+      - roles
+    post:
+      consumes:
+      - application/json
+      description: Create a new role
+      parameters:
+      - description: Create role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Create a role
+      tags:
+      - roles
+  /roles/{id}:
+    get:
+      description: Get a single role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Get a role
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Update role fields
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Update a role
+      tags:
+      - roles
+  /roles/{id}/users:
+    get:
+      description: Get users assigned to a role
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserListResponse'
+      summary: List users for a role
+      tags:
+      - roles
+  /users:
+    get:
+      description: List users with embedded profile. Returns all data if USER_READ
+        permission, otherwise basic info only
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserListResponse'
+      summary: List users
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with optional profile
+      parameters:
+      - description: Create user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Create a user
+      tags:
+      - users
+  /users/{id}:
+    get:
+      description: Get a single user with optional profile
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Get a user
+      tags:
+      - users
+    put:
+      consumes:
+      - application/json
+      description: Update a user's fields and optional profile
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Update a user
+      tags:
+      - users
+  /users/{id}/approve:
+    post:
+      description: ユーザ登録を承認する
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Approve user registration
+      tags:
+      - users
+  /users/{id}/apps:
+    get:
+      description: Get applications owned by a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationListResponse'
+      summary: List applications for a user
+      tags:
+      - users
+  /users/{id}/external_identities:
+    get:
+      description: Get external identities linked to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ExternalIdentityListResponse'
+      summary: List external identities for a user
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Link an external identity to the user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: External identity
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateExternalIdentityRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.ExternalIdentityDTO'
+      summary: Link an external account
+      tags:
+      - users
+  /users/{id}/external_identities/{eid}:
+    delete:
+      description: Remove an external identity linked to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: External identity ID
+        in: path
+        name: eid
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Unlink an external account
+      tags:
+      - users
+  /users/{id}/permissions:
+    get:
+      description: Get the combined permissions for a user based on their roles
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.PermissionsResponse'
+      summary: Get user permissions
+      tags:
+      - users
+  /users/{id}/resend_email_verification:
+    post:
+      description: メール認証メールを再送する
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Resend email verification
+      tags:
+      - users
+  /users/{id}/roles:
+    get:
+      description: Get roles assigned to a user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleListResponse'
+      summary: List roles for a user
+      tags:
+      - users
+    post:
+      consumes:
+      - application/json
+      description: Assign the specified role to the user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role assignment
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateUserRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Assign a role to a user
+      tags:
+      - users
+  /users/{id}/roles/{roleId}:
+    delete:
+      description: Unassign the specified role from the user
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Role ID
+        in: path
+        name: roleId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Remove a role from a user
+      tags:
+      - users
+swagger: "2.0"

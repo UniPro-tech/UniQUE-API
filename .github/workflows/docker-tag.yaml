@@ -65,6 +65,10 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=registry,ref=registry.uniproject.jp/infra/unique-api:buildcache
           cache-to: type=registry,ref=registry.uniproject.jp/infra/unique-api:buildcache,mode=max
+          build-args: |
+            VERSION=${{ env.TAG_NAME }}
+            COMMIT=${{ github.sha }}
+            BRANCH=${{ github.ref_name }}
 
       - name: Sign Docker images with GitHub OIDC (cosign keyless)
         env:
