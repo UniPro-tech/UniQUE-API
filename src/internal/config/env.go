@@ -9,6 +9,7 @@ type Config struct {
 	Version             string
 	FrontendURL         string
 	IssuerURL           string
+	IssuerInternalURL   string
 	EmailSenderURL      string
 	DiscordClientID     string
 	DiscordClientSecret string
@@ -24,10 +25,11 @@ var (
 )
 
 var (
-	AppName        = "UniQUE"
-	FrontendURL    = "http://localhost:3000"
-	IssuerURL      = "http://localhost:8080"
-	EmailSenderURL = "http://localhost:8080"
+	AppName           = "UniQUE"
+	FrontendURL       = "http://localhost:3000"
+	IssuerURL         = "http://localhost:8080"
+	IssuerInternalURL = "http://localhost:8080"
+	EmailSenderURL    = "http://localhost:8080"
 )
 
 func LoadConfig() *Config {
@@ -52,6 +54,10 @@ func LoadConfig() *Config {
 	if IssuerURLEnv == "" {
 		IssuerURLEnv = IssuerURL
 	}
+	IssuerInternalURLEnv := os.Getenv("CONFIG_ISSUER_INTERNAL_URL")
+	if IssuerInternalURLEnv == "" {
+		IssuerInternalURLEnv = IssuerInternalURL
+	}
 	EmailSenderURLEnv := os.Getenv("CONFIG_EMAIL_SENDER_URL")
 	if EmailSenderURLEnv == "" {
 		EmailSenderURLEnv = EmailSenderURL
@@ -60,6 +66,7 @@ func LoadConfig() *Config {
 		AppName:             AppNameEnv,
 		FrontendURL:         FrontendURLEnv,
 		IssuerURL:           IssuerURLEnv,
+		IssuerInternalURL:   IssuerInternalURLEnv,
 		EmailSenderURL:      EmailSenderURLEnv,
 		Version:             version,
 		DiscordClientID:     os.Getenv("DISCORD_CLIENT_ID"),

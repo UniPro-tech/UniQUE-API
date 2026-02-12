@@ -328,7 +328,7 @@ type SessionVerifyResponse struct {
 // Auth側は "jit" パラメータ名で受け取る
 // 戻り値: (valid, userID)
 func verifyJIT(jit string, cfg config.Config, path string) (bool, string) {
-	issuer := strings.TrimRight(cfg.IssuerURL, "/")
+	issuer := strings.TrimRight(cfg.IssuerInternalURL, "/")
 	url := issuer + path
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {

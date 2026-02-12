@@ -208,7 +208,7 @@ func createUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	resp, err := http.Post(config.IssuerURL+"/internal/password_hash", "application/json", strings.NewReader(string(reqBody)))
+	resp, err := http.Post(config.IssuerInternalURL+"/internal/password_hash", "application/json", strings.NewReader(string(reqBody)))
 	if err != nil || resp.StatusCode != http.StatusOK {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
 		return
