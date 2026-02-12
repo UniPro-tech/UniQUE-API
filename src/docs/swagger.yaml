@@ -88,14 +88,20 @@ definitions:
     type: object
   routes.CreateUserRequest:
     properties:
+      affiliation_period:
+        type: string
       custom_id:
         type: string
       email:
+        type: string
+      external_email:
         type: string
       password:
         type: string
       profile:
         $ref: '#/definitions/routes.ProfileDTO'
+      status:
+        type: string
     required:
     - custom_id
     - email
@@ -116,24 +122,59 @@ definitions:
     type: object
   routes.EmailCodeCheckResponse:
     properties:
+      type:
+        description: '"signup", "change", or "migration"'
+        type: string
       valid:
         type: boolean
     type: object
+  routes.EmailVerifyDiscordLinkRequest:
+    properties:
+      access_token:
+        type: string
+      code:
+        type: string
+      external_user_id:
+        type: string
+      refresh_token:
+        type: string
+      token_expires_at:
+        type: string
+    required:
+    - access_token
+    - code
+    - external_user_id
+    type: object
   routes.ExternalIdentityDTO:
     properties:
+      avatar_url:
+        type: string
       created_at:
+        type: string
+      display_name:
+        type: string
+      email:
         type: string
       external_user_id:
         type: string
       id:
         type: string
+      id_token_claims:
+        additionalProperties: true
+        description: Decoded ID Token claims (JWT payload)
+        type: object
       provider:
         type: string
-      token_expires_at:
-        type: string
+      provider_data:
+        additionalProperties: true
+        description: Raw provider-specific userinfo data
+        type: object
       updated_at:
         type: string
       user_id:
+        type: string
+      username:
+        description: Common normalised fields from provider userinfo
         type: string
     type: object
   routes.ExternalIdentityListResponse:
@@ -143,17 +184,43 @@ definitions:
           $ref: '#/definitions/routes.ExternalIdentityDTO'
         type: array
     type: object
+  routes.PermissionsResponse:
+    properties:
+      permission_bitmask:
+        type: integer
+      permissions_text:
+        items:
+          type: string
+        type: array
+    type: object
   routes.ProfileDTO:
     properties:
       bio:
         type: string
+      birthdate:
+        type: string
+      birthdate_visible:
+        type: boolean
       display_name:
         type: string
       joined_at:
         type: string
+      twitter_handle:
+        type: string
       user_id:
         type: string
       website_url:
+        type: string
+    type: object
+  routes.RedirectURIDTO:
+    properties:
+      application_id:
+        type: string
+      created_at:
+        type: string
+      updated_at:
+        type: string
+      uri:
         type: string
     type: object
   routes.RoleDTO:
@@ -228,6 +295,8 @@ definitions:
       external_email:
         type: string
       id:
+        type: string
+      pending_email:
         type: string
       profile:
         $ref: '#/definitions/routes.ProfileDTO'
@@ -370,6 +439,81 @@ paths:
       summary: Assign an owner to an application
       tags:
       - applications
+  /applications/{id}/redirect_uris:
+    delete:
+      description: Delete a registered redirect URI by application id and uri (query
+        param)
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Redirect URI
+        in: query
+        name: uri
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Delete redirect URI for an application
+      tags:
+      - applications
+    get:
+      description: Get redirect URIs registered for a given application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/routes.RedirectURIDTO'
+            type: array
+      summary: List redirect URIs for an application
+      tags:
+      - applications
+    post:
+      consumes:
+      - application/json
+      description: Register a new redirect URI for the application
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: 'payload: {\'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.RedirectURIDTO'
+      summary: Create redirect URI for an application
+      tags:
+      - applications
   /health:
     get:
       consumes:
@@ -385,6 +529,71 @@ paths:
       summary: health check endpoint
       tags:
       - system info
+  /internal/users/email_verify:
+    post:
+      consumes:
+      - application/json
+      description: 認証コードを検証する
+      parameters:
+      - description: Email code verification
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.EmailCodeCheckRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.EmailCodeCheckResponse'
+      summary: Verify email code
+      tags:
+      - users
+  /internal/users/email_verify/{code}:
+    get:
+      description: メール検証コードからユーザーIDを取得する（メール認証フロー用）
+      parameters:
+      - description: Email verification code
+        in: path
+        name: code
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Get email verification code info
+      tags:
+      - users
+  /internal/users/email_verify/discord_link:
+    post:
+      consumes:
+      - application/json
+      description: メール検証コードを使ってDiscord連携を行う
+      parameters:
+      - description: Discord link request
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.EmailVerifyDiscordLinkRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.ExternalIdentityDTO'
+      summary: Link Discord account by email verification code
+      tags:
+      - users
   /roles:
     get:
       description: List roles
@@ -485,7 +694,8 @@ paths:
       - roles
   /users:
     get:
-      description: List users with embedded profile
+      description: List users with embedded profile. Returns all data if USER_READ
+        permission, otherwise basic info only
       produces:
       - application/json
       responses:
@@ -663,6 +873,42 @@ paths:
       summary: Unlink an external account
       tags:
       - users
+  /users/{id}/permissions:
+    get:
+      description: Get the combined permissions for a user based on their roles
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.PermissionsResponse'
+      summary: Get user permissions
+      tags:
+      - users
+  /users/{id}/resend_email_verification:
+    post:
+      description: メール認証メールを再送する
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+      summary: Resend email verification
+      tags:
+      - users
   /users/{id}/roles:
     get:
       description: Get roles assigned to a user
@@ -728,28 +974,6 @@ paths:
         "204":
           description: No Content
       summary: Remove a role from a user
-      tags:
-      - users
-  /users/email_verify:
-    post:
-      consumes:
-      - application/json
-      description: 認証コードを検証する
-      parameters:
-      - description: Email code verification
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/routes.EmailCodeCheckRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/routes.EmailCodeCheckResponse'
-      summary: Verify email code
       tags:
       - users
 swagger: "2.0"

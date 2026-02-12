@@ -14,16 +14,17 @@ const TableNameProfile = "profiles"
 
 // Profile Table to store user profile information. Type: master
 type Profile struct {
-	UserID        string         `gorm:"column:user_id;primaryKey" json:"user_id"`
-	DisplayName   string         `gorm:"column:display_name;not null" json:"display_name"`
-	Bio           string         `gorm:"column:bio" json:"bio"`
-	Birthdate     time.Time      `gorm:"column:birthdate" json:"birthdate"`
-	TwitterHandle string         `gorm:"column:twitter_handle" json:"twitter_handle"`
-	WebsiteURL    string         `gorm:"column:website_url" json:"website_url"`
-	JoinedAt      time.Time      `gorm:"column:joined_at" json:"joined_at"`
-	CreatedAt     time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
-	UpdatedAt     time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
-	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
+	UserID           string         `gorm:"column:user_id;primaryKey" json:"user_id"`
+	DisplayName      string         `gorm:"column:display_name;not null" json:"display_name"`
+	Bio              *string        `gorm:"column:bio" json:"bio"`
+	Birthdate        *time.Time     `gorm:"column:birthdate" json:"birthdate"`
+	BirthdateVisible bool           `gorm:"column:birthdate_visible;not null" json:"birthdate_visible"`
+	TwitterHandle    *string        `gorm:"column:twitter_handle" json:"twitter_handle"`
+	WebsiteURL       *string        `gorm:"column:website_url" json:"website_url"`
+	JoinedAt         *time.Time     `gorm:"column:joined_at" json:"joined_at"`
+	CreatedAt        time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
+	UpdatedAt        time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
+	DeletedAt        gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
 }
 
 // TableName Profile's table name

@@ -15,15 +15,15 @@ if [ "$1" = "--dev" ]; then
   export DB_DSN="root:rootpass123@tcp(localhost:3306)/devdb?parseTime=true"
   export GIN_MODE=debug
   go run -ldflags "\
-  -X unibot/internal/config.GitCommit=$COMMIT \
-  -X unibot/internal/config.GitBranch=$BRANCH" \
+  -X github.com/UniPro-tech/UniQUE-API/internal/config.GitCommit=$COMMIT \
+  -X github.com/UniPro-tech/UniQUE-API/internal/config.GitBranch=$BRANCH" \
   cmd/server/main.go
 else
   export VERSION=$(git describe --tags --abbrev=0)
   export GIN_MODE=release
   go build -ldflags "\
-  -X unibot/internal/config.Version=$VERSION \
-  -X unibot/internal/config.GitCommit=$COMMIT \
-  -X unibot/internal/config.GitBranch=$BRANCH" \
+  -X github.com/UniPro-tech/UniQUE-API/internal/config.Version=$VERSION \
+  -X github.com/UniPro-tech/UniQUE-API/internal/config.GitCommit=$COMMIT \
+  -X github.com/UniPro-tech/UniQUE-API/internal/config.GitBranch=$BRANCH" \
   cmd/server/main.go
 fi

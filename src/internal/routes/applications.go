@@ -6,19 +6,28 @@ import (
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/oklog/ulid/v2"
 )
 
 func RegisterApplicationRoutes(r *gin.Engine) {
+	// 公開ルート（読み取り専用）
 	g := r.Group("/applications")
 	{
 		g.GET("", listApplications)
-		g.POST("", createApplication)
 		g.GET(":id", getApplication)
+		g.GET(":id/redirect_uris", listRedirectURIsForApplication)
+		g.POST(":id/redirect_uris", createRedirectURIForApplication)
+		g.DELETE(":id/redirect_uris", deleteRedirectURIForApplication)
 		g.GET(":id/owners", listOwnersForApplication)
-		g.POST(":id/owners", addOwnerForApplication)
 		g.PUT(":id", updateApplication)
 		g.DELETE(":id", deleteApplication)
+	}
+
+	// 内部用ルート（作成系）
+	ig := r.Group("/internal/applications")
+	{
+		ig.POST("", createApplication)
+		ig.POST(":id/owners", addOwnerForApplication)
 	}
 }
 
@@ -45,9 +54,9 @@ func listApplications(c *gin.Context) {
 		out = append(out, ApplicationDTO{
 			ID:               a.ID,
 			Name:             a.Name,
-			Description:      a.Description,
-			WebsiteURL:       a.WebsiteURL,
-			PrivacyPolicyURL: a.PrivacyPolicyURL,
+			Description:      ptrToString(a.Description),
+			WebsiteURL:       ptrToString(a.WebsiteURL),
+			PrivacyPolicyURL: ptrToString(a.PrivacyPolicyURL),
 			UserID:           a.UserID,
 		})
 	}
@@ -74,11 +83,11 @@ func createApplication(c *gin.Context) {
 		return
 	}
 	app := model.Application{
-		ID:               uuid.NewString(),
+		ID:               ulid.Make().String(),
 		Name:             input.Name,
-		Description:      input.Description,
-		WebsiteURL:       input.WebsiteURL,
-		PrivacyPolicyURL: input.PrivacyPolicyURL,
+		Description:      stringToPtr(input.Description),
+		WebsiteURL:       stringToPtr(input.WebsiteURL),
+		PrivacyPolicyURL: stringToPtr(input.PrivacyPolicyURL),
 		ClientSecret:     input.ClientSecret,
 		UserID:           input.UserID,
 	}
@@ -96,9 +105,9 @@ func createApplication(c *gin.Context) {
 	resp := ApplicationDTO{
 		ID:               app.ID,
 		Name:             app.Name,
-		Description:      app.Description,
-		WebsiteURL:       app.WebsiteURL,
-		PrivacyPolicyURL: app.PrivacyPolicyURL,
+		Description:      ptrToString(app.Description),
+		WebsiteURL:       ptrToString(app.WebsiteURL),
+		PrivacyPolicyURL: ptrToString(app.PrivacyPolicyURL),
 		UserID:           app.UserID,
 	}
 	c.JSON(http.StatusCreated, resp)
@@ -127,9 +136,9 @@ func getApplication(c *gin.Context) {
 	resp := ApplicationDTO{
 		ID:               a.ID,
 		Name:             a.Name,
-		Description:      a.Description,
-		WebsiteURL:       a.WebsiteURL,
-		PrivacyPolicyURL: a.PrivacyPolicyURL,
+		Description:      ptrToString(a.Description),
+		WebsiteURL:       ptrToString(a.WebsiteURL),
+		PrivacyPolicyURL: ptrToString(a.PrivacyPolicyURL),
 		UserID:           a.UserID,
 	}
 	c.JSON(http.StatusOK, resp)
@@ -183,9 +192,9 @@ func updateApplication(c *gin.Context) {
 	resp := ApplicationDTO{
 		ID:               updated.ID,
 		Name:             updated.Name,
-		Description:      updated.Description,
-		WebsiteURL:       updated.WebsiteURL,
-		PrivacyPolicyURL: updated.PrivacyPolicyURL,
+		Description:      ptrToString(updated.Description),
+		WebsiteURL:       ptrToString(updated.WebsiteURL),
+		PrivacyPolicyURL: ptrToString(updated.PrivacyPolicyURL),
 		UserID:           updated.UserID,
 	}
 	c.JSON(http.StatusOK, resp)
@@ -238,18 +247,21 @@ func listOwnersForApplication(c *gin.Context) {
 		Email:             user.Email,
 		ExternalEmail:     user.ExternalEmail,
 		EmailVerified:     user.EmailVerified,
-		AffiliationPeriod: user.AffiliationPeriod,
+		AffiliationPeriod: ptrToString(user.AffiliationPeriod),
 		Status:            user.Status,
 		CreatedAt:         user.CreatedAt,
 		UpdatedAt:         user.UpdatedAt,
 	}
 	if p, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First(); err == nil {
 		dto.Profile = &ProfileDTO{
-			UserID:      p.UserID,
-			DisplayName: p.DisplayName,
-			Bio:         p.Bio,
-			WebsiteURL:  p.WebsiteURL,
-			JoinedAt:    p.JoinedAt,
+			UserID:           p.UserID,
+			DisplayName:      p.DisplayName,
+			Bio:              ptrToString(p.Bio),
+			WebsiteURL:       ptrToString(p.WebsiteURL),
+			TwitterHandle:    ptrToString(p.TwitterHandle),
+			Birthdate:        formatBirthdate(p.Birthdate),
+			BirthdateVisible: &p.BirthdateVisible,
+			JoinedAt:         timeToTime(p.JoinedAt),
 		}
 	}
 	c.JSON(http.StatusOK, UserListResponse{Data: []UserDTO{dto}})
@@ -301,10 +313,121 @@ func addOwnerForApplication(c *gin.Context) {
 	resp := ApplicationDTO{
 		ID:               updated.ID,
 		Name:             updated.Name,
-		Description:      updated.Description,
-		WebsiteURL:       updated.WebsiteURL,
-		PrivacyPolicyURL: updated.PrivacyPolicyURL,
+		Description:      ptrToString(updated.Description),
+		WebsiteURL:       ptrToString(updated.WebsiteURL),
+		PrivacyPolicyURL: ptrToString(updated.PrivacyPolicyURL),
 		UserID:           updated.UserID,
 	}
 	c.JSON(http.StatusOK, resp)
+}
+
+// listRedirectURIsForApplication godoc
+// @Summary List redirect URIs for an application
+// @Description Get redirect URIs registered for a given application
+// @Tags applications
+// @Produce json
+// @Param id path string true "Application ID"
+// @Success 200 {array} RedirectURIDTO
+// @Router /applications/{id}/redirect_uris [get]
+func listRedirectURIsForApplication(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	q := query.Use(db)
+	results, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id)).Find()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	response := make([]RedirectURIDTO, len(results))
+	for i, r := range results {
+		response[i] = RedirectURIDTO{
+			ApplicationID: r.ApplicationID,
+			URI:           r.URI,
+			CreatedAt:     r.CreatedAt,
+			UpdatedAt:     r.UpdatedAt,
+		}
+	}
+	c.JSON(http.StatusOK, response)
+}
+
+// createRedirectURIForApplication godoc
+// @Summary Create redirect URI for an application
+// @Description Register a new redirect URI for the application
+// @Tags applications
+// @Accept json
+// @Produce json
+// @Param id path string true "Application ID"
+// @Param body body map[string]string true "payload: {\"uri\": \"https://...\" }"
+// @Success 201 {object} RedirectURIDTO
+// @Router /applications/{id}/redirect_uris [post]
+func createRedirectURIForApplication(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	var body struct {
+		URI string `json:"uri"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if body.URI == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "uri required"})
+		return
+	}
+	q := query.Use(db)
+	r := &model.RedirectURI{ApplicationID: id, URI: body.URI}
+	if err := q.RedirectURI.Create(r); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	response := RedirectURIDTO{
+		ApplicationID: r.ApplicationID,
+		URI:           r.URI,
+		CreatedAt:     r.CreatedAt,
+		UpdatedAt:     r.UpdatedAt,
+	}
+	c.JSON(http.StatusCreated, response)
+}
+
+// deleteRedirectURIForApplication godoc
+// @Summary Delete redirect URI for an application
+// @Description Delete a registered redirect URI by application id and uri (query param)
+// @Tags applications
+// @Produce json
+// @Param id path string true "Application ID"
+// @Param uri query string true "Redirect URI"
+// @Success 200 {object} map[string]string
+// @Router /applications/{id}/redirect_uris [delete]
+func deleteRedirectURIForApplication(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	uri := c.Query("uri")
+	if uri == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "uri required"})
+		return
+	}
+	q := query.Use(db)
+	r, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(uri)).First()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if r == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "redirect uri not found"})
+		return
+	}
+	if _, err := q.RedirectURI.Delete(r); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "deleted"})
 }

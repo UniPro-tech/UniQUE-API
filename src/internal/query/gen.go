@@ -27,6 +27,7 @@ var (
 	Profile               *profile
 	RedirectURI           *redirectURI
 	Role                  *role
+	SchemaMigration       *schemaMigration
 	Session               *session
 	User                  *user
 	UserRole              *userRole
@@ -44,6 +45,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	Profile = &Q.Profile
 	RedirectURI = &Q.RedirectURI
 	Role = &Q.Role
+	SchemaMigration = &Q.SchemaMigration
 	Session = &Q.Session
 	User = &Q.User
 	UserRole = &Q.UserRole
@@ -62,6 +64,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 		Profile:               newProfile(db, opts...),
 		RedirectURI:           newRedirectURI(db, opts...),
 		Role:                  newRole(db, opts...),
+		SchemaMigration:       newSchemaMigration(db, opts...),
 		Session:               newSession(db, opts...),
 		User:                  newUser(db, opts...),
 		UserRole:              newUserRole(db, opts...),
@@ -81,6 +84,7 @@ type Query struct {
 	Profile               profile
 	RedirectURI           redirectURI
 	Role                  role
+	SchemaMigration       schemaMigration
 	Session               session
 	User                  user
 	UserRole              userRole
@@ -101,6 +105,7 @@ func (q *Query) clone(db *gorm.DB) *Query {
 		Profile:               q.Profile.clone(db),
 		RedirectURI:           q.RedirectURI.clone(db),
 		Role:                  q.Role.clone(db),
+		SchemaMigration:       q.SchemaMigration.clone(db),
 		Session:               q.Session.clone(db),
 		User:                  q.User.clone(db),
 		UserRole:              q.UserRole.clone(db),
@@ -128,6 +133,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 		Profile:               q.Profile.replaceDB(db),
 		RedirectURI:           q.RedirectURI.replaceDB(db),
 		Role:                  q.Role.replaceDB(db),
+		SchemaMigration:       q.SchemaMigration.replaceDB(db),
 		Session:               q.Session.replaceDB(db),
 		User:                  q.User.replaceDB(db),
 		UserRole:              q.UserRole.replaceDB(db),
@@ -145,6 +151,7 @@ type queryCtx struct {
 	Profile               IProfileDo
 	RedirectURI           IRedirectURIDo
 	Role                  IRoleDo
+	SchemaMigration       ISchemaMigrationDo
 	Session               ISessionDo
 	User                  IUserDo
 	UserRole              IUserRoleDo
@@ -162,6 +169,7 @@ func (q *Query) WithContext(ctx context.Context) *queryCtx {
 		Profile:               q.Profile.WithContext(ctx),
 		RedirectURI:           q.RedirectURI.WithContext(ctx),
 		Role:                  q.Role.WithContext(ctx),
+		SchemaMigration:       q.SchemaMigration.WithContext(ctx),
 		Session:               q.Session.WithContext(ctx),
 		User:                  q.User.WithContext(ctx),
 		UserRole:              q.UserRole.WithContext(ctx),

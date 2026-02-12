@@ -29,7 +29,6 @@ func newAuthorizationRequest(db *gorm.DB, opts ...gen.DOOption) authorizationReq
 	tableName := _authorizationRequest.authorizationRequestDo.TableName()
 	_authorizationRequest.ALL = field.NewAsterisk(tableName)
 	_authorizationRequest.ID = field.NewString(tableName, "id")
-	_authorizationRequest.SessionID = field.NewString(tableName, "session_id")
 	_authorizationRequest.ApplicationID = field.NewString(tableName, "application_id")
 	_authorizationRequest.Scope = field.NewString(tableName, "scope")
 	_authorizationRequest.RedirectURI = field.NewString(tableName, "redirect_uri")
@@ -39,8 +38,8 @@ func newAuthorizationRequest(db *gorm.DB, opts ...gen.DOOption) authorizationReq
 	_authorizationRequest.CodeChallenge = field.NewString(tableName, "code_challenge")
 	_authorizationRequest.CodeChallengeMethod = field.NewString(tableName, "code_challenge_method")
 	_authorizationRequest.ResponseType = field.NewString(tableName, "response_type")
-	_authorizationRequest.Code = field.NewString(tableName, "code")
 	_authorizationRequest.IsConsented = field.NewBool(tableName, "is_consented")
+	_authorizationRequest.Code = field.NewString(tableName, "code")
 	_authorizationRequest.ExpiresAt = field.NewTime(tableName, "expires_at")
 	_authorizationRequest.CreatedAt = field.NewTime(tableName, "created_at")
 
@@ -55,7 +54,6 @@ type authorizationRequest struct {
 
 	ALL                 field.Asterisk
 	ID                  field.String
-	SessionID           field.String
 	ApplicationID       field.String
 	Scope               field.String
 	RedirectURI         field.String
@@ -65,8 +63,8 @@ type authorizationRequest struct {
 	CodeChallenge       field.String
 	CodeChallengeMethod field.String
 	ResponseType        field.String
+	IsConsented         field.Bool // Consentが作られており、ユーザーが許可したかどうか
 	Code                field.String
-	IsConsented         field.Bool
 	ExpiresAt           field.Time
 	CreatedAt           field.Time
 
@@ -86,7 +84,6 @@ func (a authorizationRequest) As(alias string) *authorizationRequest {
 func (a *authorizationRequest) updateTableName(table string) *authorizationRequest {
 	a.ALL = field.NewAsterisk(table)
 	a.ID = field.NewString(table, "id")
-	a.SessionID = field.NewString(table, "session_id")
 	a.ApplicationID = field.NewString(table, "application_id")
 	a.Scope = field.NewString(table, "scope")
 	a.RedirectURI = field.NewString(table, "redirect_uri")
@@ -96,8 +93,8 @@ func (a *authorizationRequest) updateTableName(table string) *authorizationReque
 	a.CodeChallenge = field.NewString(table, "code_challenge")
 	a.CodeChallengeMethod = field.NewString(table, "code_challenge_method")
 	a.ResponseType = field.NewString(table, "response_type")
-	a.Code = field.NewString(table, "code")
 	a.IsConsented = field.NewBool(table, "is_consented")
+	a.Code = field.NewString(table, "code")
 	a.ExpiresAt = field.NewTime(table, "expires_at")
 	a.CreatedAt = field.NewTime(table, "created_at")
 
@@ -116,9 +113,8 @@ func (a *authorizationRequest) GetFieldByName(fieldName string) (field.OrderExpr
 }
 
 func (a *authorizationRequest) fillFieldMap() {
-	a.fieldMap = make(map[string]field.Expr, 15)
+	a.fieldMap = make(map[string]field.Expr, 14)
 	a.fieldMap["id"] = a.ID
-	a.fieldMap["session_id"] = a.SessionID
 	a.fieldMap["application_id"] = a.ApplicationID
 	a.fieldMap["scope"] = a.Scope
 	a.fieldMap["redirect_uri"] = a.RedirectURI
@@ -128,8 +124,8 @@ func (a *authorizationRequest) fillFieldMap() {
 	a.fieldMap["code_challenge"] = a.CodeChallenge
 	a.fieldMap["code_challenge_method"] = a.CodeChallengeMethod
 	a.fieldMap["response_type"] = a.ResponseType
-	a.fieldMap["code"] = a.Code
 	a.fieldMap["is_consented"] = a.IsConsented
+	a.fieldMap["code"] = a.Code
 	a.fieldMap["expires_at"] = a.ExpiresAt
 	a.fieldMap["created_at"] = a.CreatedAt
 }

@@ -5,11 +5,15 @@ import (
 )
 
 type Config struct {
-	AppName        string
-	Version        string
-	FrontendURL    string
-	IssuerURL      string
-	EmailSenderURL string
+	AppName             string
+	Version             string
+	FrontendURL         string
+	IssuerURL           string
+	EmailSenderURL      string
+	DiscordClientID     string
+	DiscordClientSecret string
+	GitHubClientID      string
+	GitHubClientSecret  string
 }
 
 // envが設定されていない場合のデフォルト値
@@ -53,10 +57,14 @@ func LoadConfig() *Config {
 		EmailSenderURLEnv = EmailSenderURL
 	}
 	return &Config{
-		AppName:        AppNameEnv,
-		FrontendURL:    FrontendURLEnv,
-		IssuerURL:      IssuerURLEnv,
-		EmailSenderURL: EmailSenderURLEnv,
-		Version:        version,
+		AppName:             AppNameEnv,
+		FrontendURL:         FrontendURLEnv,
+		IssuerURL:           IssuerURLEnv,
+		EmailSenderURL:      EmailSenderURLEnv,
+		Version:             version,
+		DiscordClientID:     os.Getenv("DISCORD_CLIENT_ID"),
+		DiscordClientSecret: os.Getenv("DISCORD_CLIENT_SECRET"),
+		GitHubClientID:      os.Getenv("GITHUB_CLIENT_ID"),
+		GitHubClientSecret:  os.Getenv("GITHUB_CLIENT_SECRET"),
 	}
 }

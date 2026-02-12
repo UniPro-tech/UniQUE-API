@@ -2,23 +2,30 @@ package routes
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
+	"github.com/UniPro-tech/UniQUE-API/internal/constants"
+	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
+	"github.com/go-sql-driver/mysql"
+	"github.com/oklog/ulid/v2"
 )
 
 func RegisterRoleRoutes(r *gin.Engine) {
 	g := r.Group("/roles")
 	{
-		g.GET("", listRoles)
-		g.POST("", createRole)
-		g.GET(":id", getRole)
-		g.GET(":id/users", listUsersForRole)
-		g.PUT(":id", updateRole)
-		g.DELETE(":id", deleteRole)
+		// ロール一覧・詳細の取得はROLE_MANAGE権限が必要
+		g.GET("", middleware.RequirePermission(constants.ROLE_MANAGE), listRoles)
+		g.GET(":id", middleware.RequirePermission(constants.ROLE_MANAGE), getRole)
+		g.GET(":id/users", middleware.RequirePermission(constants.ROLE_MANAGE), listUsersForRole)
+
+		// ロールの作成・更新・削除はROLE_MANAGE権限が必要
+		g.POST("", middleware.RequirePermission(constants.ROLE_MANAGE), createRole)
+		g.PUT(":id", middleware.RequirePermission(constants.ROLE_MANAGE), updateRole)
+		g.DELETE(":id", middleware.RequirePermission(constants.ROLE_MANAGE), deleteRole)
 	}
 }
 
@@ -86,37 +93,26 @@ func listUsersForRole(c *gin.Context) {
 			Email:             u.Email,
 			ExternalEmail:     u.ExternalEmail,
 			EmailVerified:     u.EmailVerified,
-			AffiliationPeriod: u.AffiliationPeriod,
+			AffiliationPeriod: ptrToString(u.AffiliationPeriod),
 			Status:            u.Status,
 			CreatedAt:         u.CreatedAt,
 			UpdatedAt:         u.UpdatedAt,
 		}
 		if p, ok := profileMap[u.ID]; ok {
 			dto.Profile = &ProfileDTO{
-				UserID:      p.UserID,
-				DisplayName: p.DisplayName,
-				Bio:         p.Bio,
-				WebsiteURL:  p.WebsiteURL,
-				JoinedAt:    p.JoinedAt,
+				UserID:           p.UserID,
+				DisplayName:      p.DisplayName,
+				Bio:              ptrToString(p.Bio),
+				WebsiteURL:       ptrToString(p.WebsiteURL),
+				TwitterHandle:    ptrToString(p.TwitterHandle),
+				Birthdate:        formatBirthdate(p.Birthdate),
+				BirthdateVisible: &p.BirthdateVisible,
+				JoinedAt:         timeToTime(p.JoinedAt),
 			}
 		}
 		out = append(out, dto)
 	}
 	c.JSON(http.StatusOK, UserListResponse{Data: out})
-}
-
-func derefString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
-}
-
-func derefTime(t *time.Time) time.Time {
-	if t == nil {
-		return time.Time{}
-	}
-	return *t
 }
 
 // listRoles godoc
@@ -143,7 +139,7 @@ func listRoles(c *gin.Context) {
 			ID:                r.ID,
 			CustomID:          r.CustomID,
 			Name:              r.Name,
-			Description:       r.Description,
+			Description:       ptrToString(r.Description),
 			PermissionBitmask: r.PermissionBitmask,
 		})
 	}
@@ -170,14 +166,26 @@ func createRole(c *gin.Context) {
 		return
 	}
 	role := model.Role{
-		ID:                uuid.NewString(),
+		ID:                ulid.Make().String(),
 		CustomID:          input.CustomID,
 		Name:              input.Name,
-		Description:       input.Description,
+		Description:       stringToPtr(input.Description),
 		PermissionBitmask: input.PermissionBitmask,
 	}
 	q := query.Use(db)
 	if err := q.Role.Create(&role); err != nil {
+		// MySQLの重複エラーをチェック
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			// エラーメッセージから重複したキーを判定
+			errMsg := mysqlErr.Message
+			if strings.Contains(errMsg, "custom_id") || strings.Contains(errMsg, "name") {
+				c.JSON(http.StatusConflict, gin.H{"error": "role already exists", "code": "R0002"})
+				return
+			}
+			// その他の重複エラー
+			c.JSON(http.StatusConflict, gin.H{"error": "duplicate entry", "code": "R0002"})
+			return
+		}
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -185,7 +193,7 @@ func createRole(c *gin.Context) {
 		ID:                role.ID,
 		CustomID:          role.CustomID,
 		Name:              role.Name,
-		Description:       role.Description,
+		Description:       ptrToString(role.Description),
 		PermissionBitmask: role.PermissionBitmask,
 	}
 	c.JSON(http.StatusCreated, resp)
@@ -215,7 +223,7 @@ func getRole(c *gin.Context) {
 		ID:                r.ID,
 		CustomID:          r.CustomID,
 		Name:              r.Name,
-		Description:       r.Description,
+		Description:       ptrToString(r.Description),
 		PermissionBitmask: r.PermissionBitmask,
 	}
 	c.JSON(http.StatusOK, resp)
@@ -255,6 +263,11 @@ func updateRole(c *gin.Context) {
 	q := query.Use(db)
 	if len(updates) > 0 {
 		if _, err := q.Role.Where(query.Role.ID.Eq(id)).Updates(updates); err != nil {
+			// MySQLの重複エラーをチェック
+			if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+				c.JSON(http.StatusConflict, gin.H{"error": "role name already exists", "code": "R0002"})
+				return
+			}
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
@@ -264,7 +277,7 @@ func updateRole(c *gin.Context) {
 		ID:                updated.ID,
 		CustomID:          updated.CustomID,
 		Name:              updated.Name,
-		Description:       updated.Description,
+		Description:       ptrToString(updated.Description),
 		PermissionBitmask: updated.PermissionBitmask,
 	}
 	c.JSON(http.StatusOK, resp)

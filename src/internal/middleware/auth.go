@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 	"net/http"
 	"os"
@@ -17,6 +18,7 @@ import (
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"gorm.io/gorm"
 )
 
 // JWKS キャッシュ
@@ -37,6 +39,65 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// /internal/users への POST（ユーザー作成）はスキップ
+		if c.Request.Method == "POST" && c.Request.URL.Path == "/internal/users" {
+			c.Next()
+			return
+		}
+		// /internal/users/email_verify への POST(メール認証)はスキップ
+		if c.Request.Method == "POST" && c.Request.URL.Path == "/internal/users/email_verify" {
+			c.Next()
+			return
+		}
+		// /internal/users/email_verify/:code への GET(コード参照)はスキップ
+		if c.Request.Method == "GET" && strings.HasPrefix(c.Request.URL.Path, "/internal/users/email_verify/") {
+			c.Next()
+			return
+		}
+		// /internal/users/email_verify/discord_link への POST(Discord連携)はスキップ
+		if c.Request.Method == "POST" && c.Request.URL.Path == "/internal/users/email_verify/discord_link" {
+			c.Next()
+			return
+		}
+		// GET /users（ユーザー一覧取得）は認証オプション、認可不要（トークンがあれば検証して権限に応じた情報を返す）
+		if c.Request.Method == "GET" && c.Request.URL.Path == "/users" {
+			authorization := c.GetHeader("Authorization")
+			token := extractToken(authorization)
+			if token != "" {
+				cfg := c.MustGet("config").(config.Config)
+				db, _ := c.MustGet("db").(*gorm.DB)
+				claims, user := validateToken(token, cfg, db)
+				if claims != nil && user != nil {
+					c.Set("claims", claims)
+					c.Set("user", user)
+				}
+			}
+			c.Next()
+			return
+		}
+		// GET /users/:id（単一ユーザー取得）は認証オプション、認可不要（トークンがあれば検証して権限に応じた情報を返す）
+		// ただしサブパス（例: /users/:id/roles）には認証が必須
+		if c.Request.Method == "GET" && strings.HasPrefix(c.Request.URL.Path, "/users/") {
+			// /users/:id のみをマッチ（サブパスは含まない）
+			path := strings.TrimPrefix(c.Request.URL.Path, "/users/")
+			if !strings.Contains(path, "/") {
+				// サブパスがないので認証オプション（トークンがあれば検証）
+				authorization := c.GetHeader("Authorization")
+				token := extractToken(authorization)
+				if token != "" {
+					cfg := c.MustGet("config").(config.Config)
+					db, _ := c.MustGet("db").(*gorm.DB)
+					claims, user := validateToken(token, cfg, db)
+					if claims != nil && user != nil {
+						c.Set("claims", claims)
+						c.Set("user", user)
+					}
+				}
+				c.Next()
+				return
+			}
+			// サブパスがある場合は認証が必須なので、Authorizationヘッダーをチェック
+		}
 		// AuthorizationヘッダーからJWTを取得
 		authorization := c.GetHeader("Authorization")
 		token := extractToken(authorization)
@@ -46,13 +107,16 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 		// トークン検証
 		cfg := c.MustGet("config").(config.Config)
-		claims, user := validateToken(token, cfg)
+		db, _ := c.MustGet("db").(*gorm.DB)
+		claims, user := validateToken(token, cfg, db)
 		if claims == nil {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid token"})
 			return
 		}
 		c.Set("claims", claims)
-		c.Set("user", user)
+		if user != nil {
+			c.Set("user", user)
+		}
 		c.Next()
 	}
 }
@@ -112,12 +176,25 @@ func fetchJWKS(jwksURL string) error {
 	return nil
 }
 
+// Auth側 jwt.go と同じ定義
 type AccessTokenClaims struct {
 	jwt.RegisteredClaims
 	Scope string `json:"scope,omitempty"`
 }
 
-func validateToken(token string, cfg config.Config) (*jwt.RegisteredClaims, *model.User) {
+type SessionTokenClaims struct {
+	jwt.RegisteredClaims
+	UserID string `json:"user_id"`
+}
+
+// パース時に両方のカスタムクレームを受け取るための統合型
+type combinedClaims struct {
+	jwt.RegisteredClaims
+	Scope  string `json:"scope,omitempty"`
+	UserID string `json:"user_id,omitempty"`
+}
+
+func validateToken(token string, cfg config.Config, db *gorm.DB) (*jwt.RegisteredClaims, *model.User) {
 	// issuer を config -> 環境変数 -> デフォルト の順で取得
 	issuer := cfg.IssuerURL
 	if issuer == "" {
@@ -130,78 +207,113 @@ func validateToken(token string, cfg config.Config) (*jwt.RegisteredClaims, *mod
 
 	// keyfunc
 	keyFunc := func(t *jwt.Token) (interface{}, error) {
-		kidRaw, ok := t.Header["kid"]
-		if !ok {
-			return nil, fmt.Errorf("token missing kid")
-		}
-		kid, ok := kidRaw.(string)
-		if !ok || kid == "" {
-			return nil, fmt.Errorf("invalid kid")
+		// キャッシュの鮮度を確認し、必要なら再取得
+		jwksMu.RLock()
+		age := time.Since(jwksFetched)
+		cacheLen := len(jwksKeyCache)
+		jwksMu.RUnlock()
+		if cacheLen == 0 || age >= jwksCacheTTL {
+			if err := fetchJWKS(jwksURL); err != nil {
+				return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
+			}
 		}
 
-		// キャッシュ確認
+		// kidがあればそれで引く
+		if kidRaw, ok := t.Header["kid"]; ok {
+			kid, ok := kidRaw.(string)
+			if ok && kid != "" {
+				jwksMu.RLock()
+				pub := jwksKeyCache[kid]
+				jwksMu.RUnlock()
+				if pub != nil {
+					return pub, nil
+				}
+				// キャッシュになければ再取得して再試行
+				if err := fetchJWKS(jwksURL); err != nil {
+					return nil, err
+				}
+				jwksMu.RLock()
+				pub = jwksKeyCache[kid]
+				jwksMu.RUnlock()
+				if pub != nil {
+					return pub, nil
+				}
+				return nil, fmt.Errorf("public key not found for kid %s", kid)
+			}
+		}
+
+		// kidなし: Auth側がkidをセットしないため、最初のキーを返す
 		jwksMu.RLock()
-		pub := jwksKeyCache[kid]
-		age := time.Since(jwksFetched)
-		jwksMu.RUnlock()
-		if pub != nil && age < jwksCacheTTL {
+		defer jwksMu.RUnlock()
+		for _, pub := range jwksKeyCache {
 			return pub, nil
 		}
-
-		// 取得して再試行
-		if err := fetchJWKS(jwksURL); err != nil {
-			return nil, err
-		}
-		jwksMu.RLock()
-		pub = jwksKeyCache[kid]
-		jwksMu.RUnlock()
-		if pub == nil {
-			return nil, fmt.Errorf("public key not found for kid %s", kid)
-		}
-		return pub, nil
+		return nil, fmt.Errorf("no public keys available in JWKS")
 	}
 
-	parsed, err := jwt.Parse(token, keyFunc, jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}), jwt.WithStrictDecoding())
+	parsed, err := jwt.ParseWithClaims(token, &combinedClaims{}, keyFunc, jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}))
 	if err != nil {
+		log.Printf("JWT parse error: %v", err)
 		return nil, nil
 	}
-	var claims *jwt.RegisteredClaims
-	var ok bool
-	sub, _ := parsed.Claims.GetSubject()
-	if strings.HasPrefix(sub, "SID_") {
-		claims, ok = parsed.Claims.(*jwt.RegisteredClaims)
-	} else {
-		c, ok2 := parsed.Claims.(*AccessTokenClaims)
-		if ok2 {
-			claims = &c.RegisteredClaims
-			ok = true
-		}
-	}
+	combined, ok := parsed.Claims.(*combinedClaims)
 	if !ok {
+		log.Printf("JWT claims type assertion failed")
 		return nil, nil
 	}
+	claims := &combined.RegisteredClaims
 
 	// claimからの検証
 	if claims.Issuer != issuer {
+		log.Printf("Issuer mismatch: got %q, expected %q", claims.Issuer, issuer)
 		return nil, nil
 	}
 	if claims.ExpiresAt == nil || time.Until(claims.ExpiresAt.Time) <= 0 {
+		log.Printf("Token expired: exp=%v", claims.ExpiresAt)
 		return nil, nil
 	}
 	if claims.NotBefore != nil && time.Until(claims.NotBefore.Time) < 0 {
+		log.Printf("Token not yet valid: nbf=%v", claims.NotBefore)
 		return nil, nil
 	}
 	if claims.IssuedAt != nil && time.Until(claims.IssuedAt.Time.Add(time.Hour*24*7)) < 0 {
+		log.Printf("Token too old: iat=%v", claims.IssuedAt)
 		return nil, nil
 	}
 	var isValidToken bool = true
 	var user *model.User
+	var userIDFromVerify string
 	if strings.HasPrefix(claims.Subject, "SID_") {
-		isValidToken, user = verifyJTI(claims.ID, cfg, "/internal/session_verify")
+		// セッショントークン: jtiなし、subから"SID_"を除いた素のセッションIDで検証
+		sessionID := strings.TrimPrefix(claims.Subject, "SID_")
+		log.Printf("Session verify: sessionID=%s, path=/internal/session_verify", sessionID)
+		isValidToken, userIDFromVerify = verifyJIT(sessionID, cfg, "/internal/session_verify")
+		// Auth側から返されたuser_idを優先、なければトークン内のuser_idクレームを使用
+		userID := userIDFromVerify
+		if userID == "" {
+			userID = combined.UserID
+		}
+		if userID != "" && db != nil {
+			q := query.Use(db)
+			u, err := q.User.Where(q.User.ID.Eq(userID)).First()
+			if err == nil {
+				user = u
+			}
+		}
 	} else {
-		isValidToken, _ = verifyJTI(claims.ID, cfg, "/internal/token_verify")
+		// アクセストークン: jti(claims.ID)で検証
+		isValidToken, _ = verifyJIT(claims.ID, cfg, "/internal/token_verify")
+		// アクセストークンのsubjectはuser_idの場合がある
+		if claims.Subject != "" && !strings.HasPrefix(claims.Subject, "SID_") && db != nil {
+			q := query.Use(db)
+			u, err := q.User.Where(q.User.ID.Eq(claims.Subject)).First()
+			if err == nil {
+				user = u
+			}
+		}
 	}
 	if !isValidToken {
+		log.Printf("Token verification failed for sub=%s", claims.Subject)
 		return nil, nil
 	}
 	return claims, user
@@ -212,24 +324,30 @@ type SessionVerifyResponse struct {
 	ExpiresAt time.Time `json:"expires_at,omitempty"`
 }
 
-// verifyJTI calls the issuer's internal endpoint to verify a jti.
-func verifyJTI(jti string, cfg config.Config, path string) (bool, *model.User) {
+// verifyJIT calls the issuer's internal endpoint to verify a session/token.
+// Auth側は "jit" パラメータ名で受け取る
+// 戻り値: (valid, userID)
+func verifyJIT(jit string, cfg config.Config, path string) (bool, string) {
 	issuer := strings.TrimRight(cfg.IssuerURL, "/")
 	url := issuer + path
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return false, nil
+		log.Printf("verifyJIT: failed to create request: %v", err)
+		return false, ""
 	}
 	q := req.URL.Query()
-	q.Add("jti", jti)
+	q.Add("jit", jit)
 	req.URL.RawQuery = q.Encode()
+	log.Printf("verifyJIT: calling %s?%s", url, req.URL.RawQuery)
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return false, nil
+		log.Printf("verifyJIT: request failed: %v", err)
+		return false, ""
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != 200 {
-		return false, nil
+		log.Printf("verifyJIT: got status %d from %s", resp.StatusCode, url)
+		return false, ""
 	}
 	var res struct {
 		Valid     bool      `json:"valid"`
@@ -237,15 +355,11 @@ func verifyJTI(jti string, cfg config.Config, path string) (bool, *model.User) {
 		ExpiresAt time.Time `json:"expires_at,omitempty"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
-		return false, nil
+		log.Printf("verifyJIT: failed to decode response: %v", err)
+		return false, ""
 	}
-	if res.UserID != "" {
-		user, err := query.User.Where(query.User.ID.Eq(res.UserID)).First()
-		if err == nil {
-			return res.Valid, user
-		}
-	}
-	return res.Valid, nil
+	log.Printf("verifyJIT: result valid=%v, userID=%s", res.Valid, res.UserID)
+	return res.Valid, res.UserID
 }
 
 type TokenVerifyResponse struct {

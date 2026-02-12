@@ -8,6 +8,7 @@ type UserDTO struct {
 	CustomID          string      `json:"custom_id"`
 	Email             string      `json:"email"`
 	ExternalEmail     string      `json:"external_email"`
+	PendingEmail      string      `json:"pending_email,omitempty"`
 	EmailVerified     bool        `json:"email_verified"`
 	AffiliationPeriod string      `json:"affiliation_period,omitempty"`
 	Status            string      `json:"status"`
@@ -23,19 +24,25 @@ type UserListResponse struct {
 
 // ProfileDTO is a minimal profile representation embedded in UserDTO
 type ProfileDTO struct {
-	UserID      string    `json:"user_id"`
-	DisplayName string    `json:"display_name,omitempty"`
-	Bio         string    `json:"bio,omitempty"`
-	WebsiteURL  string    `json:"website_url,omitempty"`
-	JoinedAt    time.Time `json:"joined_at,omitempty"`
+	UserID           string    `json:"user_id"`
+	DisplayName      string    `json:"display_name,omitempty"`
+	Bio              string    `json:"bio,omitempty"`
+	WebsiteURL       string    `json:"website_url,omitempty"`
+	TwitterHandle    string    `json:"twitter_handle,omitempty"`
+	Birthdate        string    `json:"birthdate,omitempty"`
+	BirthdateVisible *bool     `json:"birthdate_visible,omitempty"`
+	JoinedAt         time.Time `json:"joined_at,omitempty"`
 }
 
 // CreateUserRequest is used for POST /users
 type CreateUserRequest struct {
-	CustomID string      `json:"custom_id" binding:"required"`
-	Email    string      `json:"email" binding:"required,email"`
-	Password string      `json:"password,omitempty"`
-	Profile  *ProfileDTO `json:"profile,omitempty"`
+	CustomID          string      `json:"custom_id" binding:"required"`
+	Email             string      `json:"email" binding:"required,email"`
+	Password          string      `json:"password,omitempty"`
+	ExternalEmail     string      `json:"external_email,omitempty"`
+	Status            string      `json:"status,omitempty"`
+	AffiliationPeriod string      `json:"affiliation_period,omitempty"`
+	Profile           *ProfileDTO `json:"profile,omitempty"`
 }
 
 // UpdateUserRequest is used for PUT /users/:id
@@ -92,15 +99,24 @@ type ApplicationListResponse struct {
 	Data []ApplicationDTO `json:"data"`
 }
 
-// ExternalIdentityDTO represents an external identity linked to a user
+// ExternalIdentityDTO represents an external identity linked to a user.
+// Returns data from ID token claims and provider userinfo only (no raw tokens).
 type ExternalIdentityDTO struct {
-	ID             string    `json:"id"`
-	UserID         string    `json:"user_id"`
-	Provider       string    `json:"provider"`
-	ExternalUserID string    `json:"external_user_id"`
-	TokenExpiresAt time.Time `json:"token_expires_at,omitempty"`
-	CreatedAt      time.Time `json:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at"`
+	ID             string `json:"id"`
+	UserID         string `json:"user_id"`
+	Provider       string `json:"provider"`
+	ExternalUserID string `json:"external_user_id"`
+	// Common normalised fields from provider userinfo
+	Username    string `json:"username,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	AvatarURL   string `json:"avatar_url,omitempty"`
+	Email       string `json:"email,omitempty"`
+	// Decoded ID Token claims (JWT payload)
+	IDTokenClaims map[string]interface{} `json:"id_token_claims,omitempty"`
+	// Raw provider-specific userinfo data
+	ProviderData map[string]interface{} `json:"provider_data,omitempty"`
+	CreatedAt    time.Time              `json:"created_at"`
+	UpdatedAt    time.Time              `json:"updated_at"`
 }
 
 // ExternalIdentityListResponse wraps a list of external identities
@@ -114,6 +130,15 @@ type CreateExternalIdentityRequest struct {
 	ExternalUserID string     `json:"external_user_id" binding:"required"`
 	IDToken        string     `json:"id_token,omitempty"`
 	AccessToken    string     `json:"access_token,omitempty"`
+	RefreshToken   string     `json:"refresh_token,omitempty"`
+	TokenExpiresAt *time.Time `json:"token_expires_at,omitempty"`
+}
+
+// EmailVerifyDiscordLinkRequest is used to link Discord during email verification
+type EmailVerifyDiscordLinkRequest struct {
+	Code           string     `json:"code" binding:"required"`
+	ExternalUserID string     `json:"external_user_id" binding:"required"`
+	AccessToken    string     `json:"access_token" binding:"required"`
 	RefreshToken   string     `json:"refresh_token,omitempty"`
 	TokenExpiresAt *time.Time `json:"token_expires_at,omitempty"`
 }
@@ -142,9 +167,23 @@ type CreateUserRoleRequest struct {
 	RoleID string `json:"role_id" binding:"required"`
 }
 
+// PermissionsResponse represents user permissions as bitmask and text
+type PermissionsResponse struct {
+	PermissionBitmask int64    `json:"permission_bitmask"`
+	PermissionsText   []string `json:"permissions_text"`
+}
+
 // CreateApplicationOwnerRequest is used to assign/replace an application owner
 type CreateApplicationOwnerRequest struct {
 	UserID string `json:"user_id" binding:"required"`
+}
+
+// RedirectURIDTO represents a redirect URI for API responses (omits GORM deleted metadata)
+type RedirectURIDTO struct {
+	ApplicationID string    `json:"application_id"`
+	URI           string    `json:"uri"`
+	CreatedAt     time.Time `json:"created_at"`
+	UpdatedAt     time.Time `json:"updated_at"`
 }
 
 // EmailCodeCheckRequest is used to verify email codes
@@ -154,5 +193,46 @@ type EmailCodeCheckRequest struct {
 
 // EmailCodeCheckResponse is the response for email code verification
 type EmailCodeCheckResponse struct {
-	Valid bool `json:"valid"`
+	Valid bool   `json:"valid"`
+	Type  string `json:"type"` // "signup", "change", or "migration"
+}
+
+// formatBirthdate formats a *time.Time as "YYYY-MM-DD" or returns "" if nil.
+func formatBirthdate(t *time.Time) string {
+	if t == nil || t.IsZero() {
+		return ""
+	}
+	return t.Format("2006-01-02")
+}
+
+// ptrToString converts *string to string, returning "" if nil
+func ptrToString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
+}
+
+// stringToPtr converts string to *string, returning nil if empty
+func stringToPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
+// timeToTime converts *time.Time to time.Time, returning zero time if nil
+func timeToTime(t *time.Time) time.Time {
+	if t == nil {
+		return time.Time{}
+	}
+	return *t
+}
+
+// timeToTimePtr converts time.Time to *time.Time
+func timeToTimePtr(t time.Time) *time.Time {
+	if t.IsZero() {
+		return nil
+	}
+	return &t
 }

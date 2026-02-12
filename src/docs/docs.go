@@ -203,6 +203,117 @@ const docTemplate = `{
                 }
             }
         },
+        "/applications/{id}/redirect_uris": {
+            "get": {
+                "description": "Get redirect URIs registered for a given application",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "List redirect URIs for an application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/routes.RedirectURIDTO"
+                            }
+                        }
+                    }
+                }
+            },
+            "post": {
+                "description": "Register a new redirect URI for the application",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Create redirect URI for an application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "payload: {\\",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/routes.RedirectURIDTO"
+                        }
+                    }
+                }
+            },
+            "delete": {
+                "description": "Delete a registered redirect URI by application id and uri (query param)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Delete redirect URI for an application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "Redirect URI",
+                        "name": "uri",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/health": {
             "get": {
                 "description": "システムの稼働状況を確認するためのエンドポイントです。",
@@ -221,6 +332,106 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/main.HealthResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/users/email_verify": {
+            "post": {
+                "description": "認証コードを検証する",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Verify email code",
+                "parameters": [
+                    {
+                        "description": "Email code verification",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.EmailCodeCheckRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.EmailCodeCheckResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/users/email_verify/discord_link": {
+            "post": {
+                "description": "メール検証コードを使ってDiscord連携を行う",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Link Discord account by email verification code",
+                "parameters": [
+                    {
+                        "description": "Discord link request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.EmailVerifyDiscordLinkRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/routes.ExternalIdentityDTO"
+                        }
+                    }
+                }
+            }
+        },
+        "/internal/users/email_verify/{code}": {
+            "get": {
+                "description": "メール検証コードからユーザーIDを取得する（メール認証フロー用）",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get email verification code info",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Email verification code",
+                        "name": "code",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
                         }
                     }
                 }
@@ -377,7 +588,7 @@ const docTemplate = `{
         },
         "/users": {
             "get": {
-                "description": "List users with embedded profile",
+                "description": "List users with embedded profile. Returns all data if USER_READ permission, otherwise basic info only",
                 "produces": [
                     "application/json"
                 ],
@@ -422,40 +633,6 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/routes.UserDTO"
-                        }
-                    }
-                }
-            }
-        },
-        "/users/email_verify": {
-            "post": {
-                "description": "認証コードを検証する",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Verify email code",
-                "parameters": [
-                    {
-                        "description": "Email code verification",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/routes.EmailCodeCheckRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/routes.EmailCodeCheckResponse"
                         }
                     }
                 }
@@ -678,6 +855,61 @@ const docTemplate = `{
                 "responses": {
                     "204": {
                         "description": "No Content"
+                    }
+                }
+            }
+        },
+        "/users/{id}/permissions": {
+            "get": {
+                "description": "Get the combined permissions for a user based on their roles",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Get user permissions",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.PermissionsResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/users/{id}/resend_email_verification": {
+            "post": {
+                "description": "メール認証メールを再送する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Resend email verification",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
                     }
                 }
             }
@@ -922,10 +1154,16 @@ const docTemplate = `{
                 "email"
             ],
             "properties": {
+                "affiliation_period": {
+                    "type": "string"
+                },
                 "custom_id": {
                     "type": "string"
                 },
                 "email": {
+                    "type": "string"
+                },
+                "external_email": {
                     "type": "string"
                 },
                 "password": {
@@ -933,6 +1171,9 @@ const docTemplate = `{
                 },
                 "profile": {
                     "$ref": "#/definitions/routes.ProfileDTO"
+                },
+                "status": {
+                    "type": "string"
                 }
             }
         },
@@ -961,15 +1202,53 @@ const docTemplate = `{
         "routes.EmailCodeCheckResponse": {
             "type": "object",
             "properties": {
+                "type": {
+                    "description": "\"signup\", \"change\", or \"migration\"",
+                    "type": "string"
+                },
                 "valid": {
                     "type": "boolean"
+                }
+            }
+        },
+        "routes.EmailVerifyDiscordLinkRequest": {
+            "type": "object",
+            "required": [
+                "access_token",
+                "code",
+                "external_user_id"
+            ],
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "code": {
+                    "type": "string"
+                },
+                "external_user_id": {
+                    "type": "string"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token_expires_at": {
+                    "type": "string"
                 }
             }
         },
         "routes.ExternalIdentityDTO": {
             "type": "object",
             "properties": {
+                "avatar_url": {
+                    "type": "string"
+                },
                 "created_at": {
+                    "type": "string"
+                },
+                "display_name": {
+                    "type": "string"
+                },
+                "email": {
                     "type": "string"
                 },
                 "external_user_id": {
@@ -978,16 +1257,27 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "id_token_claims": {
+                    "description": "Decoded ID Token claims (JWT payload)",
+                    "type": "object",
+                    "additionalProperties": true
+                },
                 "provider": {
                     "type": "string"
                 },
-                "token_expires_at": {
-                    "type": "string"
+                "provider_data": {
+                    "description": "Raw provider-specific userinfo data",
+                    "type": "object",
+                    "additionalProperties": true
                 },
                 "updated_at": {
                     "type": "string"
                 },
                 "user_id": {
+                    "type": "string"
+                },
+                "username": {
+                    "description": "Common normalised fields from provider userinfo",
                     "type": "string"
                 }
             }
@@ -1003,11 +1293,31 @@ const docTemplate = `{
                 }
             }
         },
+        "routes.PermissionsResponse": {
+            "type": "object",
+            "properties": {
+                "permission_bitmask": {
+                    "type": "integer"
+                },
+                "permissions_text": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
         "routes.ProfileDTO": {
             "type": "object",
             "properties": {
                 "bio": {
                     "type": "string"
+                },
+                "birthdate": {
+                    "type": "string"
+                },
+                "birthdate_visible": {
+                    "type": "boolean"
                 },
                 "display_name": {
                     "type": "string"
@@ -1015,10 +1325,30 @@ const docTemplate = `{
                 "joined_at": {
                     "type": "string"
                 },
+                "twitter_handle": {
+                    "type": "string"
+                },
                 "user_id": {
                     "type": "string"
                 },
                 "website_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.RedirectURIDTO": {
+            "type": "object",
+            "properties": {
+                "application_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "uri": {
                     "type": "string"
                 }
             }
@@ -1133,6 +1463,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
+                    "type": "string"
+                },
+                "pending_email": {
                     "type": "string"
                 },
                 "profile": {

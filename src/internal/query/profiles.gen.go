@@ -32,6 +32,7 @@ func newProfile(db *gorm.DB, opts ...gen.DOOption) profile {
 	_profile.DisplayName = field.NewString(tableName, "display_name")
 	_profile.Bio = field.NewString(tableName, "bio")
 	_profile.Birthdate = field.NewTime(tableName, "birthdate")
+	_profile.BirthdateVisible = field.NewBool(tableName, "birthdate_visible")
 	_profile.TwitterHandle = field.NewString(tableName, "twitter_handle")
 	_profile.WebsiteURL = field.NewString(tableName, "website_url")
 	_profile.JoinedAt = field.NewTime(tableName, "joined_at")
@@ -48,17 +49,18 @@ func newProfile(db *gorm.DB, opts ...gen.DOOption) profile {
 type profile struct {
 	profileDo
 
-	ALL           field.Asterisk
-	UserID        field.String
-	DisplayName   field.String
-	Bio           field.String
-	Birthdate     field.Time
-	TwitterHandle field.String
-	WebsiteURL    field.String
-	JoinedAt      field.Time
-	CreatedAt     field.Time
-	UpdatedAt     field.Time
-	DeletedAt     field.Field
+	ALL              field.Asterisk
+	UserID           field.String
+	DisplayName      field.String
+	Bio              field.String
+	Birthdate        field.Time
+	BirthdateVisible field.Bool
+	TwitterHandle    field.String
+	WebsiteURL       field.String
+	JoinedAt         field.Time
+	CreatedAt        field.Time
+	UpdatedAt        field.Time
+	DeletedAt        field.Field
 
 	fieldMap map[string]field.Expr
 }
@@ -79,6 +81,7 @@ func (p *profile) updateTableName(table string) *profile {
 	p.DisplayName = field.NewString(table, "display_name")
 	p.Bio = field.NewString(table, "bio")
 	p.Birthdate = field.NewTime(table, "birthdate")
+	p.BirthdateVisible = field.NewBool(table, "birthdate_visible")
 	p.TwitterHandle = field.NewString(table, "twitter_handle")
 	p.WebsiteURL = field.NewString(table, "website_url")
 	p.JoinedAt = field.NewTime(table, "joined_at")
@@ -101,11 +104,12 @@ func (p *profile) GetFieldByName(fieldName string) (field.OrderExpr, bool) {
 }
 
 func (p *profile) fillFieldMap() {
-	p.fieldMap = make(map[string]field.Expr, 10)
+	p.fieldMap = make(map[string]field.Expr, 11)
 	p.fieldMap["user_id"] = p.UserID
 	p.fieldMap["display_name"] = p.DisplayName
 	p.fieldMap["bio"] = p.Bio
 	p.fieldMap["birthdate"] = p.Birthdate
+	p.fieldMap["birthdate_visible"] = p.BirthdateVisible
 	p.fieldMap["twitter_handle"] = p.TwitterHandle
 	p.fieldMap["website_url"] = p.WebsiteURL
 	p.fieldMap["joined_at"] = p.JoinedAt

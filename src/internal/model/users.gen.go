@@ -19,7 +19,7 @@ type User struct {
 	Email             string         `gorm:"column:email;not null" json:"email"`
 	ExternalEmail     string         `gorm:"column:external_email;not null" json:"external_email"`
 	EmailVerified     bool           `gorm:"column:email_verified;not null" json:"email_verified"`
-	AffiliationPeriod string         `gorm:"column:affiliation_period" json:"affiliation_period"`
+	AffiliationPeriod *string        `gorm:"column:affiliation_period" json:"affiliation_period"`
 	PasswordHash      string         `gorm:"column:password_hash;not null" json:"password_hash"`
 	Status            string         `gorm:"column:status;not null;default:established" json:"status"`
 	CreatedAt         time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
