@@ -1230,6 +1230,24 @@ func resendEmailVerification(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no external email set"})
 		return
 	}
+	// 既存のコードを取得
+	existingCodes, err := q.EmailVerificationCode.Where(
+		query.EmailVerificationCode.UserID.Eq(id),
+		query.EmailVerificationCode.RequestType.Eq("email_change"),
+	).Find()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	if len(existingCodes) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no existing verification request"})
+		return
+	}
+	externalEmail := existingCodes[0].NewEmail
+	if externalEmail == nil || *externalEmail == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "no external email set in existing request"})
+		return
+	}
 	// 既存の未使用コードを削除
 	_, _ = q.EmailVerificationCode.Where(
 		query.EmailVerificationCode.UserID.Eq(id),
@@ -1241,7 +1259,7 @@ func resendEmailVerification(c *gin.Context) {
 		name = p.DisplayName
 	}
 	cfg := config.LoadConfig()
-	err = sendEmailChangeVerification(id, user.ExternalEmail, name, q, cfg)
+	err = sendEmailChangeVerification(id, *externalEmail, name, q, cfg)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification email: " + err.Error()})
 		return
