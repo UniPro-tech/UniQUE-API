@@ -3,10 +3,13 @@ package routes
 import (
 	"net/http"
 
+	"github.com/UniPro-tech/UniQUE-API/internal/constants"
+	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
 	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 func RegisterApplicationRoutes(r *gin.Engine) {
@@ -44,7 +47,31 @@ func listApplications(c *gin.Context) {
 		return
 	}
 	q := query.Use(db)
-	apps, err := q.Application.Find()
+
+	// Check if the requester has APP_READ permission. If not,
+	// only return applications owned by the authenticated user.
+	hasAppReadPermission := false
+	var authUser *model.User
+	if ui, exists := c.Get("user"); exists {
+		if su, ok := ui.(*model.User); ok && su != nil {
+			authUser = su
+			perms, _ := middleware.GetUserPermissions(su.ID, db)
+			hasAppReadPermission = perms.HasPermission(constants.APP_READ)
+		}
+	}
+
+	var apps []*model.Application
+	var err error
+	if hasAppReadPermission {
+		apps, err = q.Application.Find()
+	} else if authUser != nil {
+		apps, err = q.Application.Where(query.Application.UserID.Eq(authUser.ID)).Find()
+	} else {
+		// unauthenticated and no APP_READ -> return empty list
+		c.JSON(http.StatusOK, ApplicationListResponse{Data: []ApplicationDTO{}})
+		return
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -182,6 +209,37 @@ func updateApplication(c *gin.Context) {
 		updates["client_secret"] = *input.ClientSecret
 	}
 	q := query.Use(db)
+
+	// fetch application to check ownership
+	appModel, err := q.Application.Where(query.Application.ID.Eq(id)).First()
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// auth user required for owner check
+	ui, exists := c.Get("user")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+	authUser, ok := ui.(*model.User)
+	if !ok || authUser == nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "ユーザー情報が取得できませんでした"})
+		return
+	}
+
+	// allow if user has APP_UPDATE permission or is owner
+	perms, _ := middleware.GetUserPermissions(authUser.ID, db)
+	if !perms.HasPermission(constants.APP_UPDATE) && appModel.UserID != authUser.ID {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "この操作を実行する権限がありません"})
+		return
+	}
+
 	if len(updates) > 0 {
 		if _, err := q.Application.Where(query.Application.ID.Eq(id)).Updates(updates); err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -207,6 +265,37 @@ func deleteApplication(c *gin.Context) {
 	}
 	id := c.Param("id")
 	q := query.Use(db)
+
+	// fetch application to check ownership
+	appModel, err := q.Application.Where(query.Application.ID.Eq(id)).First()
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// auth user required for owner check
+	ui, exists := c.Get("user")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+	authUser, ok := ui.(*model.User)
+	if !ok || authUser == nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "ユーザー情報が取得できませんでした"})
+		return
+	}
+
+	// allow if user has APP_DELETE permission or is owner
+	perms, _ := middleware.GetUserPermissions(authUser.ID, db)
+	if !perms.HasPermission(constants.APP_DELETE) && appModel.UserID != authUser.ID {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "この操作を実行する権限がありません"})
+		return
+	}
+
 	if _, err := q.Application.Delete(&model.Application{ID: id}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
