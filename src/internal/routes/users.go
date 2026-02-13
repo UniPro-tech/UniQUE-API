@@ -10,6 +10,11 @@ import (
 	"strings"
 	"time"
 
+	"crypto/sha256"
+	"encoding/hex"
+
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/UniPro-tech/UniQUE-API/internal/config"
 	"github.com/UniPro-tech/UniQUE-API/internal/constants"
 	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
@@ -56,6 +61,9 @@ func RegisterUserRoutes(r *gin.Engine) {
 
 		// ユーザー情報の更新は自分自身 OR USER_UPDATE権限
 		g.PUT(":id", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), updateUser)
+
+		// パスワード変更: 自分自身またはUSER_UPDATE権限
+		g.PUT(":id/password/change", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), changePassword)
 
 		// ユーザーの削除はUSER_DELETE権限が必要
 		g.DELETE(":id", middleware.RequirePermission(constants.USER_DELETE), deleteUser)
@@ -1265,6 +1273,118 @@ func resendEmailVerification(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "verification email sent"})
+}
+
+// changePassword godoc
+// @Summary Change user password
+// @Description Change a user's password. The requester must be the user themself or have USER_UPDATE permission. If the requester is the user, the current password must be provided.
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param body body map[string]string true "Password change request"
+// @Success 200 {object} map[string]string
+// @Failure 400 {object} map[string]string
+// @Failure 401 {object} map[string]string
+// @Failure 403 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /users/{id}/password/change [put]
+func changePassword(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	q := query.Use(db)
+
+	userModel, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil || userModel == nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	var input struct {
+		CurrentPassword string `json:"current_password"`
+		NewPassword     string `json:"new_password" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Determine if requester is self or has USER_UPDATE
+	isSelf := false
+	hasPerm := false
+	if u, exists := c.Get("user"); exists {
+		if um, ok := u.(*model.User); ok && um != nil {
+			if um.ID == id {
+				isSelf = true
+			}
+			if perms, err := middleware.GetUserPermissions(um.ID, db); err == nil {
+				hasPerm = perms.HasPermission(constants.USER_UPDATE)
+			}
+		}
+	}
+
+	if !isSelf && !hasPerm {
+		c.JSON(http.StatusForbidden, gin.H{"error": "access denied"})
+		return
+	}
+
+	// If requester is self, verify current password
+	if isSelf {
+		if input.CurrentPassword == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "current_password required"})
+			return
+		}
+		if err := bcrypt.CompareHashAndPassword([]byte(userModel.PasswordHash), []byte(input.CurrentPassword)); err != nil {
+			// If bcrypt hash is malformed, fall back to legacy SHA256 hex(password)
+			if _, ok := err.(bcrypt.InvalidHashPrefixError); ok {
+				sum := sha256.Sum256([]byte(input.CurrentPassword))
+				if hex.EncodeToString(sum[:]) != userModel.PasswordHash {
+					c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid current password"})
+					return
+				}
+				// matched legacy hash; continue
+			} else {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid current password"})
+				return
+			}
+		}
+	}
+
+	// Generate hash for new password via issuer internal API
+	cfg := c.MustGet("config").(config.Config)
+	req := map[string]string{"password": input.NewPassword}
+	reqBody, jerr := json.Marshal(req)
+	if jerr != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": jerr.Error()})
+		return
+	}
+	resp, err := http.Post(cfg.IssuerInternalURL+"/internal/password_hash", "application/json", strings.NewReader(string(reqBody)))
+	if err != nil || resp.StatusCode != http.StatusOK {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to hash password"})
+		return
+	}
+	defer resp.Body.Close()
+	var respData struct {
+		PasswordHash string `json:"password_hash"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&respData); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to parse password hash response"})
+		return
+	}
+
+	if _, err := q.User.Where(query.User.ID.Eq(id)).Update(q.User.PasswordHash, respData.PasswordHash); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to update password"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "password changed"})
 }
 
 func sendRegistrationEmailVerification(user_id, email, name string, q *query.Query, config *config.Config) error {
