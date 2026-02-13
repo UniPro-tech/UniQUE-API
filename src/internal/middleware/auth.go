@@ -318,9 +318,9 @@ type SessionVerifyResponse struct {
 }
 
 // verifyJIT calls the issuer's internal endpoint to verify a session/token.
-// Auth側は "jit" パラメータ名で受け取る
+// Auth側は "jti" パラメータ名で受け取る
 // 戻り値: (valid, userID)
-func verifyJIT(jit string, cfg config.Config, path string) (bool, string) {
+func verifyJIT(jti string, cfg config.Config, path string) (bool, string) {
 	issuer := strings.TrimRight(cfg.IssuerInternalURL, "/")
 	url := issuer + path
 	req, err := http.NewRequest("GET", url, nil)
@@ -329,7 +329,7 @@ func verifyJIT(jit string, cfg config.Config, path string) (bool, string) {
 		return false, ""
 	}
 	q := req.URL.Query()
-	q.Add("jit", jit)
+	q.Add("jti", jti)
 	req.URL.RawQuery = q.Encode()
 	log.Printf("verifyJIT: calling %s?%s", url, req.URL.RawQuery)
 	resp, err := httpClient.Do(req)
