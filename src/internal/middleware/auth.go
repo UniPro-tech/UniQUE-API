@@ -8,7 +8,6 @@ import (
 	"log"
 	"math/big"
 	"net/http"
-	"os"
 	"strings"
 	"sync"
 	"time"
@@ -195,15 +194,9 @@ type combinedClaims struct {
 }
 
 func validateToken(token string, cfg config.Config, db *gorm.DB) (*jwt.RegisteredClaims, *model.User) {
-	// issuer を config -> 環境変数 -> デフォルト の順で取得
 	issuer := cfg.IssuerURL
-	if issuer == "" {
-		issuer = os.Getenv("CONFIG_ISSUER_URL")
-	}
-	if issuer == "" {
-		issuer = "http://localhost:8080"
-	}
-	jwksURL := strings.TrimRight(issuer, "/") + "/.well-known/jwks.json"
+	internalIssuer := strings.TrimRight(cfg.IssuerInternalURL, "/")
+	jwksURL := strings.TrimRight(internalIssuer, "/") + "/.well-known/jwks.json"
 
 	// keyfunc
 	keyFunc := func(t *jwt.Token) (interface{}, error) {
