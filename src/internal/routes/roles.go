@@ -41,6 +41,11 @@ func RegisterRoleRoutes(r *gin.Engine) {
 // @Success 200 {object} map[string]interface{}
 // @Router /roles/{id}/assign_all [post]
 func assignRoleToAll(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -90,6 +95,11 @@ func assignRoleToAll(c *gin.Context) {
 // @Success 200 {object} routes.UserListResponse
 // @Router /roles/{id}/users [get]
 func listUsersForRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -175,6 +185,11 @@ func listUsersForRole(c *gin.Context) {
 // @Success 200 {object} routes.RoleListResponse
 // @Router /roles [get]
 func listRoles(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -209,6 +224,11 @@ func listRoles(c *gin.Context) {
 // @Success 201 {object} routes.RoleDTO
 // @Router /roles [post]
 func createRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -289,6 +309,11 @@ func createRole(c *gin.Context) {
 // @Success 200 {object} routes.RoleDTO
 // @Router /roles/{id} [get]
 func getRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -322,6 +347,11 @@ func getRole(c *gin.Context) {
 // @Success 200 {object} routes.RoleDTO
 // @Router /roles/{id} [put]
 func updateRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -370,6 +400,11 @@ func updateRole(c *gin.Context) {
 }
 
 func deleteRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return

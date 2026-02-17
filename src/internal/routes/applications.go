@@ -42,6 +42,11 @@ func RegisterApplicationRoutes(r *gin.Engine) {
 // @Success 200 {object} routes.ApplicationListResponse
 // @Router /applications [get]
 func listApplications(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -100,6 +105,11 @@ func listApplications(c *gin.Context) {
 // @Success 201 {object} routes.ApplicationDTO
 // @Router /applications [post]
 func createApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -149,6 +159,11 @@ func createApplication(c *gin.Context) {
 // @Success 200 {object} routes.ApplicationDTO
 // @Router /applications/{id} [get]
 func getApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -182,6 +197,11 @@ func getApplication(c *gin.Context) {
 // @Success 200 {object} routes.ApplicationDTO
 // @Router /applications/{id} [put]
 func updateApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -259,6 +279,11 @@ func updateApplication(c *gin.Context) {
 }
 
 func deleteApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -312,6 +337,11 @@ func deleteApplication(c *gin.Context) {
 // @Success 200 {object} routes.UserListResponse
 // @Router /applications/{id}/owners [get]
 func listOwnersForApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -367,6 +397,11 @@ func listOwnersForApplication(c *gin.Context) {
 // @Success 200 {object} routes.ApplicationDTO
 // @Router /applications/{id}/owners [post]
 func addOwnerForApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -419,6 +454,11 @@ func addOwnerForApplication(c *gin.Context) {
 // @Success 200 {array} RedirectURIDTO
 // @Router /applications/{id}/redirect_uris [get]
 func listRedirectURIsForApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -453,6 +493,11 @@ func listRedirectURIsForApplication(c *gin.Context) {
 // @Success 201 {object} RedirectURIDTO
 // @Router /applications/{id}/redirect_uris [post]
 func createRedirectURIForApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -502,6 +547,11 @@ func createRedirectURIForApplication(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /applications/{id}/redirect_uris [delete]
 func deleteRedirectURIForApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return

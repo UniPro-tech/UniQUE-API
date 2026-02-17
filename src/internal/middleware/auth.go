@@ -65,10 +65,17 @@ func AuthMiddleware() gin.HandlerFunc {
 			if token != "" {
 				cfg := c.MustGet("config").(config.Config)
 				db, _ := c.MustGet("db").(*gorm.DB)
-				claims, user := validateToken(token, cfg, db)
+				claims, user, isOAuth, scope := validateToken(token, cfg, db, c)
 				if claims != nil && user != nil {
 					c.Set("claims", claims)
 					c.Set("user", user)
+				}
+				if claims != nil {
+					c.Set("claims", claims)
+				}
+				if isOAuth {
+					c.Set("isOAuth", true)
+					c.Set("scope", scope)
 				}
 			}
 			c.Next()
@@ -86,10 +93,17 @@ func AuthMiddleware() gin.HandlerFunc {
 				if token != "" {
 					cfg := c.MustGet("config").(config.Config)
 					db, _ := c.MustGet("db").(*gorm.DB)
-					claims, user := validateToken(token, cfg, db)
+					claims, user, isOAuth, scope := validateToken(token, cfg, db, c)
 					if claims != nil && user != nil {
 						c.Set("claims", claims)
 						c.Set("user", user)
+					}
+					if claims != nil {
+						c.Set("claims", claims)
+					}
+					if isOAuth {
+						c.Set("isOAuth", true)
+						c.Set("scope", scope)
 					}
 				}
 				c.Next()
@@ -107,7 +121,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// トークン検証
 		cfg := c.MustGet("config").(config.Config)
 		db, _ := c.MustGet("db").(*gorm.DB)
-		claims, user := validateToken(token, cfg, db)
+		claims, user, isOAuth, scope := validateToken(token, cfg, db, c)
 		if claims == nil {
 			c.AbortWithStatusJSON(401, gin.H{"error": "Invalid token"})
 			return
@@ -115,6 +129,10 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("claims", claims)
 		if user != nil {
 			c.Set("user", user)
+		}
+		if isOAuth {
+			c.Set("isOAuth", true)
+			c.Set("scope", scope)
 		}
 		c.Next()
 	}
@@ -131,7 +149,7 @@ func extractToken(authorization string) string {
 
 // fetchJWKS fetches JWKS JSON and fills jwksKeyCache
 func fetchJWKS(jwksURL string) error {
-	resp, err := http.Get(jwksURL)
+	resp, err := httpClient.Get(jwksURL)
 	if err != nil {
 		return err
 	}
@@ -175,6 +193,45 @@ func fetchJWKS(jwksURL string) error {
 	return nil
 }
 
+// ensureJWKSFresh makes sure the cache is fresh, fetching JWKS if empty or stale.
+func ensureJWKSFresh(jwksURL string) error {
+	jwksMu.RLock()
+	age := time.Since(jwksFetched)
+	cacheLen := len(jwksKeyCache)
+	jwksMu.RUnlock()
+	if cacheLen == 0 || age >= jwksCacheTTL {
+		return fetchJWKS(jwksURL)
+	}
+	return nil
+}
+
+// getPublicKeyByKid returns the RSA public key for a given kid, attempting a refetch if not found.
+func getPublicKeyByKid(kid, jwksURL string) (*rsa.PublicKey, error) {
+	if kid == "" {
+		return nil, fmt.Errorf("empty kid")
+	}
+	if err := ensureJWKSFresh(jwksURL); err != nil {
+		return nil, err
+	}
+	jwksMu.RLock()
+	pub := jwksKeyCache[kid]
+	jwksMu.RUnlock()
+	if pub != nil {
+		return pub, nil
+	}
+	// try refetch and check again
+	if err := fetchJWKS(jwksURL); err != nil {
+		return nil, err
+	}
+	jwksMu.RLock()
+	pub = jwksKeyCache[kid]
+	jwksMu.RUnlock()
+	if pub != nil {
+		return pub, nil
+	}
+	return nil, fmt.Errorf("public key not found for kid %s", kid)
+}
+
 // Auth側 jwt.go と同じ定義
 type AccessTokenClaims struct {
 	jwt.RegisteredClaims
@@ -193,85 +250,67 @@ type combinedClaims struct {
 	UserID string `json:"user_id,omitempty"`
 }
 
-func validateToken(token string, cfg config.Config, db *gorm.DB) (*jwt.RegisteredClaims, *model.User) {
+func validateToken(token string, cfg config.Config, db *gorm.DB, c *gin.Context) (*jwt.RegisteredClaims, *model.User, bool, string) {
 	issuer := cfg.IssuerURL
 	internalIssuer := strings.TrimRight(cfg.IssuerInternalURL, "/")
 	jwksURL := strings.TrimRight(internalIssuer, "/") + "/.well-known/jwks.json"
 
-	// keyfunc
+	// keyfunc: JWKSキャッシュを利用して公開鍵を返す
 	keyFunc := func(t *jwt.Token) (interface{}, error) {
-		// キャッシュの鮮度を確認し、必要なら再取得
-		jwksMu.RLock()
-		age := time.Since(jwksFetched)
-		cacheLen := len(jwksKeyCache)
-		jwksMu.RUnlock()
-		if cacheLen == 0 || age >= jwksCacheTTL {
-			if err := fetchJWKS(jwksURL); err != nil {
-				return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
-			}
+		// ensure cache is fresh
+		if err := ensureJWKSFresh(jwksURL); err != nil {
+			return nil, fmt.Errorf("failed to fetch JWKS: %w", err)
 		}
 
-		// kidがあればそれで引く
+		// kidがあればそれを使って取得
 		if kidRaw, ok := t.Header["kid"]; ok {
-			kid, ok := kidRaw.(string)
-			if ok && kid != "" {
-				jwksMu.RLock()
-				pub := jwksKeyCache[kid]
-				jwksMu.RUnlock()
-				if pub != nil {
-					return pub, nil
-				}
-				// キャッシュになければ再取得して再試行
-				if err := fetchJWKS(jwksURL); err != nil {
+			if kid, ok := kidRaw.(string); ok && kid != "" {
+				pub, err := getPublicKeyByKid(kid, jwksURL)
+				if err != nil {
 					return nil, err
 				}
-				jwksMu.RLock()
-				pub = jwksKeyCache[kid]
-				jwksMu.RUnlock()
-				if pub != nil {
-					return pub, nil
-				}
-				return nil, fmt.Errorf("public key not found for kid %s", kid)
+				return pub, nil
 			}
 		}
 
-		// kidなし: Auth側がkidをセットしないため、最初のキーを返す
+		// kidなし: 最初のキーを返す
 		jwksMu.RLock()
-		defer jwksMu.RUnlock()
 		for _, pub := range jwksKeyCache {
+			jwksMu.RUnlock()
 			return pub, nil
 		}
+		jwksMu.RUnlock()
 		return nil, fmt.Errorf("no public keys available in JWKS")
 	}
 
 	parsed, err := jwt.ParseWithClaims(token, &combinedClaims{}, keyFunc, jwt.WithValidMethods([]string{"RS256", "RS384", "RS512"}))
 	if err != nil {
 		log.Printf("JWT parse error: %v", err)
-		return nil, nil
+		return nil, nil, false, ""
 	}
 	combined, ok := parsed.Claims.(*combinedClaims)
 	if !ok {
 		log.Printf("JWT claims type assertion failed")
-		return nil, nil
+		return nil, nil, false, ""
 	}
 	claims := &combined.RegisteredClaims
 
 	// claimからの検証
 	if claims.Issuer != issuer {
 		log.Printf("Issuer mismatch: got %q, expected %q", claims.Issuer, issuer)
-		return nil, nil
+		return nil, nil, false, ""
 	}
 	if claims.ExpiresAt == nil || time.Until(claims.ExpiresAt.Time) <= 0 {
 		log.Printf("Token expired: exp=%v", claims.ExpiresAt)
-		return nil, nil
+		return nil, nil, false, ""
 	}
 	if claims.NotBefore != nil && time.Until(claims.NotBefore.Time) < 0 {
 		log.Printf("Token not yet valid: nbf=%v", claims.NotBefore)
-		return nil, nil
+		return nil, nil, false, ""
 	}
 	if claims.IssuedAt != nil && time.Until(claims.IssuedAt.Time.Add(time.Hour*24*7)) < 0 {
 		log.Printf("Token too old: iat=%v", claims.IssuedAt)
-		return nil, nil
+		return nil, nil, false, ""
 	}
 	var isValidToken bool = true
 	var user *model.User
@@ -296,6 +335,10 @@ func validateToken(token string, cfg config.Config, db *gorm.DB) (*jwt.Registere
 	} else {
 		// アクセストークン: jti(claims.ID)で検証
 		isValidToken, _ = verifyJIT(claims.ID, cfg, "/internal/token_verify")
+		if !isValidToken {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid token"})
+			return nil, nil, false, ""
+		}
 		// アクセストークンのsubjectはuser_idの場合がある
 		if claims.Subject != "" && !strings.HasPrefix(claims.Subject, "SID_") && db != nil {
 			q := query.Use(db)
@@ -307,9 +350,14 @@ func validateToken(token string, cfg config.Config, db *gorm.DB) (*jwt.Registere
 	}
 	if !isValidToken {
 		log.Printf("Token verification failed for sub=%s", claims.Subject)
-		return nil, nil
+		return nil, nil, false, ""
 	}
-	return claims, user
+
+	// determine if this is an OAuth access token by presence of scope
+	scope := combined.Scope
+	isOAuth := scope != ""
+
+	return claims, user, isOAuth, scope
 }
 
 type SessionVerifyResponse struct {

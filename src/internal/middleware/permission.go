@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/UniPro-tech/UniQUE-API/internal/constants"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
@@ -73,6 +74,14 @@ func RequirePermission(required constants.Permission) gin.HandlerFunc {
 			return
 		}
 
+		// OAuth トークンの場合は権限ベースの操作は許可しない
+		if isOAuthI, _ := c.Get("isOAuth"); isOAuthI != nil {
+			if isOAuth, ok := isOAuthI.(bool); ok && isOAuth {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "OAuth トークンではこの操作は許可されていません"})
+				return
+			}
+		}
+
 		permissions, err := GetUserPermissions(userModel.ID, dbConn)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "権限の取得に失敗しました"})
@@ -111,13 +120,33 @@ func RequirePermissionOrSelf(required constants.Permission) gin.HandlerFunc {
 			targetUserID = c.Param("uid")
 		}
 
-		// 自分自身のリソースへのアクセスの場合は許可
+		// 自分自身のリソースへのアクセスの場合は許可（ただし OAuth トークンの場合は scope を確認）
 		if targetUserID == userModel.ID {
+			if isOAuthI, _ := c.Get("isOAuth"); isOAuthI != nil {
+				if isOAuth, ok := isOAuthI.(bool); ok && isOAuth {
+					// OAuth の場合は scope に email/profile のいずれかがあれば自身情報取得を許可
+					scopeI, _ := c.Get("scope")
+					scopeStr, _ := scopeI.(string)
+					if strings.Contains(scopeStr, "email") || strings.Contains(scopeStr, "profile") {
+						c.Next()
+						return
+					}
+					c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "OAuth トークンに必要なスコープがありません"})
+					return
+				}
+			}
 			c.Next()
 			return
 		}
 
 		// 自分以外のリソースへのアクセスの場合は権限チェック
+		// OAuth トークンは自分以外への権限を持たない
+		if isOAuthI, _ := c.Get("isOAuth"); isOAuthI != nil {
+			if isOAuth, ok := isOAuthI.(bool); ok && isOAuth {
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "OAuth トークンではこの操作は許可されていません"})
+				return
+			}
+		}
 		db, exists := c.Get("db")
 		if !exists {
 			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})

@@ -114,6 +114,11 @@ func getPendingEmail(userID string, q *query.Query) string {
 // @Success 200 {object} routes.UserListResponse
 // @Router /users [get]
 func listUsers(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -197,6 +202,11 @@ func listUsers(c *gin.Context) {
 // @Success 201 {object} routes.UserDTO
 // @Router /users [post]
 func createUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -362,14 +372,25 @@ func getUser(c *gin.Context) {
 	user, exists := c.Get("user")
 	isSelf := false
 	hasUserReadPermission := false
+	isOAuth := IsOAuth(c)
+	scopeStr := GetScope(c)
 	if exists {
 		userModel, ok := user.(*model.User)
 		if ok && userModel != nil {
 			if userModel.ID == id {
 				isSelf = true
 			}
-			permissions, _ := middleware.GetUserPermissions(userModel.ID, db)
-			hasUserReadPermission = permissions.HasPermission(constants.USER_READ)
+			// OAuth トークンの場合は scope に基づく自己情報取得のみ許可
+			if !isOAuth {
+				permissions, _ := middleware.GetUserPermissions(userModel.ID, db)
+				hasUserReadPermission = permissions.HasPermission(constants.USER_READ)
+			} else {
+				// OAuthかつisSelf=falseの場合は情報取得不可
+				if !isSelf {
+					c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to access other users' information with an access token"})
+					return
+				}
+			}
 		}
 	}
 
@@ -387,7 +408,18 @@ func getUser(c *gin.Context) {
 	}
 
 	// 自分自身またはUSER_READ権限がある場合はセンシティブ情報を含める
-	if isSelf || hasUserReadPermission {
+	sensitiveAllowed := false
+	if isOAuth {
+		// OAuth の場合は自身かつ scope に email が含まれている必要がある
+		if isSelf && strings.Contains(scopeStr, "email") {
+			sensitiveAllowed = true
+		}
+	} else {
+		if isSelf || hasUserReadPermission {
+			sensitiveAllowed = true
+		}
+	}
+	if sensitiveAllowed {
 		dto.Email = u.Email
 		dto.ExternalEmail = u.ExternalEmail
 		dto.EmailVerified = u.EmailVerified
@@ -397,9 +429,15 @@ func getUser(c *gin.Context) {
 		dto.UpdatedAt = u.UpdatedAt
 	}
 
-	// PendingEmailは自分自身のみ
+	// PendingEmailは自分自身のみ（OAuth の場合は scope に email が必要）
 	if isSelf {
-		dto.PendingEmail = getPendingEmail(u.ID, q)
+		if isOAuth {
+			if strings.Contains(scopeStr, "email") {
+				dto.PendingEmail = getPendingEmail(u.ID, q)
+			}
+		} else {
+			dto.PendingEmail = getPendingEmail(u.ID, q)
+		}
 	}
 
 	// プロフィールは常に返す（birthdateはbirthdateVisibleで制御）
@@ -413,8 +451,8 @@ func getUser(c *gin.Context) {
 			JoinedAt:         timeToTime(p.JoinedAt),
 			BirthdateVisible: &p.BirthdateVisible,
 		}
-		// birthdateはUSER_READ権限があるか、自分自身、またはbirthdateVisibleの場合のみ
-		if hasUserReadPermission || isSelf || p.BirthdateVisible {
+		// birthdateはUSER_READ権限があるか、自分自身、またはbirthdateVisible、OAuth で scope に profile があれば返す
+		if hasUserReadPermission || isSelf || p.BirthdateVisible || (isOAuth && strings.Contains(scopeStr, "profile")) {
 			profileDTO.Birthdate = formatBirthdate(p.Birthdate)
 		}
 		dto.Profile = profileDTO
@@ -433,6 +471,11 @@ func getUser(c *gin.Context) {
 // @Success 200 {object} routes.UserDTO
 // @Router /users/{id} [put]
 func updateUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update users with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -596,6 +639,11 @@ func updateUser(c *gin.Context) {
 }
 
 func deleteUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -618,6 +666,11 @@ func deleteUser(c *gin.Context) {
 // @Success 200 {object} routes.ApplicationListResponse
 // @Router /users/{id}/apps [get]
 func listAppsForUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -658,6 +711,11 @@ func listAppsForUser(c *gin.Context) {
 // @Success 201 {object} routes.RoleDTO
 // @Router /users/{id}/roles [post]
 func addRoleForUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -713,6 +771,11 @@ func addRoleForUser(c *gin.Context) {
 // @Success 204
 // @Router /users/{id}/roles/{roleId} [delete]
 func removeRoleForUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -745,6 +808,11 @@ func removeRoleForUser(c *gin.Context) {
 // @Success 200 {object} routes.RoleListResponse
 // @Router /users/{id}/roles [get]
 func listRolesForUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -791,6 +859,11 @@ func listRolesForUser(c *gin.Context) {
 // @Success 200 {object} routes.PermissionsResponse
 // @Router /users/{id}/permissions [get]
 func getUserPermissions(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -834,6 +907,11 @@ func getUserPermissions(c *gin.Context) {
 // @Success 200 {object} routes.ExternalIdentityListResponse
 // @Router /users/{id}/external_identities [get]
 func listExternalIdentities(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -896,6 +974,11 @@ func listExternalIdentities(c *gin.Context) {
 // @Success 201 {object} routes.ExternalIdentityDTO
 // @Router /users/{id}/external_identities [post]
 func addExternalIdentity(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -965,6 +1048,11 @@ func addExternalIdentity(c *gin.Context) {
 // @Success 204
 // @Router /users/{id}/external_identities/{eid} [delete]
 func removeExternalIdentity(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -997,6 +1085,11 @@ func removeExternalIdentity(c *gin.Context) {
 // @Success 200 {object} map[string]string
 // @Router /internal/users/email_verify/{code} [get]
 func getEmailVerificationCode(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -1027,6 +1120,11 @@ func getEmailVerificationCode(c *gin.Context) {
 // @Success 201 {object} routes.ExternalIdentityDTO
 // @Router /internal/users/email_verify/discord_link [post]
 func linkDiscordByEmailCode(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -1127,6 +1225,11 @@ func linkDiscordByEmailCode(c *gin.Context) {
 // @Success 200 {object} routes.EmailCodeCheckResponse
 // @Router /internal/users/email_verify [post]
 func emailCodeCheck(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -1222,6 +1325,11 @@ func emailCodeCheck(c *gin.Context) {
 // @Success 200
 // @Router /users/{id}/approve [post]
 func approveUserRegist(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -1247,6 +1355,11 @@ func approveUserRegist(c *gin.Context) {
 // @Success 200
 // @Router /users/{id}/resend_email_verification [post]
 func resendEmailVerification(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
@@ -1322,6 +1435,11 @@ func resendEmailVerification(c *gin.Context) {
 // @Failure 500 {object} map[string]string
 // @Router /users/{id}/password/change [put]
 func changePassword(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
 	db := getDB(c)
 	if db == nil {
 		return
