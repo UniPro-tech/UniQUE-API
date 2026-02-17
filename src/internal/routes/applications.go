@@ -470,6 +470,14 @@ func createRedirectURIForApplication(c *gin.Context) {
 		return
 	}
 	q := query.Use(db)
+	// 重複チェック: 同じURIが既に登録されている場合は409返す
+	if existing, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(body.URI)).First(); err == nil && existing != nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "redirect uri already exists"})
+		return
+	} else if err != nil && err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	r := &model.RedirectURI{ApplicationID: id, URI: body.URI}
 	if err := q.RedirectURI.Create(r); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
