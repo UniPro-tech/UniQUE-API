@@ -26,6 +26,7 @@ type AuthorizationRequest struct {
 	Code                *string   `gorm:"column:code" json:"code"`
 	ExpiresAt           time.Time `gorm:"column:expires_at;not null" json:"expires_at"`
 	CreatedAt           time.Time `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
+	SessionID           *string   `gorm:"column:session_id" json:"session_id"`
 }
 
 // TableName AuthorizationRequest's table name
