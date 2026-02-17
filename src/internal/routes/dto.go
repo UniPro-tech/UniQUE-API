@@ -62,6 +62,7 @@ type RoleDTO struct {
 	Name              string `json:"name"`
 	Description       string `json:"description,omitempty"`
 	PermissionBitmask int64  `json:"permission_bitmask"`
+	IsDefault         bool   `json:"is_default"`
 }
 
 // RoleListResponse wraps a list of roles
@@ -74,7 +75,9 @@ type CreateRoleRequest struct {
 	CustomID          string `json:"custom_id" binding:"required"`
 	Name              string `json:"name" binding:"required"`
 	Description       string `json:"description,omitempty"`
-	PermissionBitmask int64  `json:"permission_bitmask" binding:"required"`
+	PermissionBitmask int64  `json:"permission_bitmask" binding:"gte=0"`
+	IsDefault         *bool  `json:"is_default,omitempty"`
+	AssignToExisting  *bool  `json:"assign_to_existing,omitempty"`
 }
 
 // UpdateRoleRequest is used for PUT /roles/:id
@@ -82,6 +85,7 @@ type UpdateRoleRequest struct {
 	Name              *string `json:"name,omitempty"`
 	Description       *string `json:"description,omitempty"`
 	PermissionBitmask *int64  `json:"permission_bitmask,omitempty"`
+	IsDefault         *bool   `json:"is_default,omitempty"`
 }
 
 // ApplicationDTO represents application resource for API responses

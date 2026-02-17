@@ -19,6 +19,7 @@ type Role struct {
 	Name              string         `gorm:"column:name;not null" json:"name"`
 	Description       *string        `gorm:"column:description" json:"description"`
 	PermissionBitmask int64          `gorm:"column:permission_bitmask;not null" json:"permission_bitmask"`
+	IsDefault         bool           `gorm:"column:is_default;not null" json:"is_default"`
 	CreatedAt         time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt         time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt         gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`

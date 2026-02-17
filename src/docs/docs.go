@@ -557,6 +557,36 @@ const docTemplate = `{
                 }
             }
         },
+        "/roles/{id}/assign_all": {
+            "post": {
+                "description": "Assign the role to all users with status active or established",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Assign role to all existing users",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/roles/{id}/users": {
             "get": {
                 "description": "Get users assigned to a role",
@@ -859,6 +889,89 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/{id}/password/change": {
+            "put": {
+                "description": "Change a user's password. The requester must be the user themself or have USER_UPDATE permission. If the requester is the user, the current password must be provided.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Change user password",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Password change request",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/users/{id}/permissions": {
             "get": {
                 "description": "Get the combined permissions for a user based on their roles",
@@ -1129,21 +1242,27 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "custom_id",
-                "name",
-                "permission_bitmask"
+                "name"
             ],
             "properties": {
+                "assign_to_existing": {
+                    "type": "boolean"
+                },
                 "custom_id": {
                     "type": "string"
                 },
                 "description": {
                     "type": "string"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
                 "permission_bitmask": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -1365,6 +1484,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_default": {
+                    "type": "boolean"
+                },
                 "name": {
                     "type": "string"
                 },
@@ -1409,6 +1531,9 @@ const docTemplate = `{
             "properties": {
                 "description": {
                     "type": "string"
+                },
+                "is_default": {
+                    "type": "boolean"
                 },
                 "name": {
                     "type": "string"

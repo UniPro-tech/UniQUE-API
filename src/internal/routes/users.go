@@ -264,6 +264,18 @@ func createUser(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	// 新規作成ユーザーに対して is_default=true のロールを付与
+	if defaultRoles, derr := q.Role.Where(query.Role.IsDefault.Is(true)).Find(); derr == nil {
+		for _, dr := range defaultRoles {
+			ur := &model.UserRole{UserID: user.ID, RoleID: dr.ID}
+			if err := q.UserRole.Create(ur); err != nil {
+				// ロール付与失敗は致命的ではないのでログに残す
+				log.Printf("failed to assign default role %s to user %s: %v", dr.ID, user.ID, err)
+			}
+		}
+	} else {
+		log.Printf("failed to fetch default roles: %v", derr)
+	}
 	err = sendRegistrationEmailVerification(user.ID, user.ExternalEmail, "", q, &config)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

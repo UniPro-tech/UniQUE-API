@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"log"
 	"net/http"
 	"strings"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/oklog/ulid/v2"
+	"gorm.io/gorm"
 )
 
 func RegisterRoleRoutes(r *gin.Engine) {
@@ -24,9 +26,59 @@ func RegisterRoleRoutes(r *gin.Engine) {
 
 		// ロールの作成・更新・削除はROLE_MANAGE権限が必要
 		g.POST("", middleware.RequirePermission(constants.ROLE_MANAGE), createRole)
+		g.POST(":id/assign_all", middleware.RequirePermission(constants.ROLE_MANAGE), assignRoleToAll)
 		g.PUT(":id", middleware.RequirePermission(constants.ROLE_MANAGE), updateRole)
 		g.DELETE(":id", middleware.RequirePermission(constants.ROLE_MANAGE), deleteRole)
 	}
+}
+
+// assignRoleToAll godoc
+// @Summary Assign role to all existing users
+// @Description Assign the role to all users with status active or established
+// @Tags roles
+// @Produce json
+// @Param id path string true "Role ID"
+// @Success 200 {object} map[string]interface{}
+// @Router /roles/{id}/assign_all [post]
+func assignRoleToAll(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	q := query.Use(db)
+	// ensure role exists
+	if _, err := q.Role.Where(query.Role.ID.Eq(id)).First(); err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "role not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	users, err := q.User.Where(query.User.Status.In("active", "established")).Find()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	assigned := 0
+	for _, usr := range users {
+		// skip if already assigned
+		if _, ferr := q.UserRole.Where(query.UserRole.UserID.Eq(usr.ID), query.UserRole.RoleID.Eq(id)).First(); ferr == nil {
+			continue
+		} else if ferr != gorm.ErrRecordNotFound {
+			log.Printf("failed checking existing user_role for user %s role %s: %v", usr.ID, id, ferr)
+			continue
+		}
+		ur := &model.UserRole{UserID: usr.ID, RoleID: id}
+		if cerr := q.UserRole.Create(ur); cerr != nil {
+			log.Printf("failed to assign role %s to user %s: %v", id, usr.ID, cerr)
+			continue
+		}
+		assigned++
+	}
+	c.JSON(http.StatusOK, gin.H{"assigned": assigned})
 }
 
 // listUsersForRole godoc
@@ -141,6 +193,7 @@ func listRoles(c *gin.Context) {
 			Name:              r.Name,
 			Description:       ptrToString(r.Description),
 			PermissionBitmask: r.PermissionBitmask,
+			IsDefault:         r.IsDefault,
 		})
 	}
 	c.JSON(http.StatusOK, RoleListResponse{Data: out})
@@ -171,6 +224,10 @@ func createRole(c *gin.Context) {
 		Name:              input.Name,
 		Description:       stringToPtr(input.Description),
 		PermissionBitmask: input.PermissionBitmask,
+		IsDefault:         false,
+	}
+	if input.IsDefault != nil {
+		role.IsDefault = *input.IsDefault
 	}
 	q := query.Use(db)
 	if err := q.Role.Create(&role); err != nil {
@@ -189,12 +246,36 @@ func createRole(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// If requested, assign the newly created role to all existing users with status active or established
+	if input.AssignToExisting != nil && *input.AssignToExisting {
+		users, uerr := q.User.Where(query.User.Status.In("active", "established")).Find()
+		if uerr != nil {
+			// Log and continue
+			log.Printf("failed to fetch users for assign_to_existing: %v", uerr)
+		} else {
+			for _, usr := range users {
+				// skip if already assigned
+				if _, ferr := q.UserRole.Where(query.UserRole.UserID.Eq(usr.ID), query.UserRole.RoleID.Eq(role.ID)).First(); ferr == nil {
+					continue
+				} else if ferr != gorm.ErrRecordNotFound {
+					log.Printf("failed checking existing user_role for user %s role %s: %v", usr.ID, role.ID, ferr)
+					continue
+				}
+				ur := &model.UserRole{UserID: usr.ID, RoleID: role.ID}
+				if cerr := q.UserRole.Create(ur); cerr != nil {
+					log.Printf("failed to assign role %s to user %s: %v", role.ID, usr.ID, cerr)
+				}
+			}
+		}
+	}
 	resp := RoleDTO{
 		ID:                role.ID,
 		CustomID:          role.CustomID,
 		Name:              role.Name,
 		Description:       ptrToString(role.Description),
 		PermissionBitmask: role.PermissionBitmask,
+		IsDefault:         role.IsDefault,
 	}
 	c.JSON(http.StatusCreated, resp)
 }
@@ -225,6 +306,7 @@ func getRole(c *gin.Context) {
 		Name:              r.Name,
 		Description:       ptrToString(r.Description),
 		PermissionBitmask: r.PermissionBitmask,
+		IsDefault:         r.IsDefault,
 	}
 	c.JSON(http.StatusOK, resp)
 }
@@ -260,6 +342,9 @@ func updateRole(c *gin.Context) {
 	if input.PermissionBitmask != nil {
 		updates["permission_bitmask"] = *input.PermissionBitmask
 	}
+	if input.IsDefault != nil {
+		updates["is_default"] = *input.IsDefault
+	}
 	q := query.Use(db)
 	if len(updates) > 0 {
 		if _, err := q.Role.Where(query.Role.ID.Eq(id)).Updates(updates); err != nil {
@@ -279,6 +364,7 @@ func updateRole(c *gin.Context) {
 		Name:              updated.Name,
 		Description:       ptrToString(updated.Description),
 		PermissionBitmask: updated.PermissionBitmask,
+		IsDefault:         updated.IsDefault,
 	}
 	c.JSON(http.StatusOK, resp)
 }
