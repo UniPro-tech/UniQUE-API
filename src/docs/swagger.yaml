@@ -5,6 +5,30 @@ definitions:
       status:
         type: string
     type: object
+  routes.AnnouncementDTO:
+    properties:
+      content:
+        type: string
+      created_at:
+        type: string
+      created_by:
+        $ref: '#/definitions/routes.UserDTO'
+      id:
+        type: string
+      is_pinned:
+        type: boolean
+      title:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  routes.AnnouncementListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.AnnouncementDTO'
+        type: array
+    type: object
   routes.ApplicationDTO:
     properties:
       description:
@@ -26,6 +50,18 @@ definitions:
         items:
           $ref: '#/definitions/routes.ApplicationDTO'
         type: array
+    type: object
+  routes.CreateAnnouncementRequest:
+    properties:
+      content:
+        type: string
+      is_pinned:
+        type: boolean
+      title:
+        type: string
+    required:
+    - content
+    - title
     type: object
   routes.CreateApplicationOwnerRequest:
     properties:
@@ -249,6 +285,15 @@ definitions:
           $ref: '#/definitions/routes.RoleDTO'
         type: array
     type: object
+  routes.UpdateAnnouncementRequest:
+    properties:
+      content:
+        type: string
+      is_pinned:
+        type: boolean
+      title:
+        type: string
+    type: object
   routes.UpdateApplicationRequest:
     properties:
       client_secret:
@@ -323,6 +368,142 @@ definitions:
 info:
   contact: {}
 paths:
+  /announcements:
+    get:
+      description: List announcements, pinned first. Use `limit` query to limit results
+        and `deleted` to include deleted records.
+      parameters:
+      - description: Limit number of announcements
+        in: query
+        name: limit
+        type: integer
+      - description: Include deleted announcements
+        in: query
+        name: deleted
+        type: boolean
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.AnnouncementListResponse'
+      summary: List announcements
+      tags:
+      - announcements
+    post:
+      consumes:
+      - application/json
+      description: Create a new announcement
+      parameters:
+      - description: Create announcement
+        in: body
+        name: announcement
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateAnnouncementRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.AnnouncementDTO'
+      summary: Create an announcement
+      tags:
+      - announcements
+  /announcements/{id}:
+    delete:
+      description: Delete an announcement by ID
+      parameters:
+      - description: Announcement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+          schema:
+            type: string
+      summary: Delete an announcement
+      tags:
+      - announcements
+    get:
+      description: Get a single announcement by ID
+      parameters:
+      - description: Announcement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.AnnouncementDTO'
+      summary: Get an announcement
+      tags:
+      - announcements
+    put:
+      consumes:
+      - application/json
+      description: Update announcement fields
+      parameters:
+      - description: Announcement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update announcement
+        in: body
+        name: announcement
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateAnnouncementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.AnnouncementDTO'
+      summary: Update an announcement
+      tags:
+      - announcements
+  /announcements/{id}/pin:
+    post:
+      consumes:
+      - application/json
+      description: Toggle pin state for an announcement
+      parameters:
+      - description: Announcement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: '{\'
+        in: body
+        name: body
+        required: true
+        schema:
+          additionalProperties:
+            type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.AnnouncementDTO'
+      summary: Pin or unpin an announcement
+      tags:
+      - announcements
   /applications:
     get:
       description: List third-party applications
