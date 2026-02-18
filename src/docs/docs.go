@@ -1001,6 +1001,32 @@ const docTemplate = `{
                 }
             }
         },
+        "/users/{id}/reject": {
+            "post": {
+                "description": "ユーザ登録を却下し、ユーザを物理削除する",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Reject user registration",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    }
+                }
+            }
+        },
         "/users/{id}/resend_email_verification": {
             "post": {
                 "description": "メール認証メールを再送する",

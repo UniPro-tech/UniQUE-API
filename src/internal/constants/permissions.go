@@ -35,6 +35,13 @@ const (
 	SESSION_MANAGE    Permission = 1 << 26 // セッション管理（強制ログアウトなど）
 	MFA_MANAGE        Permission = 1 << 27 // 多要素認証の管理(リセットなど)
 
+	// --- Announcements (32-39) ---
+	ANNOUNCEMENT_CREATE Permission = 1 << 32 // お知らせの作成
+	ANNOUNCEMENT_UPDATE Permission = 1 << 33 // お知らせの編集
+	ANNOUNCEMENT_DELETE Permission = 1 << 34 // お知らせの削除
+	ANNOUNCEMENT_PIN    Permission = 1 << 35 // お知らせのピン留め
+
+	// --- Special Permissions ---
 	// システム管理者（すべての権限）
 	ADMIN Permission = -1
 )
@@ -62,24 +69,28 @@ func (p Permission) HasPermission(required Permission) bool {
 
 // PermissionNames maps permission bits to human-readable names
 var PermissionNames = map[Permission]string{
-	USER_READ:         "ユーザー読み取り",
-	USER_CREATE:       "ユーザー作成",
-	USER_UPDATE:       "ユーザー更新",
-	USER_DELETE:       "ユーザー削除",
-	USER_DISABLE:      "ユーザー無効化",
-	APP_READ:          "アプリ読み取り",
-	APP_UPDATE:        "アプリ更新",
-	APP_DELETE:        "アプリ削除",
-	APP_SECRET_ROTATE: "アプリシークレット再発行",
-	TOKEN_REVOKE:      "トークン取り消し",
-	AUDIT_READ:        "監査ログ読み取り",
-	CONFIG_UPDATE:     "全体設定変更",
-	KEY_MANAGE:        "JWK鍵管理",
-	ROLE_MANAGE:       "ロール管理",
-	PERMISSION_MANAGE: "権限管理",
-	SESSION_MANAGE:    "セッション管理",
-	MFA_MANAGE:        "多要素認証管理",
-	ADMIN:             "システム管理者",
+	USER_READ:           "ユーザー読み取り",
+	USER_CREATE:         "ユーザー作成",
+	USER_UPDATE:         "ユーザー更新",
+	USER_DELETE:         "ユーザー削除",
+	USER_DISABLE:        "ユーザー無効化",
+	APP_READ:            "アプリ読み取り",
+	APP_UPDATE:          "アプリ更新",
+	APP_DELETE:          "アプリ削除",
+	APP_SECRET_ROTATE:   "アプリシークレット再発行",
+	TOKEN_REVOKE:        "トークン取り消し",
+	AUDIT_READ:          "監査ログ読み取り",
+	CONFIG_UPDATE:       "全体設定変更",
+	KEY_MANAGE:          "JWK鍵管理",
+	ROLE_MANAGE:         "ロール管理",
+	PERMISSION_MANAGE:   "権限管理",
+	SESSION_MANAGE:      "セッション管理",
+	MFA_MANAGE:          "多要素認証管理",
+	ANNOUNCEMENT_CREATE: "お知らせ作成",
+	ANNOUNCEMENT_UPDATE: "お知らせ編集",
+	ANNOUNCEMENT_DELETE: "お知らせ削除",
+	ANNOUNCEMENT_PIN:    "お知らせピン留め",
+	ADMIN:               "システム管理者",
 }
 
 // GetPermissionName returns the human-readable name for a permission

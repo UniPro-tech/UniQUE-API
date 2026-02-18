@@ -74,6 +74,7 @@ func main() {
 	routes.RegisterUserRoutes(r)
 	routes.RegisterRoleRoutes(r)
 	routes.RegisterApplicationRoutes(r)
+	routes.RegisterAnnouncementRoutes(r)
 
 	// Start server
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerfiles.Handler))
