@@ -14,8 +14,8 @@ const TableNameRedirectURI = "redirect_uris"
 
 // RedirectURI Table to store redirect URIs for third-party applications. Type: master
 type RedirectURI struct {
-	ApplicationID string         `gorm:"column:application_id;primaryKey" json:"application_id"`
-	URI           string         `gorm:"column:uri;primaryKey" json:"uri"`
+	ApplicationID string         `gorm:"column:application_id;not null" json:"application_id"`
+	URI           string         `gorm:"column:uri;not null" json:"uri"`
 	CreatedAt     time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt     time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
 	DeletedAt     gorm.DeletedAt `gorm:"column:deleted_at" json:"deleted_at"`
