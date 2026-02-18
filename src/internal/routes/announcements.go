@@ -44,7 +44,7 @@ type AnnouncementDTO struct {
 	ID        string    `json:"id"`
 	Title     string    `json:"title"`
 	Content   string    `json:"content"`
-	CreatedBy string    `json:"created_by"`
+	CreatedBy UserDTO   `json:"created_by"`
 	IsPinned  bool      `json:"is_pinned"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
@@ -124,13 +124,53 @@ func listAnnouncements(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	// Build map of user IDs to UserDTOs
+	userIDs := make([]string, 0, len(anns))
+	for _, a := range anns {
+		if a.CreatedBy != "" {
+			userIDs = append(userIDs, a.CreatedBy)
+		}
+	}
+	userMap := make(map[string]UserDTO)
+	if len(userIDs) > 0 {
+		users, _ := q.User.Where(query.User.ID.In(userIDs...)).Find()
+		profiles, _ := q.Profile.Where(query.Profile.UserID.In(userIDs...)).Find()
+		profileMap := make(map[string]*model.Profile)
+		for _, p := range profiles {
+			profileMap[p.UserID] = p
+		}
+		for _, u := range users {
+			dto := UserDTO{
+				ID:       u.ID,
+				CustomID: u.CustomID,
+			}
+			if p, ok := profileMap[u.ID]; ok {
+				dto.Profile = &ProfileDTO{
+					UserID:      p.UserID,
+					DisplayName: p.DisplayName,
+					JoinedAt:    timeToTime(p.JoinedAt),
+				}
+			}
+			userMap[u.ID] = dto
+		}
+	}
+
 	out := make([]AnnouncementDTO, 0, len(anns))
 	for _, a := range anns {
+		createdBy := UserDTO{ID: "", CustomID: ""}
+		if a.CreatedBy != "" {
+			if u, ok := userMap[a.CreatedBy]; ok {
+				createdBy = u
+			} else {
+				// fallback: minimal object with ID
+				createdBy = UserDTO{ID: a.CreatedBy}
+			}
+		}
 		out = append(out, AnnouncementDTO{
 			ID:        a.ID,
 			Title:     a.Title,
 			Content:   a.Content,
-			CreatedBy: a.CreatedBy,
+			CreatedBy: createdBy,
 			IsPinned:  a.IsPinned,
 			CreatedAt: a.CreatedAt,
 			UpdatedAt: a.UpdatedAt,
@@ -159,11 +199,25 @@ func getAnnouncement(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
+	// Build CreatedBy UserDTO
+	createdBy := UserDTO{ID: "", CustomID: ""}
+	if a.CreatedBy != "" {
+		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
+			dtoUser := UserDTO{ID: u.ID, CustomID: u.CustomID}
+			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
+				dtoUser.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+			}
+			createdBy = dtoUser
+		} else {
+			createdBy = UserDTO{ID: a.CreatedBy}
+		}
+	}
+
 	dto := AnnouncementDTO{
 		ID:        a.ID,
 		Title:     a.Title,
 		Content:   a.Content,
-		CreatedBy: a.CreatedBy,
+		CreatedBy: createdBy,
 		IsPinned:  a.IsPinned,
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
@@ -192,15 +246,15 @@ func createAnnouncement(c *gin.Context) {
 	}
 	// 作成者
 	userObj, _ := c.Get("user")
-	createdBy := ""
+	createdByID := ""
 	if um, ok := userObj.(*model.User); ok && um != nil {
-		createdBy = um.ID
+		createdByID = um.ID
 	}
 	ann := &model.Announcement{
 		ID:        ulid.Make().String(),
 		Title:     input.Title,
 		Content:   input.Content,
-		CreatedBy: createdBy,
+		CreatedBy: createdByID,
 	}
 	if input.IsPinned != nil {
 		ann.IsPinned = *input.IsPinned
@@ -210,11 +264,24 @@ func createAnnouncement(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	// build CreatedBy object
+	createdByObj := UserDTO{ID: "", CustomID: ""}
+	if ann.CreatedBy != "" {
+		if u, err := q.User.Where(query.User.ID.Eq(ann.CreatedBy)).First(); err == nil {
+			createdByObj = UserDTO{ID: u.ID, CustomID: u.CustomID}
+			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
+				createdByObj.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+			}
+		} else {
+			createdByObj = UserDTO{ID: ann.CreatedBy}
+		}
+	}
+
 	dto := AnnouncementDTO{
 		ID:        ann.ID,
 		Title:     ann.Title,
 		Content:   ann.Content,
-		CreatedBy: ann.CreatedBy,
+		CreatedBy: createdByObj,
 		IsPinned:  ann.IsPinned,
 		CreatedAt: ann.CreatedAt,
 		UpdatedAt: ann.UpdatedAt,
@@ -265,11 +332,24 @@ func updateAnnouncement(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
+	// Build CreatedBy object
+	createdBy := UserDTO{ID: "", CustomID: ""}
+	if a.CreatedBy != "" {
+		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
+			createdBy = UserDTO{ID: u.ID, CustomID: u.CustomID}
+			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
+				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+			}
+		} else {
+			createdBy = UserDTO{ID: a.CreatedBy}
+		}
+	}
+
 	dto := AnnouncementDTO{
 		ID:        a.ID,
 		Title:     a.Title,
 		Content:   a.Content,
-		CreatedBy: a.CreatedBy,
+		CreatedBy: createdBy,
 		IsPinned:  a.IsPinned,
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
@@ -330,6 +410,19 @@ func pinAnnouncement(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
-	dto := AnnouncementDTO{ID: a.ID, Title: a.Title, Content: a.Content, CreatedBy: a.CreatedBy, IsPinned: a.IsPinned, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt}
+	// Build CreatedBy object
+	createdBy := UserDTO{ID: "", CustomID: ""}
+	if a.CreatedBy != "" {
+		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
+			createdBy = UserDTO{ID: u.ID, CustomID: u.CustomID}
+			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
+				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+			}
+		} else {
+			createdBy = UserDTO{ID: a.CreatedBy}
+		}
+	}
+
+	dto := AnnouncementDTO{ID: a.ID, Title: a.Title, Content: a.Content, CreatedBy: createdBy, IsPinned: a.IsPinned, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt}
 	c.JSON(http.StatusOK, dto)
 }
