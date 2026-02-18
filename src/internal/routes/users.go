@@ -214,26 +214,6 @@ func createUser(c *gin.Context) {
 	if db == nil {
 		return
 	}
-	// 認証ユーザーのUSER_CREATE権限チェック
-	userObj, exists := c.Get("user")
-	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "authentication required"})
-		return
-	}
-	userModel, ok := userObj.(*model.User)
-	if !ok || userModel == nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user object"})
-		return
-	}
-	permissions, err := middleware.GetUserPermissions(userModel.ID, db)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to get permissions"})
-		return
-	}
-	if !permissions.HasPermission(constants.USER_CREATE) {
-		c.JSON(http.StatusForbidden, gin.H{"error": "USER_CREATE permission required"})
-		return
-	}
 	config := c.MustGet("config").(config.Config)
 	var input CreateUserRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
