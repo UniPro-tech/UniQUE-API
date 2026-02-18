@@ -17,6 +17,7 @@ import (
 
 var (
 	Q                     = new(Query)
+	Announcement          *announcement
 	Application           *application
 	AuditLog              *auditLog
 	AuthorizationRequest  *authorizationRequest
@@ -35,6 +36,7 @@ var (
 
 func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 	*Q = *Use(db, opts...)
+	Announcement = &Q.Announcement
 	Application = &Q.Application
 	AuditLog = &Q.AuditLog
 	AuthorizationRequest = &Q.AuthorizationRequest
@@ -54,6 +56,7 @@ func SetDefault(db *gorm.DB, opts ...gen.DOOption) {
 func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 	return &Query{
 		db:                    db,
+		Announcement:          newAnnouncement(db, opts...),
 		Application:           newApplication(db, opts...),
 		AuditLog:              newAuditLog(db, opts...),
 		AuthorizationRequest:  newAuthorizationRequest(db, opts...),
@@ -74,6 +77,7 @@ func Use(db *gorm.DB, opts ...gen.DOOption) *Query {
 type Query struct {
 	db *gorm.DB
 
+	Announcement          announcement
 	Application           application
 	AuditLog              auditLog
 	AuthorizationRequest  authorizationRequest
@@ -95,6 +99,7 @@ func (q *Query) Available() bool { return q.db != nil }
 func (q *Query) clone(db *gorm.DB) *Query {
 	return &Query{
 		db:                    db,
+		Announcement:          q.Announcement.clone(db),
 		Application:           q.Application.clone(db),
 		AuditLog:              q.AuditLog.clone(db),
 		AuthorizationRequest:  q.AuthorizationRequest.clone(db),
@@ -123,6 +128,7 @@ func (q *Query) WriteDB() *Query {
 func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 	return &Query{
 		db:                    db,
+		Announcement:          q.Announcement.replaceDB(db),
 		Application:           q.Application.replaceDB(db),
 		AuditLog:              q.AuditLog.replaceDB(db),
 		AuthorizationRequest:  q.AuthorizationRequest.replaceDB(db),
@@ -141,6 +147,7 @@ func (q *Query) ReplaceDB(db *gorm.DB) *Query {
 }
 
 type queryCtx struct {
+	Announcement          IAnnouncementDo
 	Application           IApplicationDo
 	AuditLog              IAuditLogDo
 	AuthorizationRequest  IAuthorizationRequestDo
@@ -159,6 +166,7 @@ type queryCtx struct {
 
 func (q *Query) WithContext(ctx context.Context) *queryCtx {
 	return &queryCtx{
+		Announcement:          q.Announcement.WithContext(ctx),
 		Application:           q.Application.WithContext(ctx),
 		AuditLog:              q.AuditLog.WithContext(ctx),
 		AuthorizationRequest:  q.AuthorizationRequest.WithContext(ctx),
