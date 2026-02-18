@@ -68,8 +68,11 @@ func RegisterUserRoutes(r *gin.Engine) {
 		// ユーザーの削除はUSER_DELETE権限が必要
 		g.DELETE(":id", middleware.RequirePermission(constants.USER_DELETE), deleteUser)
 
-		// ユーザー登録の承認はUSER_UPDATE権限が必要(USER_APPROVEと同等)
-		g.POST(":id/approve", middleware.RequirePermission(constants.USER_UPDATE), approveUserRegist)
+		// ユーザー登録の承認はフロントと同じくUSER_CREATE権限が必要
+		g.POST(":id/approve", middleware.RequirePermission(constants.USER_CREATE), approveUserRegist)
+
+		// ユーザー登録の却下もUSER_CREATE権限が必要（フロントと整合）
+		g.POST(":id/reject", middleware.RequirePermission(constants.USER_CREATE), rejectUserRegist)
 
 		// メール認証の再送は自分自身 OR USER_UPDATE権限
 		g.POST(":id/resend_email_verification", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), resendEmailVerification)
@@ -1340,6 +1343,33 @@ func approveUserRegist(c *gin.Context) {
 		"status": "active",
 	})
 	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusOK)
+}
+
+// rejectUserRegist godoc
+// @Summary Reject user registration
+// @Description ユーザ登録を却下し、ユーザを物理削除する
+// @Tags users
+// @Produce json
+// @Param id path string true "User ID"
+// @Success 200
+// @Router /users/{id}/reject [post]
+func rejectUserRegist(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	user_id := c.Param("id")
+	q := query.Use(db)
+	// Perform physical delete using Unscoped()
+	if _, err := q.User.Unscoped().Delete(&model.User{ID: user_id}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
