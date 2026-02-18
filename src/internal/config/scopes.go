@@ -5,5 +5,5 @@ type ScopesConfig struct {
 }
 
 var Scopes = ScopesConfig{
-	AllowedScopes: []string{"openid", "profile", "email"},
+	AllowedScopes: []string{"openid", "profile", "email", "announcements.write", "announcements.delete"},
 }

@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/UniPro-tech/UniQUE-API/internal/config"
+	"github.com/UniPro-tech/UniQUE-API/internal/constants"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/gin-gonic/gin"
@@ -405,4 +406,60 @@ func verifyJIT(jti string, cfg config.Config, path string) (bool, string) {
 
 type TokenVerifyResponse struct {
 	Valid bool `json:"valid"`
+}
+
+// requirePermissionOrScope returns a middleware that allows access when either:
+// - the request is from an OAuth token that contains the required scope, or
+// - the authenticated user has the required RBAC permission.
+func RequirePermissionOrScope(required constants.Permission, requiredScope string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// OAuth トークンの場合は scope を確認
+		if isOAuthI, _ := c.Get("isOAuth"); isOAuthI != nil {
+			if isOAuth, ok := isOAuthI.(bool); ok && isOAuth {
+				scopeI, _ := c.Get("scope")
+				scopeStr, _ := scopeI.(string)
+				if strings.Contains(scopeStr, requiredScope) {
+					c.Next()
+					return
+				}
+				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "OAuth トークンに必要なスコープがありません"})
+				return
+			}
+		}
+
+		// 非 OAuth: RBAC 権限を確認
+		user, exists := c.Get("user")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+			return
+		}
+		userModel, ok := user.(*model.User)
+		if !ok || userModel == nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "ユーザー情報が取得できませんでした"})
+			return
+		}
+
+		dbI, exists := c.Get("db")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})
+			return
+		}
+		db, ok := dbI.(*gorm.DB)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})
+			return
+		}
+
+		perms, err := GetUserPermissions(userModel.ID, db)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "権限の取得に失敗しました"})
+			return
+		}
+		if !perms.HasPermission(required) {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "この操作を実行する権限がありません"})
+			return
+		}
+		c.Set("permissions", perms)
+		c.Next()
+	}
 }

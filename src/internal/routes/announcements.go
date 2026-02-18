@@ -20,11 +20,11 @@ func RegisterAnnouncementRoutes(r *gin.Engine) {
 		g.GET("", listAnnouncements)
 		g.GET(":id", getAnnouncement)
 
-		// 管理系
-		g.POST("", middleware.RequirePermission(constants.ANNOUNCEMENT_CREATE), createAnnouncement)
-		g.PUT(":id", middleware.RequirePermission(constants.ANNOUNCEMENT_UPDATE), updateAnnouncement)
-		g.DELETE(":id", middleware.RequirePermission(constants.ANNOUNCEMENT_DELETE), deleteAnnouncement)
-		g.POST(":id/pin", middleware.RequirePermission(constants.ANNOUNCEMENT_PIN), pinAnnouncement)
+		// 管理系: OAuth スコープ (announcements.write / announcements.delete) を許可する
+		g.POST("", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_CREATE, "announcements.write"), createAnnouncement)
+		g.PUT(":id", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_UPDATE, "announcements.write"), updateAnnouncement)
+		g.DELETE(":id", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_DELETE, "announcements.delete"), deleteAnnouncement)
+		g.POST(":id/pin", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_PIN, "announcements.write"), pinAnnouncement)
 	}
 }
 
