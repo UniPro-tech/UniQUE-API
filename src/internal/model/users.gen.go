@@ -21,6 +21,8 @@ type User struct {
 	EmailVerified     bool           `gorm:"column:email_verified;not null" json:"email_verified"`
 	AffiliationPeriod *string        `gorm:"column:affiliation_period" json:"affiliation_period"`
 	PasswordHash      string         `gorm:"column:password_hash;not null" json:"password_hash"`
+	TotpSecret        *string        `gorm:"column:totp_secret" json:"totp_secret"`
+	IsTotpEnabled     bool           `gorm:"column:is_totp_enabled;not null" json:"is_totp_enabled"`
 	Status            string         `gorm:"column:status;not null;default:established" json:"status"`
 	CreatedAt         time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt         time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`

@@ -1890,6 +1890,9 @@ const docTemplate = `{
                 "id": {
                     "type": "string"
                 },
+                "is_totp_enabled": {
+                    "type": "boolean"
+                },
                 "pending_email": {
                     "type": "string"
                 },

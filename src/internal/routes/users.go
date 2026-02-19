@@ -180,9 +180,10 @@ func listUsers(c *gin.Context) {
 				JoinedAt:         timeToTime(p.JoinedAt),
 				BirthdateVisible: &p.BirthdateVisible,
 			}
-			// USER_READ権限があればExternalEmailを返す
+			// USER_READ権限があればExternalEmailとIsTOTPEnabledを返す
 			if hasUserReadPermission {
 				dto.ExternalEmail = u.ExternalEmail
+				dto.IsTOTPEnabled = u.IsTotpEnabled
 			}
 			// birthdateはUSER_READ権限があるか、birthdateVisibleがtrueの場合のみ返す
 			if hasUserReadPermission || p.BirthdateVisible {
@@ -331,6 +332,7 @@ func createUser(c *gin.Context) {
 		Status:            user.Status,
 		CreatedAt:         user.CreatedAt,
 		UpdatedAt:         user.UpdatedAt,
+		IsTOTPEnabled:     user.IsTotpEnabled,
 		Profile:           profileDTO,
 	}
 	c.JSON(http.StatusCreated, dbResp)
@@ -410,6 +412,7 @@ func getUser(c *gin.Context) {
 		dto.Status = u.Status
 		dto.CreatedAt = u.CreatedAt
 		dto.UpdatedAt = u.UpdatedAt
+		dto.IsTOTPEnabled = u.IsTotpEnabled
 	}
 
 	// PendingEmailは自分自身のみ（OAuth の場合は scope に email が必要）
@@ -605,6 +608,7 @@ func updateUser(c *gin.Context) {
 		Status:            updated.Status,
 		CreatedAt:         updated.CreatedAt,
 		UpdatedAt:         updated.UpdatedAt,
+		IsTOTPEnabled:     updated.IsTotpEnabled,
 	}
 	if p, err := q.Profile.Where(query.Profile.UserID.Eq(updated.ID)).First(); err == nil {
 		dto.Profile = &ProfileDTO{
