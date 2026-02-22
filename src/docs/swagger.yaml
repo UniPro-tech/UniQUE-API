@@ -13,6 +13,8 @@ definitions:
         type: string
       created_by:
         $ref: '#/definitions/routes.UserDTO'
+      deleted_at:
+        type: string
       id:
         type: string
       is_pinned:
@@ -31,6 +33,10 @@ definitions:
     type: object
   routes.ApplicationDTO:
     properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
       description:
         type: string
       id:
@@ -38,6 +44,8 @@ definitions:
       name:
         type: string
       privacy_policy_url:
+        type: string
+      updated_at:
         type: string
       user_id:
         type: string
@@ -62,13 +70,6 @@ definitions:
     required:
     - content
     - title
-    type: object
-  routes.CreateApplicationOwnerRequest:
-    properties:
-      user_id:
-        type: string
-    required:
-    - user_id
     type: object
   routes.CreateApplicationRequest:
     properties:
@@ -106,6 +107,13 @@ definitions:
     required:
     - external_user_id
     - provider
+    type: object
+  routes.CreateRedirectURIRequest:
+    properties:
+      uri:
+        type: string
+    required:
+    - uri
     type: object
   routes.CreateRoleRequest:
     properties:
@@ -224,6 +232,26 @@ definitions:
           $ref: '#/definitions/routes.ExternalIdentityDTO'
         type: array
     type: object
+  routes.PatchAnnouncementRequest:
+    properties:
+      content:
+        type: string
+      is_pinned:
+        type: boolean
+      title:
+        type: string
+    type: object
+  routes.PatchRoleRequest:
+    properties:
+      description:
+        type: string
+      is_default:
+        type: boolean
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    type: object
   routes.PermissionsResponse:
     properties:
       permission_bitmask:
@@ -243,6 +271,8 @@ definitions:
         type: boolean
       display_name:
         type: string
+      is_adult:
+        type: boolean
       joined_at:
         type: string
       twitter_handle:
@@ -254,8 +284,6 @@ definitions:
     type: object
   routes.RedirectURIDTO:
     properties:
-      application_id:
-        type: string
       created_at:
         type: string
       updated_at:
@@ -263,9 +291,20 @@ definitions:
       uri:
         type: string
     type: object
+  routes.RedirectURIListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.RedirectURIDTO'
+        type: array
+    type: object
   routes.RoleDTO:
     properties:
+      created_at:
+        type: string
       custom_id:
+        type: string
+      deleted_at:
         type: string
       description:
         type: string
@@ -277,6 +316,8 @@ definitions:
         type: string
       permission_bitmask:
         type: integer
+      updated_at:
+        type: string
     type: object
   routes.RoleListResponse:
     properties:
@@ -451,6 +492,32 @@ paths:
       summary: Get an announcement
       tags:
       - announcements
+    patch:
+      consumes:
+      - application/json
+      description: Partially update announcement fields
+      parameters:
+      - description: Announcement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patch announcement
+        in: body
+        name: announcement
+        required: true
+        schema:
+          $ref: '#/definitions/routes.PatchAnnouncementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.AnnouncementDTO'
+      summary: Partially update an announcement
+      tags:
+      - announcements
     put:
       consumes:
       - application/json
@@ -585,51 +652,6 @@ paths:
       summary: Update an application
       tags:
       - applications
-  /applications/{id}/owners:
-    get:
-      description: Get the user(s) who own the application
-      parameters:
-      - description: Application ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/routes.UserListResponse'
-      summary: List owners for an application
-      tags:
-      - applications
-    post:
-      consumes:
-      - application/json
-      description: Set or replace the owner (user) of the application
-      parameters:
-      - description: Application ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Assign owner
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/routes.CreateApplicationOwnerRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/routes.ApplicationDTO'
-      summary: Assign an owner to an application
-      tags:
-      - applications
   /applications/{id}/redirect_uris:
     delete:
       description: Delete a registered redirect URI by application id and uri (query
@@ -671,9 +693,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/routes.RedirectURIDTO'
-            type: array
+            $ref: '#/definitions/routes.RedirectURIListResponse'
       summary: List redirect URIs for an application
       tags:
       - applications
@@ -687,14 +707,12 @@ paths:
         name: id
         required: true
         type: string
-      - description: 'payload: {\'
+      - description: Create redirect URI
         in: body
         name: body
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/routes.CreateRedirectURIRequest'
       produces:
       - application/json
       responses:
@@ -720,6 +738,28 @@ paths:
       summary: health check endpoint
       tags:
       - system info
+  /internal/users:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with optional profile
+      parameters:
+      - description: Create user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Create a user
+      tags:
+      - users
   /internal/users/email_verify:
     post:
       consumes:
@@ -740,27 +780,6 @@ paths:
           schema:
             $ref: '#/definitions/routes.EmailCodeCheckResponse'
       summary: Verify email code
-      tags:
-      - users
-  /internal/users/email_verify/{code}:
-    get:
-      description: メール検証コードからユーザーIDを取得する（メール認証フロー用）
-      parameters:
-      - description: Email verification code
-        in: path
-        name: code
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get email verification code info
       tags:
       - users
   /internal/users/email_verify/discord_link:
@@ -820,6 +839,20 @@ paths:
       tags:
       - roles
   /roles/{id}:
+    delete:
+      description: Soft delete a role by ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete a role
+      tags:
+      - roles
     get:
       description: Get a single role
       parameters:
@@ -836,6 +869,32 @@ paths:
           schema:
             $ref: '#/definitions/routes.RoleDTO'
       summary: Get a role
+      tags:
+      - roles
+    patch:
+      consumes:
+      - application/json
+      description: Partially update role fields
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patch role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/routes.PatchRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Patch a role
       tags:
       - roles
     put:
@@ -903,6 +962,49 @@ paths:
       summary: List users for a role
       tags:
       - roles
+  /roles/{id}/users/{user_id}:
+    delete:
+      description: Unassign a role from a user
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Remove a user from a role
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Assign a role to a user
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Add a user to a role
+      tags:
+      - roles
   /users:
     get:
       description: List users with embedded profile. Returns all data if USER_READ
@@ -915,27 +1017,6 @@ paths:
           schema:
             $ref: '#/definitions/routes.UserListResponse'
       summary: List users
-      tags:
-      - users
-    post:
-      consumes:
-      - application/json
-      description: Create a new user with optional profile
-      parameters:
-      - description: Create user
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/routes.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/routes.UserDTO'
-      summary: Create a user
       tags:
       - users
   /users/{id}:
@@ -955,6 +1036,32 @@ paths:
           schema:
             $ref: '#/definitions/routes.UserDTO'
       summary: Get a user
+      tags:
+      - users
+    patch:
+      consumes:
+      - application/json
+      description: 'パッチ更新。メールアドレスの変更は管理者のみ可能。プロフィールのフィールドは指定されたもののみ更新される（例: display_nameのみ更新など）'
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UpdateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Partially update a user
       tags:
       - users
     put:

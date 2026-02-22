@@ -174,6 +174,45 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "description": "Partially update announcement fields",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "announcements"
+                ],
+                "summary": "Partially update an announcement",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Announcement ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Patch announcement",
+                        "name": "announcement",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.PatchAnnouncementRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.AnnouncementDTO"
+                        }
+                    }
+                }
             }
         },
         "/announcements/{id}/pin": {
@@ -340,74 +379,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/applications/{id}/owners": {
-            "get": {
-                "description": "Get the user(s) who own the application",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "applications"
-                ],
-                "summary": "List owners for an application",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Application ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/routes.UserListResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Set or replace the owner (user) of the application",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "applications"
-                ],
-                "summary": "Assign an owner to an application",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Application ID",
-                        "name": "id",
-                        "in": "path",
-                        "required": true
-                    },
-                    {
-                        "description": "Assign owner",
-                        "name": "body",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/routes.CreateApplicationOwnerRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/routes.ApplicationDTO"
-                        }
-                    }
-                }
-            }
-        },
         "/applications/{id}/redirect_uris": {
             "get": {
                 "description": "Get redirect URIs registered for a given application",
@@ -431,10 +402,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/routes.RedirectURIDTO"
-                            }
+                            "$ref": "#/definitions/routes.RedirectURIListResponse"
                         }
                     }
                 }
@@ -460,15 +428,12 @@ const docTemplate = `{
                         "required": true
                     },
                     {
-                        "description": "payload: {\\",
+                        "description": "Create redirect URI",
                         "name": "body",
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/routes.CreateRedirectURIRequest"
                         }
                     }
                 ],
@@ -542,6 +507,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/internal/users": {
+            "post": {
+                "description": "Create a new user with optional profile",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Create a user",
+                "parameters": [
+                    {
+                        "description": "Create user",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.CreateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/routes.UserDTO"
+                        }
+                    }
+                }
+            }
+        },
         "/internal/users/email_verify": {
             "post": {
                 "description": "認証コードを検証する",
@@ -605,38 +604,6 @@ const docTemplate = `{
                         "description": "Created",
                         "schema": {
                             "$ref": "#/definitions/routes.ExternalIdentityDTO"
-                        }
-                    }
-                }
-            }
-        },
-        "/internal/users/email_verify/{code}": {
-            "get": {
-                "description": "メール検証コードからユーザーIDを取得する（メール認証フロー用）",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Get email verification code info",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "Email verification code",
-                        "name": "code",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
                         }
                     }
                 }
@@ -760,6 +727,66 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "delete": {
+                "description": "Soft delete a role by ID",
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Delete a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "patch": {
+                "description": "Partially update role fields",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Patch a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Patch role",
+                        "name": "role",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.PatchRoleRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.RoleDTO"
+                        }
+                    }
+                }
             }
         },
         "/roles/{id}/assign_all": {
@@ -821,6 +848,70 @@ const docTemplate = `{
                 }
             }
         },
+        "/roles/{id}/users/{user_id}": {
+            "put": {
+                "description": "Assign a role to a user",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Add a user to a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            },
+            "delete": {
+                "description": "Unassign a role from a user",
+                "tags": [
+                    "roles"
+                ],
+                "summary": "Remove a user from a role",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Role ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "user_id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "204": {
+                        "description": "No Content"
+                    }
+                }
+            }
+        },
         "/users": {
             "get": {
                 "description": "List users with embedded profile. Returns all data if USER_READ permission, otherwise basic info only",
@@ -836,38 +927,6 @@ const docTemplate = `{
                         "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/routes.UserListResponse"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "Create a new user with optional profile",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "users"
-                ],
-                "summary": "Create a user",
-                "parameters": [
-                    {
-                        "description": "Create user",
-                        "name": "user",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/routes.CreateUserRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "201": {
-                        "description": "Created",
-                        "schema": {
-                            "$ref": "#/definitions/routes.UserDTO"
                         }
                     }
                 }
@@ -913,6 +972,45 @@ const docTemplate = `{
                     "users"
                 ],
                 "summary": "Update a user",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "User ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Update user",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.UpdateUserRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.UserDTO"
+                        }
+                    }
+                }
+            },
+            "patch": {
+                "description": "パッチ更新。メールアドレスの変更は管理者のみ可能。プロフィールのフィールドは指定されたもののみ更新される（例: display_nameのみ更新など）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "users"
+                ],
+                "summary": "Partially update a user",
                 "parameters": [
                     {
                         "type": "string",
@@ -1381,6 +1479,9 @@ const docTemplate = `{
                 "created_by": {
                     "$ref": "#/definitions/routes.UserDTO"
                 },
+                "deleted_at": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "string"
                 },
@@ -1409,6 +1510,12 @@ const docTemplate = `{
         "routes.ApplicationDTO": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
                 "description": {
                     "type": "string"
                 },
@@ -1419,6 +1526,9 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "privacy_policy_url": {
+                    "type": "string"
+                },
+                "updated_at": {
                     "type": "string"
                 },
                 "user_id": {
@@ -1454,17 +1564,6 @@ const docTemplate = `{
                     "type": "boolean"
                 },
                 "title": {
-                    "type": "string"
-                }
-            }
-        },
-        "routes.CreateApplicationOwnerRequest": {
-            "type": "object",
-            "required": [
-                "user_id"
-            ],
-            "properties": {
-                "user_id": {
                     "type": "string"
                 }
             }
@@ -1520,6 +1619,17 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "token_expires_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.CreateRedirectURIRequest": {
+            "type": "object",
+            "required": [
+                "uri"
+            ],
+            "properties": {
+                "uri": {
                     "type": "string"
                 }
             }
@@ -1698,6 +1808,37 @@ const docTemplate = `{
                 }
             }
         },
+        "routes.PatchAnnouncementRequest": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "is_pinned": {
+                    "type": "boolean"
+                },
+                "title": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.PatchRoleRequest": {
+            "type": "object",
+            "properties": {
+                "description": {
+                    "type": "string"
+                },
+                "is_default": {
+                    "type": "boolean"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permission_bitmask": {
+                    "type": "integer"
+                }
+            }
+        },
         "routes.PermissionsResponse": {
             "type": "object",
             "properties": {
@@ -1727,6 +1868,9 @@ const docTemplate = `{
                 "display_name": {
                     "type": "string"
                 },
+                "is_adult": {
+                    "type": "boolean"
+                },
                 "joined_at": {
                     "type": "string"
                 },
@@ -1744,9 +1888,6 @@ const docTemplate = `{
         "routes.RedirectURIDTO": {
             "type": "object",
             "properties": {
-                "application_id": {
-                    "type": "string"
-                },
                 "created_at": {
                     "type": "string"
                 },
@@ -1758,10 +1899,27 @@ const docTemplate = `{
                 }
             }
         },
+        "routes.RedirectURIListResponse": {
+            "type": "object",
+            "properties": {
+                "data": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/routes.RedirectURIDTO"
+                    }
+                }
+            }
+        },
         "routes.RoleDTO": {
             "type": "object",
             "properties": {
+                "created_at": {
+                    "type": "string"
+                },
                 "custom_id": {
+                    "type": "string"
+                },
+                "deleted_at": {
                     "type": "string"
                 },
                 "description": {
@@ -1778,6 +1936,9 @@ const docTemplate = `{
                 },
                 "permission_bitmask": {
                     "type": "integer"
+                },
+                "updated_at": {
+                    "type": "string"
                 }
             }
         },

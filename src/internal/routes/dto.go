@@ -33,6 +33,7 @@ type ProfileDTO struct {
 	Birthdate        string    `json:"birthdate,omitempty"`
 	BirthdateVisible *bool     `json:"birthdate_visible,omitempty"`
 	JoinedAt         time.Time `json:"joined_at,omitempty"`
+	IsAdult          *bool     `json:"is_adult,omitempty"`
 }
 
 // CreateUserRequest is used for POST /users
@@ -58,12 +59,15 @@ type UpdateUserRequest struct {
 
 // RoleDTO represents role resource for API responses
 type RoleDTO struct {
-	ID                string `json:"id"`
-	CustomID          string `json:"custom_id"`
-	Name              string `json:"name"`
-	Description       string `json:"description,omitempty"`
-	PermissionBitmask int64  `json:"permission_bitmask"`
-	IsDefault         bool   `json:"is_default"`
+	ID                string     `json:"id"`
+	CustomID          string     `json:"custom_id"`
+	Name              string     `json:"name"`
+	Description       string     `json:"description,omitempty"`
+	PermissionBitmask int64      `json:"permission_bitmask"`
+	IsDefault         bool       `json:"is_default"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	DeletedAt         *time.Time `json:"deleted_at,omitempty"`
 }
 
 // RoleListResponse wraps a list of roles
@@ -89,14 +93,25 @@ type UpdateRoleRequest struct {
 	IsDefault         *bool   `json:"is_default,omitempty"`
 }
 
+// PatchRoleRequest is used for PATCH /roles/:id
+type PatchRoleRequest struct {
+	Name              *string `json:"name,omitempty"`
+	Description       *string `json:"description,omitempty"`
+	PermissionBitmask *int64  `json:"permission_bitmask,omitempty"`
+	IsDefault         *bool   `json:"is_default,omitempty"`
+}
+
 // ApplicationDTO represents application resource for API responses
 type ApplicationDTO struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Description      string `json:"description,omitempty"`
-	WebsiteURL       string `json:"website_url,omitempty"`
-	PrivacyPolicyURL string `json:"privacy_policy_url,omitempty"`
-	UserID           string `json:"user_id"`
+	ID               string     `json:"id"`
+	Name             string     `json:"name"`
+	Description      string     `json:"description,omitempty"`
+	WebsiteURL       string     `json:"website_url,omitempty"`
+	PrivacyPolicyURL string     `json:"privacy_policy_url,omitempty"`
+	UserID           string     `json:"user_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+	DeletedAt        *time.Time `json:"deleted_at,omitempty"`
 }
 
 // ApplicationListResponse wraps a list of applications
@@ -185,10 +200,17 @@ type CreateApplicationOwnerRequest struct {
 
 // RedirectURIDTO represents a redirect URI for API responses (omits GORM deleted metadata)
 type RedirectURIDTO struct {
-	ApplicationID string    `json:"application_id"`
-	URI           string    `json:"uri"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	URI       string    `json:"uri"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type RedirectURIListResponse struct {
+	Data []RedirectURIDTO `json:"data"`
+}
+
+type CreateRedirectURIRequest struct {
+	URI string `json:"uri" binding:"required,url"`
 }
 
 // EmailCodeCheckRequest is used to verify email codes
@@ -200,6 +222,39 @@ type EmailCodeCheckRequest struct {
 type EmailCodeCheckResponse struct {
 	Valid bool   `json:"valid"`
 	Type  string `json:"type"` // "signup", "change", or "migration"
+}
+
+type CreateAnnouncementRequest struct {
+	Title    string `json:"title" binding:"required"`
+	Content  string `json:"content" binding:"required"`
+	IsPinned *bool  `json:"is_pinned,omitempty"`
+}
+
+type UpdateAnnouncementRequest struct {
+	Title    *string `json:"title,omitempty"`
+	Content  *string `json:"content,omitempty"`
+	IsPinned *bool   `json:"is_pinned,omitempty"`
+}
+
+type PatchAnnouncementRequest struct {
+	Title    *string `json:"title,omitempty"`
+	Content  *string `json:"content,omitempty"`
+	IsPinned *bool   `json:"is_pinned,omitempty"`
+}
+
+type AnnouncementDTO struct {
+	ID        string     `json:"id"`
+	Title     string     `json:"title"`
+	Content   string     `json:"content"`
+	CreatedBy UserDTO    `json:"created_by"`
+	IsPinned  bool       `json:"is_pinned"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+type AnnouncementListResponse struct {
+	Data []AnnouncementDTO `json:"data"`
 }
 
 // formatBirthdate formats a *time.Time as "YYYY-MM-DD" or returns "" if nil.

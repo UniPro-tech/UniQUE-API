@@ -61,6 +61,7 @@ func RegisterUserRoutes(r *gin.Engine) {
 
 		// ユーザー情報の更新は自分自身 OR USER_UPDATE権限
 		g.PUT(":id", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), updateUser)
+		g.PATCH(":id", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), patchUser)
 
 		// パスワード変更: 自分自身またはUSER_UPDATE権限
 		g.PUT(":id/password/change", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), changePassword)
@@ -82,7 +83,6 @@ func RegisterUserRoutes(r *gin.Engine) {
 	ig := r.Group("/internal/users")
 	{
 		ig.POST("", createUser)
-		ig.GET("email_verify/:code", getEmailVerificationCode)
 		ig.POST("email_verify/discord_link", linkDiscordByEmailCode)
 		ig.POST("email_verify", emailCodeCheck)
 	}
@@ -179,6 +179,7 @@ func listUsers(c *gin.Context) {
 				TwitterHandle:    ptrToString(p.TwitterHandle),
 				JoinedAt:         timeToTime(p.JoinedAt),
 				BirthdateVisible: &p.BirthdateVisible,
+				IsAdult:          isAdult(p.Birthdate),
 			}
 			// USER_READ権限があればExternalEmailとIsTOTPEnabledを返す
 			if hasUserReadPermission {
@@ -204,7 +205,7 @@ func listUsers(c *gin.Context) {
 // @Produce json
 // @Param user body routes.CreateUserRequest true "Create user"
 // @Success 201 {object} routes.UserDTO
-// @Router /users [post]
+// @Router /internal/users [post]
 func createUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
@@ -320,6 +321,7 @@ func createUser(c *gin.Context) {
 			Birthdate:        formatBirthdate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
 			JoinedAt:         timeToTime(p.JoinedAt),
+			IsAdult:          isAdult(p.Birthdate),
 		}
 	}
 	dbResp := UserDTO{
@@ -388,8 +390,13 @@ func getUser(c *gin.Context) {
 
 	// 基本情報は常に返す
 	dto := UserDTO{
-		ID:       u.ID,
-		CustomID: u.CustomID,
+		ID:                u.ID,
+		CustomID:          u.CustomID,
+		EmailVerified:     u.EmailVerified,
+		AffiliationPeriod: ptrToString(u.AffiliationPeriod),
+		Status:            u.Status,
+		CreatedAt:         u.CreatedAt,
+		UpdatedAt:         u.UpdatedAt,
 	}
 
 	// 自分自身またはUSER_READ権限がある場合はセンシティブ情報を含める
@@ -407,11 +414,6 @@ func getUser(c *gin.Context) {
 	if sensitiveAllowed {
 		dto.Email = u.Email
 		dto.ExternalEmail = u.ExternalEmail
-		dto.EmailVerified = u.EmailVerified
-		dto.AffiliationPeriod = ptrToString(u.AffiliationPeriod)
-		dto.Status = u.Status
-		dto.CreatedAt = u.CreatedAt
-		dto.UpdatedAt = u.UpdatedAt
 		dto.IsTOTPEnabled = u.IsTotpEnabled
 	}
 
@@ -436,6 +438,7 @@ func getUser(c *gin.Context) {
 			TwitterHandle:    ptrToString(p.TwitterHandle),
 			JoinedAt:         timeToTime(p.JoinedAt),
 			BirthdateVisible: &p.BirthdateVisible,
+			IsAdult:          isAdult(p.Birthdate),
 		}
 		// birthdateはUSER_READ権限があるか、自分自身、またはbirthdateVisible、OAuth で scope に profile があれば返す
 		if hasUserReadPermission || isSelf || p.BirthdateVisible || (isOAuth && strings.Contains(scopeStr, "profile")) {
@@ -619,6 +622,189 @@ func updateUser(c *gin.Context) {
 			TwitterHandle:    ptrToString(p.TwitterHandle),
 			Birthdate:        formatBirthdate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
+			JoinedAt:         timeToTime(p.JoinedAt),
+			IsAdult:          isAdult(p.Birthdate),
+		}
+	}
+	c.JSON(http.StatusOK, dto)
+}
+
+// patchUser godoc
+// @Summary Partially update a user
+// @Description パッチ更新。メールアドレスの変更は管理者のみ可能。プロフィールのフィールドは指定されたもののみ更新される（例: display_nameのみ更新など）
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param user body routes.UpdateUserRequest true "Update user"
+// @Success 200 {object} routes.UserDTO
+// @Router /users/{id} [patch]
+func patchUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	q := query.Use(db)
+	user, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	var body UpdateUserRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	if body.Email != nil && *body.Email != user.Email {
+		// メールアドレスの変更は管理者のみ可能
+		permissions, exists := c.Get("permissions")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "permissions not found"})
+			return
+		}
+
+		perms, ok := permissions.(constants.Permission)
+		if !ok || !perms.HasPermission(constants.USER_UPDATE) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "email change not implemented"})
+			return
+		}
+
+		// 管理者ならメールアドレスを更新
+		if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Email, *body.Email); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	if body.ExternalEmail != nil && *body.ExternalEmail != user.ExternalEmail {
+		// 既存の未使用コードを削除
+		_, _ = q.EmailVerificationCode.Where(
+			query.EmailVerificationCode.UserID.Eq(id),
+			query.EmailVerificationCode.RequestType.Eq("email_change"),
+		).Delete()
+		// external_emailは更新せず、認証コードのnew_emailに保存
+		sendEmailChangeVerification(id, *body.ExternalEmail, "", q, config.LoadConfig())
+		_, _ = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
+	}
+
+	if body.AffiliationPeriod != nil {
+		if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.AffiliationPeriod, *body.AffiliationPeriod); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	if body.Status != nil {
+		if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Status, *body.Status); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+
+	// プロフィールの更新
+	if body.Profile != nil {
+		profileUpdates := map[string]interface{}{}
+		if body.Profile.DisplayName != "" {
+			profileUpdates["display_name"] = body.Profile.DisplayName
+		}
+		if body.Profile.Bio != "" {
+			profileUpdates["bio"] = body.Profile.Bio
+		}
+		if body.Profile.WebsiteURL != "" {
+			profileUpdates["website_url"] = body.Profile.WebsiteURL
+		}
+		if body.Profile.TwitterHandle != "" {
+			profileUpdates["twitter_handle"] = body.Profile.TwitterHandle
+		}
+		if body.Profile.BirthdateVisible != nil {
+			profileUpdates["birthdate_visible"] = *body.Profile.BirthdateVisible
+		}
+		if body.Profile.Birthdate != "" {
+			t, err := time.Parse("2006-01-02", body.Profile.Birthdate)
+			if err != nil {
+				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
+				return
+			}
+			profileUpdates["birthdate"] = t
+		}
+		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
+		if err != nil || existing == nil {
+			if err == gorm.ErrRecordNotFound || existing == nil {
+				// 新規作成: 必須フィールドだけセット
+				newProfile := &model.Profile{
+					UserID: user.ID,
+				}
+				if v, ok := profileUpdates["display_name"]; ok {
+					newProfile.DisplayName = v.(string)
+				}
+				if v, ok := profileUpdates["bio"]; ok {
+					bioStr := v.(string)
+					newProfile.Bio = &bioStr
+				}
+				if v, ok := profileUpdates["website_url"]; ok {
+					urlStr := v.(string)
+					newProfile.WebsiteURL = &urlStr
+				}
+				if v, ok := profileUpdates["twitter_handle"]; ok {
+					twitterStr := v.(string)
+					newProfile.TwitterHandle = &twitterStr
+				}
+				if v, ok := profileUpdates["birthdate_visible"]; ok {
+					newProfile.BirthdateVisible = v.(bool)
+				}
+				if v, ok := profileUpdates["birthdate"]; ok {
+					bdTime := v.(time.Time)
+					newProfile.Birthdate = &bdTime
+				}
+				now := time.Now()
+				newProfile.JoinedAt = &now
+				if err := q.Profile.Create(newProfile); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else if len(profileUpdates) > 0 {
+			if _, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).Updates(profileUpdates); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	// rebuild response dto
+	updated, _ := q.User.Where(query.User.ID.Eq(id)).First()
+	dto := UserDTO{
+		ID:                updated.ID,
+		CustomID:          updated.CustomID,
+		Email:             updated.Email,
+		ExternalEmail:     updated.ExternalEmail,
+		PendingEmail:      getPendingEmail(updated.ID, q),
+		EmailVerified:     updated.EmailVerified,
+		AffiliationPeriod: ptrToString(updated.AffiliationPeriod),
+		Status:            updated.Status,
+		CreatedAt:         updated.CreatedAt,
+		UpdatedAt:         updated.UpdatedAt,
+		IsTOTPEnabled:     updated.IsTotpEnabled,
+	}
+	if p, err := q.Profile.Where(query.Profile.UserID.Eq(updated.ID)).First(); err == nil {
+		dto.Profile = &ProfileDTO{
+			UserID:           p.UserID,
+			DisplayName:      p.DisplayName,
+			Bio:              ptrToString(p.Bio),
+			WebsiteURL:       ptrToString(p.WebsiteURL),
+			TwitterHandle:    ptrToString(p.TwitterHandle),
+			Birthdate:        formatBirthdate(p.Birthdate),
+			BirthdateVisible: &p.BirthdateVisible,
+			IsAdult:          isAdult(p.Birthdate),
 			JoinedAt:         timeToTime(p.JoinedAt),
 		}
 	}
@@ -1063,40 +1249,6 @@ func removeExternalIdentity(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// getEmailVerificationCode godoc
-// @Summary Get email verification code info
-// @Description メール検証コードからユーザーIDを取得する（メール認証フロー用）
-// @Tags users
-// @Produce json
-// @Param code path string true "Email verification code"
-// @Success 200 {object} map[string]string
-// @Router /internal/users/email_verify/{code} [get]
-func getEmailVerificationCode(c *gin.Context) {
-	if isOAuth := IsOAuth(c); isOAuth {
-		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
-		return
-	}
-	db := getDB(c)
-	if db == nil {
-		return
-	}
-	code := c.Param("code")
-	q := query.Use(db)
-	evc, err := q.EmailVerificationCode.Where(
-		query.EmailVerificationCode.Code.Eq(code),
-	).First()
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "code_not_found"})
-		return
-	}
-	if time.Now().After(evc.ExpiresAt) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "code_expired"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"user_id": evc.UserID})
-}
-
 // linkDiscordByEmailCode godoc
 // @Summary Link Discord account by email verification code
 // @Description メール検証コードを使ってDiscord連携を行う
@@ -1199,6 +1351,7 @@ func linkDiscordByEmailCode(c *gin.Context) {
 		resp.Email = info.Email
 		resp.ProviderData = info.ProviderData
 	}
+	_, _ = q.EmailVerificationCode.Where(q.EmailVerificationCode.Code.Eq(input.Code)).Delete()
 	c.JSON(http.StatusCreated, resp)
 }
 
@@ -1288,18 +1441,26 @@ func emailCodeCheck(c *gin.Context) {
 		_, err = q.User.Where(query.User.ID.Eq(evc.UserID)).Updates(map[string]interface{}{
 			"email_verified": true,
 		})
+		// Discord連携が終わっているかどうかを判定
+		externalCount, _ := q.ExternalIdentity.Where(
+			query.ExternalIdentity.UserID.Eq(evc.UserID),
+			query.ExternalIdentity.Provider.Eq("discord"),
+		).Count()
+		// Discord連携が終わっていればコードを削除、終わっていなければ残す（再度Discord連携後にこのコードで検証できるようにするため）
+		if externalCount > 0 {
+			_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
+		}
 	case "email_change":
 		_, err = q.User.Where(query.User.ID.Eq(evc.UserID)).Updates(map[string]interface{}{
 			"external_email": evc.NewEmail,
 			"email_verified": true,
 		})
+		_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// delete used code
-	_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
 	c.JSON(http.StatusOK, EmailCodeCheckResponse{Valid: true, Type: verificationType})
 }
 
@@ -1648,4 +1809,17 @@ func sendEmailChangeVerification(user_id, email, name string, q *query.Query, co
 	}
 
 	return nil
+}
+
+func isAdult(birthdate *time.Time) *bool {
+	if birthdate == nil {
+		return nil
+	}
+	now := time.Now()
+	age := now.Year() - birthdate.Year()
+	if now.Month() < birthdate.Month() || (now.Month() == birthdate.Month() && now.Day() < birthdate.Day()) {
+		age--
+	}
+	isAdult := age >= 18
+	return &isAdult
 }
