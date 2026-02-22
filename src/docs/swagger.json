@@ -976,7 +976,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.UpdateUserRequest"
+                            "$ref": "#/definitions/routes.PatchUserRequest"
                         }
                     }
                 ],
@@ -1015,7 +1015,7 @@
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/routes.UpdateUserRequest"
+                            "$ref": "#/definitions/routes.PatchUserRequest"
                         }
                     }
                 ],
@@ -1798,6 +1798,39 @@
                 }
             }
         },
+        "routes.Nullable-bool": {
+            "type": "object",
+            "properties": {
+                "set": {
+                    "type": "boolean"
+                },
+                "value": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "routes.Nullable-string": {
+            "type": "object",
+            "properties": {
+                "set": {
+                    "type": "boolean"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
+        "routes.Nullable-time_Time": {
+            "type": "object",
+            "properties": {
+                "set": {
+                    "type": "boolean"
+                },
+                "value": {
+                    "type": "string"
+                }
+            }
+        },
         "routes.PatchAnnouncementRequest": {
             "type": "object",
             "properties": {
@@ -1809,6 +1842,32 @@
                 },
                 "title": {
                     "type": "string"
+                }
+            }
+        },
+        "routes.PatchProfileRequest": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "birthdate": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "birthdate_visible": {
+                    "$ref": "#/definitions/routes.Nullable-bool"
+                },
+                "display_name": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "joined_at": {
+                    "$ref": "#/definitions/routes.Nullable-time_Time"
+                },
+                "twitter_handle": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "website_url": {
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },
@@ -1826,6 +1885,29 @@
                 },
                 "permission_bitmask": {
                     "type": "integer"
+                }
+            }
+        },
+        "routes.PatchUserRequest": {
+            "type": "object",
+            "properties": {
+                "affiliation_period": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "custom_id": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "email": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "external_email": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "profile": {
+                    "$ref": "#/definitions/routes.PatchProfileRequest"
+                },
+                "status": {
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },
@@ -1991,29 +2073,6 @@
                 },
                 "permission_bitmask": {
                     "type": "integer"
-                }
-            }
-        },
-        "routes.UpdateUserRequest": {
-            "type": "object",
-            "properties": {
-                "affiliation_period": {
-                    "type": "string"
-                },
-                "custom_id": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "external_email": {
-                    "type": "string"
-                },
-                "profile": {
-                    "$ref": "#/definitions/routes.ProfileDTO"
-                },
-                "status": {
-                    "type": "string"
                 }
             }
         },

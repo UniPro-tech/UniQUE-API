@@ -232,6 +232,27 @@ definitions:
           $ref: '#/definitions/routes.ExternalIdentityDTO'
         type: array
     type: object
+  routes.Nullable-bool:
+    properties:
+      set:
+        type: boolean
+      value:
+        type: boolean
+    type: object
+  routes.Nullable-string:
+    properties:
+      set:
+        type: boolean
+      value:
+        type: string
+    type: object
+  routes.Nullable-time_Time:
+    properties:
+      set:
+        type: boolean
+      value:
+        type: string
+    type: object
   routes.PatchAnnouncementRequest:
     properties:
       content:
@@ -240,6 +261,23 @@ definitions:
         type: boolean
       title:
         type: string
+    type: object
+  routes.PatchProfileRequest:
+    properties:
+      bio:
+        $ref: '#/definitions/routes.Nullable-string'
+      birthdate:
+        $ref: '#/definitions/routes.Nullable-string'
+      birthdate_visible:
+        $ref: '#/definitions/routes.Nullable-bool'
+      display_name:
+        $ref: '#/definitions/routes.Nullable-string'
+      joined_at:
+        $ref: '#/definitions/routes.Nullable-time_Time'
+      twitter_handle:
+        $ref: '#/definitions/routes.Nullable-string'
+      website_url:
+        $ref: '#/definitions/routes.Nullable-string'
     type: object
   routes.PatchRoleRequest:
     properties:
@@ -251,6 +289,21 @@ definitions:
         type: string
       permission_bitmask:
         type: integer
+    type: object
+  routes.PatchUserRequest:
+    properties:
+      affiliation_period:
+        $ref: '#/definitions/routes.Nullable-string'
+      custom_id:
+        $ref: '#/definitions/routes.Nullable-string'
+      email:
+        $ref: '#/definitions/routes.Nullable-string'
+      external_email:
+        $ref: '#/definitions/routes.Nullable-string'
+      profile:
+        $ref: '#/definitions/routes.PatchProfileRequest'
+      status:
+        $ref: '#/definitions/routes.Nullable-string'
     type: object
   routes.PermissionsResponse:
     properties:
@@ -358,21 +411,6 @@ definitions:
         type: string
       permission_bitmask:
         type: integer
-    type: object
-  routes.UpdateUserRequest:
-    properties:
-      affiliation_period:
-        type: string
-      custom_id:
-        type: string
-      email:
-        type: string
-      external_email:
-        type: string
-      profile:
-        $ref: '#/definitions/routes.ProfileDTO'
-      status:
-        type: string
     type: object
   routes.UserDTO:
     properties:
@@ -1053,7 +1091,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/routes.UpdateUserRequest'
+          $ref: '#/definitions/routes.PatchUserRequest'
       produces:
       - application/json
       responses:
@@ -1079,7 +1117,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/routes.UpdateUserRequest'
+          $ref: '#/definitions/routes.PatchUserRequest'
       produces:
       - application/json
       responses:

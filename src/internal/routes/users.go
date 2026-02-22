@@ -456,7 +456,7 @@ func getUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Param user body routes.UpdateUserRequest true "Update user"
+// @Param user body routes.PatchUserRequest true "Update user"
 // @Success 200 {object} routes.UserDTO
 // @Router /users/{id} [put]
 func updateUser(c *gin.Context) {
@@ -636,7 +636,7 @@ func updateUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Param user body routes.UpdateUserRequest true "Update user"
+// @Param user body routes.PatchUserRequest true "Update user"
 // @Success 200 {object} routes.UserDTO
 // @Router /users/{id} [patch]
 func patchUser(c *gin.Context) {
@@ -656,13 +656,12 @@ func patchUser(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
 		return
 	}
-	var body UpdateUserRequest
+	var body PatchUserRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
-	if body.Email != nil && *body.Email != user.Email {
+	if body.Email.Set {
 		// メールアドレスの変更は管理者のみ可能
 		permissions, exists := c.Get("permissions")
 		if !exists {
@@ -676,62 +675,113 @@ func patchUser(c *gin.Context) {
 			return
 		}
 
-		// 管理者ならメールアドレスを更新
-		if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Email, *body.Email); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		// 管理者ならメールアドレスを更新（nullならNULLに、値ありなら更新）
+		if body.Email.Value == nil {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"email": nil}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else if *body.Email.Value != user.Email {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Email, *body.Email.Value); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 		}
 	}
-	if body.ExternalEmail != nil && *body.ExternalEmail != user.ExternalEmail {
+
+	if body.ExternalEmail.Set {
 		// 既存の未使用コードを削除
 		_, _ = q.EmailVerificationCode.Where(
 			query.EmailVerificationCode.UserID.Eq(id),
 			query.EmailVerificationCode.RequestType.Eq("email_change"),
 		).Delete()
-		// external_emailは更新せず、認証コードのnew_emailに保存
-		sendEmailChangeVerification(id, *body.ExternalEmail, "", q, config.LoadConfig())
-		_, _ = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
-	}
-
-	if body.AffiliationPeriod != nil {
-		if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.AffiliationPeriod, *body.AffiliationPeriod); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+		if body.ExternalEmail.Value == nil {
+			// 明示的に null を送られた -> external_email を NULL に
+			_, _ = q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"external_email": nil, "email_verified": false})
+		} else if *body.ExternalEmail.Value != user.ExternalEmail {
+			// external_emailは直接更新せず、認証コードのnew_emailに保存
+			sendEmailChangeVerification(id, *body.ExternalEmail.Value, "", q, config.LoadConfig())
+			_, _ = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
 		}
 	}
 
-	if body.Status != nil {
-		if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Status, *body.Status); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
+	if body.AffiliationPeriod.Set {
+		if body.AffiliationPeriod.Value == nil {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"affiliation_period": nil}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.AffiliationPeriod, *body.AffiliationPeriod.Value); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	if body.Status.Set {
+		if body.Status.Value == nil {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"status": nil}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Status, *body.Status.Value); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 		}
 	}
 
 	// プロフィールの更新
 	if body.Profile != nil {
 		profileUpdates := map[string]interface{}{}
-		if body.Profile.DisplayName != "" {
-			profileUpdates["display_name"] = body.Profile.DisplayName
-		}
-		if body.Profile.Bio != "" {
-			profileUpdates["bio"] = body.Profile.Bio
-		}
-		if body.Profile.WebsiteURL != "" {
-			profileUpdates["website_url"] = body.Profile.WebsiteURL
-		}
-		if body.Profile.TwitterHandle != "" {
-			profileUpdates["twitter_handle"] = body.Profile.TwitterHandle
-		}
-		if body.Profile.BirthdateVisible != nil {
-			profileUpdates["birthdate_visible"] = *body.Profile.BirthdateVisible
-		}
-		if body.Profile.Birthdate != "" {
-			t, err := time.Parse("2006-01-02", body.Profile.Birthdate)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
-				return
+		if body.Profile.DisplayName.Set {
+			if body.Profile.DisplayName.Value == nil {
+				profileUpdates["display_name"] = nil
+			} else {
+				profileUpdates["display_name"] = *body.Profile.DisplayName.Value
 			}
-			profileUpdates["birthdate"] = t
+		}
+		if body.Profile.Bio.Set {
+			if body.Profile.Bio.Value == nil {
+				profileUpdates["bio"] = nil
+			} else {
+				profileUpdates["bio"] = *body.Profile.Bio.Value
+			}
+		}
+		if body.Profile.WebsiteURL.Set {
+			if body.Profile.WebsiteURL.Value == nil {
+				profileUpdates["website_url"] = nil
+			} else {
+				profileUpdates["website_url"] = *body.Profile.WebsiteURL.Value
+			}
+		}
+		if body.Profile.TwitterHandle.Set {
+			if body.Profile.TwitterHandle.Value == nil {
+				profileUpdates["twitter_handle"] = nil
+			} else {
+				profileUpdates["twitter_handle"] = *body.Profile.TwitterHandle.Value
+			}
+		}
+		if body.Profile.BirthdateVisible.Set {
+			if body.Profile.BirthdateVisible.Value == nil {
+				profileUpdates["birthdate_visible"] = false
+			} else {
+				profileUpdates["birthdate_visible"] = *body.Profile.BirthdateVisible.Value
+			}
+		}
+		if body.Profile.Birthdate.Set {
+			if body.Profile.Birthdate.Value == nil || *body.Profile.Birthdate.Value == "" {
+				profileUpdates["birthdate"] = nil
+			} else {
+				t, err := time.Parse("2006-01-02", *body.Profile.Birthdate.Value)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
+					return
+				}
+				profileUpdates["birthdate"] = t
+			}
 		}
 		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
 		if err != nil || existing == nil {
@@ -741,26 +791,42 @@ func patchUser(c *gin.Context) {
 					UserID: user.ID,
 				}
 				if v, ok := profileUpdates["display_name"]; ok {
-					newProfile.DisplayName = v.(string)
+					if v != nil {
+						newProfile.DisplayName = v.(string)
+					}
 				}
 				if v, ok := profileUpdates["bio"]; ok {
-					bioStr := v.(string)
-					newProfile.Bio = &bioStr
+					if v == nil {
+						newProfile.Bio = nil
+					} else {
+						bioStr := v.(string)
+						newProfile.Bio = &bioStr
+					}
 				}
 				if v, ok := profileUpdates["website_url"]; ok {
-					urlStr := v.(string)
-					newProfile.WebsiteURL = &urlStr
+					if v == nil {
+						newProfile.WebsiteURL = nil
+					} else {
+						urlStr := v.(string)
+						newProfile.WebsiteURL = &urlStr
+					}
 				}
 				if v, ok := profileUpdates["twitter_handle"]; ok {
-					twitterStr := v.(string)
-					newProfile.TwitterHandle = &twitterStr
+					if v == nil {
+						newProfile.TwitterHandle = nil
+					} else {
+						twitterStr := v.(string)
+						newProfile.TwitterHandle = &twitterStr
+					}
 				}
 				if v, ok := profileUpdates["birthdate_visible"]; ok {
 					newProfile.BirthdateVisible = v.(bool)
 				}
 				if v, ok := profileUpdates["birthdate"]; ok {
-					bdTime := v.(time.Time)
-					newProfile.Birthdate = &bdTime
+					if v != nil {
+						bdTime := v.(time.Time)
+						newProfile.Birthdate = &bdTime
+					}
 				}
 				now := time.Now()
 				newProfile.JoinedAt = &now

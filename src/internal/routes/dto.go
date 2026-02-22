@@ -1,6 +1,32 @@
 package routes
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
+
+// Nullable is a generic type used for PATCH requests to distinguish
+// between "field not present" and "field present with null".
+type Nullable[T any] struct {
+	Set   bool
+	Value *T
+}
+
+func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
+	n.Set = true
+
+	if string(data) == "null" {
+		n.Value = nil
+		return nil
+	}
+
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	n.Value = &v
+	return nil
+}
 
 // UserDTO represents user + optional profile for API responses
 type UserDTO struct {
@@ -34,6 +60,27 @@ type ProfileDTO struct {
 	BirthdateVisible *bool     `json:"birthdate_visible,omitempty"`
 	JoinedAt         time.Time `json:"joined_at,omitempty"`
 	IsAdult          *bool     `json:"is_adult,omitempty"`
+}
+
+// PatchProfileRequest is used for PATCH /users/:id
+type PatchProfileRequest struct {
+	DisplayName      Nullable[string]    `json:"display_name"`
+	Bio              Nullable[string]    `json:"bio"`
+	WebsiteURL       Nullable[string]    `json:"website_url"`
+	TwitterHandle    Nullable[string]    `json:"twitter_handle"`
+	Birthdate        Nullable[string]    `json:"birthdate"`
+	BirthdateVisible Nullable[bool]      `json:"birthdate_visible"`
+	JoinedAt         Nullable[time.Time] `json:"joined_at"`
+}
+
+// PatchUserRequest is used for PATCH /users/:id
+type PatchUserRequest struct {
+	CustomID          Nullable[string]     `json:"custom_id,omitempty"`
+	Email             Nullable[string]     `json:"email,omitempty"`
+	ExternalEmail     Nullable[string]     `json:"external_email,omitempty"`
+	AffiliationPeriod Nullable[string]     `json:"affiliation_period,omitempty"`
+	Status            Nullable[string]     `json:"status,omitempty"`
+	Profile           *PatchProfileRequest `json:"profile,omitempty"`
 }
 
 // CreateUserRequest is used for POST /users
