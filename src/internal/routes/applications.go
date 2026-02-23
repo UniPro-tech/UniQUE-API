@@ -89,6 +89,9 @@ func listApplications(c *gin.Context) {
 			DeletedAt:        utils.DeletedAtPtr(a.DeletedAt),
 		})
 	}
+	if out == nil {
+		out = []ApplicationDTO{}
+	}
 	c.JSON(http.StatusOK, ApplicationListResponse{Data: out})
 }
 
