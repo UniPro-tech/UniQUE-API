@@ -96,12 +96,12 @@ type CreateUserRequest struct {
 
 // UpdateUserRequest is used for PUT /users/:id
 type UpdateUserRequest struct {
-	CustomID          *string     `json:"custom_id,omitempty"`
-	Email             *string     `json:"email,omitempty"`
-	ExternalEmail     *string     `json:"external_email,omitempty"`
-	AffiliationPeriod *string     `json:"affiliation_period,omitempty"`
-	Status            *string     `json:"status,omitempty"`
-	Profile           *ProfileDTO `json:"profile,omitempty"`
+	CustomID          *string              `json:"custom_id,omitempty"`
+	Email             *string              `json:"email,omitempty"`
+	ExternalEmail     *string              `json:"external_email,omitempty"`
+	AffiliationPeriod *string              `json:"affiliation_period,omitempty"`
+	Status            *string              `json:"status,omitempty"`
+	Profile           *PatchProfileRequest `json:"profile,omitempty"`
 }
 
 // RoleDTO represents role resource for API responses

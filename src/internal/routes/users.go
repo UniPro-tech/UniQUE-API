@@ -528,57 +528,97 @@ func updateUser(c *gin.Context) {
 	}
 	if input.Profile != nil {
 		profileUpdates := map[string]interface{}{}
-		if input.Profile.DisplayName != "" {
-			profileUpdates["display_name"] = input.Profile.DisplayName
-		}
-		if input.Profile.Bio != "" {
-			profileUpdates["bio"] = input.Profile.Bio
-		}
-		if input.Profile.WebsiteURL != "" {
-			profileUpdates["website_url"] = input.Profile.WebsiteURL
-		}
-		if input.Profile.TwitterHandle != "" {
-			profileUpdates["twitter_handle"] = input.Profile.TwitterHandle
-		}
-		if input.Profile.BirthdateVisible != nil {
-			profileUpdates["birthdate_visible"] = *input.Profile.BirthdateVisible
-		}
-		if input.Profile.Birthdate != "" {
-			t, err := time.Parse("2006-01-02", input.Profile.Birthdate)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
-				return
+		if input.Profile.DisplayName.Set {
+			if input.Profile.DisplayName.Value == nil {
+				profileUpdates["display_name"] = nil
+			} else {
+				profileUpdates["display_name"] = *input.Profile.DisplayName.Value
 			}
-			profileUpdates["birthdate"] = t
+		}
+		if input.Profile.Bio.Set {
+			if input.Profile.Bio.Value == nil {
+				profileUpdates["bio"] = nil
+			} else {
+				profileUpdates["bio"] = *input.Profile.Bio.Value
+			}
+		}
+		if input.Profile.WebsiteURL.Set {
+			if input.Profile.WebsiteURL.Value == nil {
+				profileUpdates["website_url"] = nil
+			} else {
+				profileUpdates["website_url"] = *input.Profile.WebsiteURL.Value
+			}
+		}
+		if input.Profile.TwitterHandle.Set {
+			if input.Profile.TwitterHandle.Value == nil {
+				profileUpdates["twitter_handle"] = nil
+			} else {
+				profileUpdates["twitter_handle"] = *input.Profile.TwitterHandle.Value
+			}
+		}
+		if input.Profile.BirthdateVisible.Set {
+			if input.Profile.BirthdateVisible.Value == nil {
+				profileUpdates["birthdate_visible"] = false
+			} else {
+				profileUpdates["birthdate_visible"] = *input.Profile.BirthdateVisible.Value
+			}
+		}
+		if input.Profile.Birthdate.Set {
+			if input.Profile.Birthdate.Value == nil || *input.Profile.Birthdate.Value == "" {
+				profileUpdates["birthdate"] = nil
+			} else {
+				t, err := time.Parse("2006-01-02", *input.Profile.Birthdate.Value)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
+					return
+				}
+				profileUpdates["birthdate"] = t
+			}
 		}
 		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
+		if err != nil || existing == nil {
+			if err == gorm.ErrRecordNotFound || existing == nil {
 				// 新規作成: 必須フィールドだけセット
 				newProfile := &model.Profile{
 					UserID: user.ID,
 				}
 				if v, ok := profileUpdates["display_name"]; ok {
-					newProfile.DisplayName = v.(string)
+					if v != nil {
+						newProfile.DisplayName = v.(string)
+					}
 				}
 				if v, ok := profileUpdates["bio"]; ok {
-					bioStr := v.(string)
-					newProfile.Bio = &bioStr
+					if v == nil {
+						newProfile.Bio = nil
+					} else {
+						bioStr := v.(string)
+						newProfile.Bio = &bioStr
+					}
 				}
 				if v, ok := profileUpdates["website_url"]; ok {
-					urlStr := v.(string)
-					newProfile.WebsiteURL = &urlStr
+					if v == nil {
+						newProfile.WebsiteURL = nil
+					} else {
+						urlStr := v.(string)
+						newProfile.WebsiteURL = &urlStr
+					}
 				}
 				if v, ok := profileUpdates["twitter_handle"]; ok {
-					twitterStr := v.(string)
-					newProfile.TwitterHandle = &twitterStr
+					if v == nil {
+						newProfile.TwitterHandle = nil
+					} else {
+						twitterStr := v.(string)
+						newProfile.TwitterHandle = &twitterStr
+					}
 				}
 				if v, ok := profileUpdates["birthdate_visible"]; ok {
 					newProfile.BirthdateVisible = v.(bool)
 				}
 				if v, ok := profileUpdates["birthdate"]; ok {
-					bdTime := v.(time.Time)
-					newProfile.Birthdate = &bdTime
+					if v != nil {
+						bdTime := v.(time.Time)
+						newProfile.Birthdate = &bdTime
+					}
 				}
 				now := time.Now()
 				newProfile.JoinedAt = &now
@@ -591,7 +631,6 @@ func updateUser(c *gin.Context) {
 				return
 			}
 		} else if len(profileUpdates) > 0 {
-			_ = existing // profile exists
 			if _, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).Updates(profileUpdates); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
