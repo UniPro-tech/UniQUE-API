@@ -377,6 +377,45 @@ const docTemplate = `{
                         }
                     }
                 }
+            },
+            "patch": {
+                "description": "パッチ更新。指定されたフィールドのみ更新（null を送ると NULL に）",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "applications"
+                ],
+                "summary": "Partially update an application",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Application ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Patch application",
+                        "name": "app",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.PatchApplicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/routes.ApplicationDTO"
+                        }
+                    }
+                }
             }
         },
         "/applications/{id}/redirect_uris": {
@@ -1855,6 +1894,26 @@ const docTemplate = `{
                 }
             }
         },
+        "routes.PatchApplicationRequest": {
+            "type": "object",
+            "properties": {
+                "client_secret": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "description": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "name": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "privacy_policy_url": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "website_url": {
+                    "$ref": "#/definitions/routes.Nullable-string"
+                }
+            }
+        },
         "routes.PatchProfileRequest": {
             "type": "object",
             "properties": {
@@ -2053,19 +2112,19 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "client_secret": {
-                    "type": "string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "description": {
-                    "type": "string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "name": {
-                    "type": "string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "privacy_policy_url": {
-                    "type": "string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "website_url": {
-                    "type": "string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },

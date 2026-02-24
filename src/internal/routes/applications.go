@@ -21,6 +21,7 @@ func RegisterApplicationRoutes(r *gin.Engine) {
 		g.POST("", createApplication)
 		g.GET(":id", getApplication)
 		g.PUT(":id", updateApplication)
+		g.PATCH(":id", patchApplication)
 		g.DELETE(":id", deleteApplication)
 		g.GET(":id/redirect_uris", listRedirectURIsForApplication)
 		g.POST(":id/redirect_uris", createRedirectURIForApplication)
@@ -219,21 +220,156 @@ func updateApplication(c *gin.Context) {
 		return
 	}
 	updates := map[string]interface{}{}
-	if input.Name != nil {
-		updates["name"] = *input.Name
+	if input.Name.Set {
+		if input.Name.Value == nil {
+			updates["name"] = nil
+		} else {
+			updates["name"] = *input.Name.Value
+		}
 	}
-	if input.Description != nil {
-		updates["description"] = *input.Description
+	if input.Description.Set {
+		if input.Description.Value == nil {
+			updates["description"] = nil
+		} else {
+			updates["description"] = *input.Description.Value
+		}
 	}
-	if input.WebsiteURL != nil {
-		updates["website_url"] = *input.WebsiteURL
+	if input.WebsiteURL.Set {
+		if input.WebsiteURL.Value == nil {
+			updates["website_url"] = nil
+		} else {
+			updates["website_url"] = *input.WebsiteURL.Value
+		}
 	}
-	if input.PrivacyPolicyURL != nil {
-		updates["privacy_policy_url"] = *input.PrivacyPolicyURL
+	if input.PrivacyPolicyURL.Set {
+		if input.PrivacyPolicyURL.Value == nil {
+			updates["privacy_policy_url"] = nil
+		} else {
+			updates["privacy_policy_url"] = *input.PrivacyPolicyURL.Value
+		}
 	}
-	if input.ClientSecret != nil {
-		updates["client_secret"] = *input.ClientSecret
+	if input.ClientSecret.Set {
+		if input.ClientSecret.Value == nil {
+			updates["client_secret"] = nil
+		} else {
+			updates["client_secret"] = *input.ClientSecret.Value
+		}
 	}
+	q := query.Use(db)
+
+	// fetch application to check ownership
+	appModel, err := q.Application.Where(query.Application.ID.Eq(id)).First()
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// auth user required for owner check
+	ui, exists := c.Get("user")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		return
+	}
+	authUser, ok := ui.(*model.User)
+	if !ok || authUser == nil {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "ユーザー情報が取得できませんでした"})
+		return
+	}
+
+	// allow if user has APP_UPDATE permission or is owner
+	perms, _ := middleware.GetUserPermissions(authUser.ID, db)
+	if !perms.HasPermission(constants.APP_UPDATE) && appModel.UserID != authUser.ID {
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "この操作を実行する権限がありません"})
+		return
+	}
+
+	if len(updates) > 0 {
+		if _, err := q.Application.Where(query.Application.ID.Eq(id)).Updates(updates); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	updated, _ := q.Application.Where(query.Application.ID.Eq(id)).First()
+	resp := ApplicationDTO{
+		ID:               updated.ID,
+		Name:             updated.Name,
+		Description:      ptrToString(updated.Description),
+		WebsiteURL:       ptrToString(updated.WebsiteURL),
+		PrivacyPolicyURL: ptrToString(updated.PrivacyPolicyURL),
+		UserID:           updated.UserID,
+		CreatedAt:        updated.CreatedAt,
+		UpdatedAt:        updated.UpdatedAt,
+		DeletedAt:        utils.DeletedAtPtr(updated.DeletedAt),
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// patchApplication godoc
+// @Summary Partially update an application
+// @Description パッチ更新。指定されたフィールドのみ更新（null を送ると NULL に）
+// @Tags applications
+// @Accept json
+// @Produce json
+// @Param id path string true "Application ID"
+// @Param app body routes.PatchApplicationRequest true "Patch application"
+// @Success 200 {object} routes.ApplicationDTO
+// @Router /applications/{id} [patch]
+func patchApplication(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	var body PatchApplicationRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	updates := map[string]interface{}{}
+	if body.Name.Set {
+		if body.Name.Value == nil {
+			updates["name"] = nil
+		} else {
+			updates["name"] = *body.Name.Value
+		}
+	}
+	if body.Description.Set {
+		if body.Description.Value == nil {
+			updates["description"] = nil
+		} else {
+			updates["description"] = *body.Description.Value
+		}
+	}
+	if body.WebsiteURL.Set {
+		if body.WebsiteURL.Value == nil {
+			updates["website_url"] = nil
+		} else {
+			updates["website_url"] = *body.WebsiteURL.Value
+		}
+	}
+	if body.PrivacyPolicyURL.Set {
+		if body.PrivacyPolicyURL.Value == nil {
+			updates["privacy_policy_url"] = nil
+		} else {
+			updates["privacy_policy_url"] = *body.PrivacyPolicyURL.Value
+		}
+	}
+	if body.ClientSecret.Set {
+		if body.ClientSecret.Value == nil {
+			updates["client_secret"] = nil
+		} else {
+			updates["client_secret"] = *body.ClientSecret.Value
+		}
+	}
+
 	q := query.Use(db)
 
 	// fetch application to check ownership
@@ -357,7 +493,7 @@ func listRedirectURIsForApplication(c *gin.Context) {
 	}
 	id := c.Param("id")
 	q := query.Use(db)
-	results, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id)).Find()
+	results, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.DeletedAt.IsNull()).Find()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -405,7 +541,7 @@ func createRedirectURIForApplication(c *gin.Context) {
 	}
 	q := query.Use(db)
 	// 重複チェック: 同じURIが既に登録されている場合は409返す
-	if existing, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(body.URI)).First(); err == nil && existing != nil {
+	if existing, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(body.URI), q.RedirectURI.DeletedAt.IsNull()).First(); err == nil && existing != nil {
 		c.JSON(http.StatusConflict, gin.H{"error": "redirect uri already exists"})
 		return
 	} else if err != nil && err != gorm.ErrRecordNotFound {
@@ -451,7 +587,7 @@ func deleteRedirectURIForApplication(c *gin.Context) {
 		return
 	}
 	q := query.Use(db)
-	r, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(uri)).First()
+	r, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(uri), q.RedirectURI.DeletedAt.IsNull()).First()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

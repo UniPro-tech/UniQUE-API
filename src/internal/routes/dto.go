@@ -221,12 +221,18 @@ type CreateApplicationRequest struct {
 }
 
 // UpdateApplicationRequest is used for PUT /applications/:id
-type UpdateApplicationRequest struct {
-	Name             *string `json:"name,omitempty"`
-	Description      *string `json:"description,omitempty"`
-	WebsiteURL       *string `json:"website_url,omitempty"`
-	PrivacyPolicyURL *string `json:"privacy_policy_url,omitempty"`
-	ClientSecret     *string `json:"client_secret,omitempty"`
+// UpdateApplicationRequest is used for PUT /applications/:id
+// Allow nullable semantics by aliasing to PatchApplicationRequest so
+// PUT can contain explicit nulls for fields.
+type UpdateApplicationRequest = PatchApplicationRequest
+
+// PatchApplicationRequest is used for PATCH /applications/:id
+type PatchApplicationRequest struct {
+	Name             Nullable[string] `json:"name,omitempty"`
+	Description      Nullable[string] `json:"description,omitempty"`
+	WebsiteURL       Nullable[string] `json:"website_url,omitempty"`
+	PrivacyPolicyURL Nullable[string] `json:"privacy_policy_url,omitempty"`
+	ClientSecret     Nullable[string] `json:"client_secret,omitempty"`
 }
 
 // CreateUserRoleRequest is used to assign a role to a user
