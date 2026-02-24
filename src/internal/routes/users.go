@@ -21,6 +21,7 @@ import (
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/UniPro-tech/UniQUE-API/internal/utils"
+	discordutil "github.com/UniPro-tech/UniQUE-API/internal/utils/discord"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/oklog/ulid/v2"
@@ -1281,6 +1282,7 @@ func addExternalIdentity(c *gin.Context) {
 		IDToken:        stringToPtr(input.IDToken),
 		AccessToken:    input.AccessToken,
 		RefreshToken:   input.RefreshToken,
+		TokenExpiresAt: input.TokenExpiresAt,
 	}
 	if input.TokenExpiresAt != nil {
 		ei.TokenExpiresAt = timeToTimePtr(*input.TokenExpiresAt)
@@ -1289,6 +1291,26 @@ func addExternalIdentity(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// If provider is discord, try to add user to guild and assign member role (role only if user is active)
+	if input.Provider == "discord" {
+		config := c.MustGet("config").(config.Config)
+		if err := discordutil.AddToGuild(id, db, &config); err != nil {
+			log.Printf("failed to add user to discord guild: %v", err)
+		}
+
+		// assign member role only when user status is active
+		if user, uerr := q.User.Where(query.User.ID.Eq(id)).First(); uerr == nil {
+			if user.Status == "active" {
+				discordutil.AddToGuild(input.ExternalUserID, db, &config)
+				memberRoleId := config.DiscordConfig.Guild.MemberRoleID
+				if err := discordutil.AddRoleToUser(input.ExternalUserID, memberRoleId, &config); err != nil {
+					log.Printf("failed to add discord role: %v", err)
+				}
+			}
+		}
+	}
+
 	resp := ExternalIdentityDTO{
 		ID:             ei.ID,
 		UserID:         ei.UserID,
@@ -1589,13 +1611,70 @@ func approveUserRegist(c *gin.Context) {
 	}
 	user_id := c.Param("id")
 	q := query.Use(db)
-	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(map[string]interface{}{
-		"status": "active",
-	})
+
+	// リクエストボディを受け取る
+	var dto UserApproveDTO
+	if err := c.BindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body"})
+		return
+	}
+
+	updates := map[string]interface{}{"status": "active"}
+	if dto.Email != "" {
+		updates["email"] = dto.Email
+	}
+	if dto.AffiliationPeriod != "" {
+		updates["affiliation_period"] = dto.AffiliationPeriod
+	}
+	if !dto.JoinedAt.IsZero() {
+		updates["joined_at"] = dto.JoinedAt
+	}
+	if dto.SakuraEmailPassword != "" {
+		updates["sakura_email_password"] = dto.SakuraEmailPassword
+	}
+
+	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// Discord連携: ロール付与とウェルカムメッセージ送信（失敗しても承認自体は成功とする）
+	if externalIdentity, e := q.ExternalIdentity.Where(
+		query.ExternalIdentity.UserID.Eq(user_id),
+		query.ExternalIdentity.Provider.Eq("discord"),
+	).First(); e == nil {
+		discordUserId := externalIdentity.ExternalUserID
+
+		// ロール付与
+		config := c.MustGet("config").(config.Config)
+		memberRoleId := config.DiscordConfig.Guild.MemberRoleID
+		if memberRoleId != "" {
+			if err := discordutil.AddRoleToUser(discordUserId, memberRoleId, &config); err != nil {
+				log.Printf("failed to add discord role: %v", err)
+			}
+		} else {
+			log.Printf("DISCORD_MEMBER_ROLE_ID is not set; skipping role assignment")
+		}
+
+		// 表示名を取得
+		displayName := "メンバー"
+		if profile, perr := q.Profile.Where(query.Profile.UserID.Eq(user_id)).First(); perr == nil {
+			if profile.DisplayName != "" {
+				displayName = profile.DisplayName
+			}
+		} else if u, uerr := q.User.Where(query.User.ID.Eq(user_id)).First(); uerr == nil {
+			if u.CustomID != "" {
+				displayName = u.CustomID
+			}
+		}
+
+		// ウェルカムメッセージ送信
+		if err := discordutil.SendWelcomeMessage(discordUserId, dto.Email, dto.SakuraEmailPassword, displayName, db, &config); err != nil {
+			log.Printf("failed to send welcome DM: %v", err)
+		}
+	}
+
 	c.Status(http.StatusOK)
 }
 

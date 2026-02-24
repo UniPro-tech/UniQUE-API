@@ -44,6 +44,13 @@ type UserDTO struct {
 	IsTOTPEnabled     bool        `json:"is_totp_enabled"`
 }
 
+type UserApproveDTO struct {
+	Email               string    `json:"email"`
+	AffiliationPeriod   string    `json:"affiliation_period,omitempty"`
+	JoinedAt            time.Time `json:"joined_at,omitempty"`
+	SakuraEmailPassword string    `json:"sakura_email_password,omitempty"`
+}
+
 // UserListResponse represents response for listing users
 type UserListResponse struct {
 	Data []UserDTO `json:"data"`
