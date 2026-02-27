@@ -1478,7 +1478,6 @@ func linkDiscordByEmailCode(c *gin.Context) {
 		resp.Email = info.Email
 		resp.ProviderData = info.ProviderData
 	}
-	_, _ = q.EmailVerificationCode.Where(q.EmailVerificationCode.Code.Eq(input.Code)).Delete()
 	c.JSON(http.StatusCreated, resp)
 }
 
