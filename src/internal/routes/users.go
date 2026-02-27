@@ -1620,6 +1620,7 @@ func approveUserRegist(c *gin.Context) {
 	}
 
 	updates := map[string]interface{}{"status": "active"}
+	updateProfiles := map[string]interface{}{}
 	if dto.Email != "" {
 		updates["email"] = dto.Email
 	}
@@ -1627,13 +1628,15 @@ func approveUserRegist(c *gin.Context) {
 		updates["affiliation_period"] = dto.AffiliationPeriod
 	}
 	if !dto.JoinedAt.IsZero() {
-		updates["joined_at"] = dto.JoinedAt
-	}
-	if dto.SakuraEmailPassword != "" {
-		updates["sakura_email_password"] = dto.SakuraEmailPassword
+		updateProfiles["joined_at"] = dto.JoinedAt
 	}
 
 	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	_, err = q.Profile.Where(query.Profile.UserID.Eq(user_id)).Updates(updateProfiles)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
