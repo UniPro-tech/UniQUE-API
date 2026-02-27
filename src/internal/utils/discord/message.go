@@ -85,6 +85,6 @@ func SendWelcomeMessage(userID string, email string, password string, displayNam
 	if displayName == "" {
 		displayName = "メンバー"
 	}
-	message := fmt.Sprintf("# 🎉 %sさん、UniProjectへようこそ！\n\nメンバー登録が承認されました。\n## メールアドレスについて\n自由にお使いいただけるメールです。詳しくはこちらのWikiをご覧ください。\nメールアドレス: %s\nパスワード: %s\n\n今後ともよろしくお願いします！", displayName, email, password)
+	message := fmt.Sprintf("# 🎉 %sさん、UniProjectへようこそ！\n\nメンバー登録が承認されました。\n## メールアドレスについて\n自由にお使いいただけるメールです。詳しくは[こちらのWiki](https://wiki.uniproject.jp/Tools/メール)をご覧ください。\nメールアドレス: %s\nパスワード: %s\n\n今後ともよろしくお願いします！", displayName, email, password)
 	return SendDirectMessage(userID, message, db, config)
 }
