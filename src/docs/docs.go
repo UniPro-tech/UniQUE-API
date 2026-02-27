@@ -1095,6 +1095,15 @@ const docTemplate = `{
                         "name": "id",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "Approval details",
+                        "name": "body",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/routes.UserApproveDTO"
+                        }
                     }
                 ],
                 "responses": {
@@ -2139,6 +2148,23 @@ const docTemplate = `{
                 },
                 "permission_bitmask": {
                     "type": "integer"
+                }
+            }
+        },
+        "routes.UserApproveDTO": {
+            "type": "object",
+            "properties": {
+                "affiliation_period": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "joined_at": {
+                    "type": "string"
+                },
+                "sakura_email_password": {
+                    "type": "string"
                 }
             }
         },

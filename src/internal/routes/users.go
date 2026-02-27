@@ -1597,6 +1597,7 @@ func emailCodeCheck(c *gin.Context) {
 // @Tags users
 // @Produce json
 // @Param id path string true "User ID"
+// @Param body body UserApproveDTO true "Approval details"
 // @Success 200
 // @Router /users/{id}/approve [post]
 func approveUserRegist(c *gin.Context) {

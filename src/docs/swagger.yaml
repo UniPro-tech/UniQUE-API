@@ -425,6 +425,17 @@ definitions:
       permission_bitmask:
         type: integer
     type: object
+  routes.UserApproveDTO:
+    properties:
+      affiliation_period:
+        type: string
+      email:
+        type: string
+      joined_at:
+        type: string
+      sakura_email_password:
+        type: string
+    type: object
   routes.UserDTO:
     properties:
       affiliation_period:
@@ -1185,6 +1196,12 @@ paths:
         name: id
         required: true
         type: string
+      - description: Approval details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UserApproveDTO'
       produces:
       - application/json
       responses:
