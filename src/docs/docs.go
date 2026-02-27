@@ -1258,10 +1258,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
+                            "$ref": "#/definitions/routes.UserPasswordChangeDTO"
                         }
                     }
                 ],
@@ -2194,6 +2191,20 @@ const docTemplate = `{
                     "items": {
                         "$ref": "#/definitions/routes.UserDTO"
                     }
+                }
+            }
+        },
+        "routes.UserPasswordChangeDTO": {
+            "type": "object",
+            "required": [
+                "new_password"
+            ],
+            "properties": {
+                "current_password": {
+                    "type": "string"
+                },
+                "new_password": {
+                    "type": "string"
                 }
             }
         }

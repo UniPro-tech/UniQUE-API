@@ -51,6 +51,11 @@ type UserApproveDTO struct {
 	SakuraEmailPassword string    `json:"sakura_email_password,omitempty"`
 }
 
+type UserPasswordChangeDTO struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password" binding:"required"`
+}
+
 // UserListResponse represents response for listing users
 type UserListResponse struct {
 	Data []UserDTO `json:"data"`

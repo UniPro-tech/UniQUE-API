@@ -459,6 +459,15 @@ definitions:
           $ref: '#/definitions/routes.UserDTO'
         type: array
     type: object
+  routes.UserPasswordChangeDTO:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    required:
+    - new_password
+    type: object
 info:
   contact: {}
 paths:
@@ -1286,9 +1295,7 @@ paths:
         name: body
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/routes.UserPasswordChangeDTO'
       produces:
       - application/json
       responses:

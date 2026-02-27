@@ -1786,7 +1786,7 @@ func resendEmailVerification(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Param body body map[string]string true "Password change request"
+// @Param body body UserPasswordChangeDTO true "Password change request"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
@@ -1816,10 +1816,7 @@ func changePassword(c *gin.Context) {
 		return
 	}
 
-	var input struct {
-		CurrentPassword string `json:"current_password"`
-		NewPassword     string `json:"new_password" binding:"required"`
-	}
+	var input UserPasswordChangeDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
