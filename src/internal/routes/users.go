@@ -639,7 +639,12 @@ func updateUser(c *gin.Context) {
 		}
 	}
 	// rebuild response dto
-	updated, _ := q.User.Where(query.User.ID.Eq(id)).First()
+	updated, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	dto := UserDTO{
 		ID:                updated.ID,
 		CustomID:          updated.CustomID,
@@ -901,7 +906,12 @@ func patchUser(c *gin.Context) {
 	}
 
 	// rebuild response dto
-	updated, _ := q.User.Where(query.User.ID.Eq(id)).First()
+	updated, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	dto := UserDTO{
 		ID:                updated.ID,
 		CustomID:          updated.CustomID,
