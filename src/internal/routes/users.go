@@ -178,7 +178,7 @@ func listUsers(c *gin.Context) {
 				Bio:              ptrToString(p.Bio),
 				WebsiteURL:       ptrToString(p.WebsiteURL),
 				TwitterHandle:    ptrToString(p.TwitterHandle),
-				JoinedAt:         timeToTime(p.JoinedAt),
+				JoinedAt:         formatDate(p.JoinedAt),
 				BirthdateVisible: &p.BirthdateVisible,
 				IsAdult:          isAdult(p.Birthdate),
 			}
@@ -189,7 +189,7 @@ func listUsers(c *gin.Context) {
 			}
 			// birthdateはUSER_READ権限があるか、birthdateVisibleがtrueの場合のみ返す
 			if hasUserReadPermission || p.BirthdateVisible {
-				profileDTO.Birthdate = formatBirthdate(p.Birthdate)
+				profileDTO.Birthdate = formatDate(p.Birthdate)
 			}
 			dto.Profile = profileDTO
 		}
@@ -319,9 +319,9 @@ func createUser(c *gin.Context) {
 			Bio:              ptrToString(p.Bio),
 			WebsiteURL:       ptrToString(p.WebsiteURL),
 			TwitterHandle:    ptrToString(p.TwitterHandle),
-			Birthdate:        formatBirthdate(p.Birthdate),
+			Birthdate:        formatDate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
-			JoinedAt:         timeToTime(p.JoinedAt),
+			JoinedAt:         formatDate(p.JoinedAt),
 			IsAdult:          isAdult(p.Birthdate),
 		}
 	}
@@ -437,13 +437,13 @@ func getUser(c *gin.Context) {
 			Bio:              ptrToString(p.Bio),
 			WebsiteURL:       ptrToString(p.WebsiteURL),
 			TwitterHandle:    ptrToString(p.TwitterHandle),
-			JoinedAt:         timeToTime(p.JoinedAt),
+			JoinedAt:         formatDate(p.JoinedAt),
 			BirthdateVisible: &p.BirthdateVisible,
 			IsAdult:          isAdult(p.Birthdate),
 		}
 		// birthdateはUSER_READ権限があるか、自分自身、またはbirthdateVisible、OAuth で scope に profile があれば返す
 		if hasUserReadPermission || isSelf || p.BirthdateVisible || (isOAuth && strings.Contains(scopeStr, "profile")) {
-			profileDTO.Birthdate = formatBirthdate(p.Birthdate)
+			profileDTO.Birthdate = formatDate(p.Birthdate)
 		}
 		dto.Profile = profileDTO
 	}
@@ -668,9 +668,9 @@ func updateUser(c *gin.Context) {
 			Bio:              ptrToString(p.Bio),
 			WebsiteURL:       ptrToString(p.WebsiteURL),
 			TwitterHandle:    ptrToString(p.TwitterHandle),
-			Birthdate:        formatBirthdate(p.Birthdate),
+			Birthdate:        formatDate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
-			JoinedAt:         timeToTime(p.JoinedAt),
+			JoinedAt:         formatDate(p.JoinedAt),
 			IsAdult:          isAdult(p.Birthdate),
 		}
 	}
@@ -938,10 +938,10 @@ func patchUser(c *gin.Context) {
 			Bio:              ptrToString(p.Bio),
 			WebsiteURL:       ptrToString(p.WebsiteURL),
 			TwitterHandle:    ptrToString(p.TwitterHandle),
-			Birthdate:        formatBirthdate(p.Birthdate),
+			Birthdate:        formatDate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
 			IsAdult:          isAdult(p.Birthdate),
-			JoinedAt:         timeToTime(p.JoinedAt),
+			JoinedAt:         formatDate(p.JoinedAt),
 		}
 	}
 	c.JSON(http.StatusOK, dto)
@@ -1650,17 +1650,18 @@ func approveUserRegist(c *gin.Context) {
 
 	updates := map[string]interface{}{"status": "active"}
 	updateProfiles := map[string]interface{}{}
-	if dto.Email != "" {
-		updates["email"] = dto.Email
-	}
-	if dto.AffiliationPeriod != "" {
-		updates["affiliation_period"] = dto.AffiliationPeriod
-	}
-	if !dto.JoinedAt.IsZero() {
-		updateProfiles["joined_at"] = dto.JoinedAt
-	}
 
-	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
+	updates["email"] = dto.Email
+	updates["affiliation_period"] = dto.AffiliationPeriod
+	// timeに変換
+	joinedAt, err := time.Parse(time.DateOnly, dto.JoinedAt)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_joined_at_format"})
+		return
+	}
+	updateProfiles["joined_at"] = joinedAt
+
+	_, err = q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

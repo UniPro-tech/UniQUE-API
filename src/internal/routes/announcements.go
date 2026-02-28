@@ -123,7 +123,7 @@ func listAnnouncements(c *gin.Context) {
 				dto.Profile = &ProfileDTO{
 					UserID:      p.UserID,
 					DisplayName: p.DisplayName,
-					JoinedAt:    timeToTime(p.JoinedAt),
+					JoinedAt:    formatDate(p.JoinedAt),
 				}
 			}
 			userMap[u.ID] = dto
@@ -181,7 +181,7 @@ func getAnnouncement(c *gin.Context) {
 		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
 			dtoUser := UserDTO{ID: u.ID, CustomID: u.CustomID}
 			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
-				dtoUser.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+				dtoUser.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: formatDate(p.JoinedAt)}
 			}
 			createdBy = dtoUser
 		} else {
@@ -247,7 +247,7 @@ func createAnnouncement(c *gin.Context) {
 		if u, err := q.User.Where(query.User.ID.Eq(ann.CreatedBy)).First(); err == nil {
 			createdByObj = UserDTO{ID: u.ID, CustomID: u.CustomID}
 			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
-				createdByObj.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+				createdByObj.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: formatDate(p.JoinedAt)}
 			}
 		} else {
 			createdByObj = UserDTO{ID: ann.CreatedBy}
@@ -316,7 +316,7 @@ func updateAnnouncement(c *gin.Context) {
 		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
 			createdBy = UserDTO{ID: u.ID, CustomID: u.CustomID}
 			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
-				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: formatDate(p.JoinedAt)}
 			}
 		} else {
 			createdBy = UserDTO{ID: a.CreatedBy}
@@ -385,7 +385,7 @@ func patchAnnouncement(c *gin.Context) {
 		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
 			createdBy = UserDTO{ID: u.ID, CustomID: u.CustomID}
 			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
-				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: formatDate(p.JoinedAt)}
 			}
 		} else {
 			createdBy = UserDTO{ID: a.CreatedBy}
@@ -464,7 +464,7 @@ func pinAnnouncement(c *gin.Context) {
 		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
 			createdBy = UserDTO{ID: u.ID, CustomID: u.CustomID}
 			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
-				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: formatDate(p.JoinedAt)}
 			}
 		} else {
 			createdBy = UserDTO{ID: a.CreatedBy}
