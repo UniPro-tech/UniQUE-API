@@ -1653,9 +1653,15 @@ func approveUserRegist(c *gin.Context) {
 
 	updates["email"] = dto.Email
 	updates["affiliation_period"] = dto.AffiliationPeriod
-	updateProfiles["joined_at"] = dto.JoinedAt
+	// timeに変換
+	joinedAt, err := time.Parse(time.DateOnly, dto.JoinedAt)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_joined_at_format"})
+		return
+	}
+	updateProfiles["joined_at"] = joinedAt
 
-	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
+	_, err = q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
