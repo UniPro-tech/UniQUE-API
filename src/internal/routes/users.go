@@ -512,7 +512,10 @@ func updateUser(c *gin.Context) {
 			query.EmailVerificationCode.RequestType.Eq("email_change"),
 		).Delete()
 		// external_emailは更新せず、認証コードのnew_emailに保存
-		sendEmailChangeVerification(id, *input.ExternalEmail, "", q, config.LoadConfig())
+		if err := sendEmailChangeVerification(id, *input.ExternalEmail, "", q, config.LoadConfig()); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		updates["email_verified"] = false
 	}
 	if input.AffiliationPeriod != nil {
