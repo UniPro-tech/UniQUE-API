@@ -98,9 +98,9 @@ type PatchUserRequest struct {
 // CreateUserRequest is used for POST /users
 type CreateUserRequest struct {
 	CustomID          string      `json:"custom_id" binding:"required"`
-	Email             string      `json:"email" binding:"required,email"`
+	Email             string      `json:"email" binding:"omitempty,email"`
 	Password          string      `json:"password,omitempty"`
-	ExternalEmail     string      `json:"external_email,omitempty"`
+	ExternalEmail     string      `json:"external_email,omitempty" binding:"required,email"`
 	Status            string      `json:"status,omitempty"`
 	AffiliationPeriod string      `json:"affiliation_period,omitempty"`
 	Profile           *ProfileDTO `json:"profile,omitempty"`

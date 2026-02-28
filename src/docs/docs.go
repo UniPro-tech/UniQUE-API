@@ -1711,7 +1711,7 @@ const docTemplate = `{
             "type": "object",
             "required": [
                 "custom_id",
-                "email"
+                "external_email"
             ],
             "properties": {
                 "affiliation_period": {

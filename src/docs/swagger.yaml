@@ -152,7 +152,7 @@ definitions:
         type: string
     required:
     - custom_id
-    - email
+    - external_email
     type: object
   routes.CreateUserRoleRequest:
     properties:
