@@ -5,13 +5,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/UniPro-tech/UniQUE-API/internal/config"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"gorm.io/gorm"
 )
 
-func AddToGuild(externalUserID string, db *gorm.DB, config *config.Config) error {
+func AddToGuild(externalUserID string, db *gorm.DB, cfg *config.Config) error {
 	// ExternalIdentityを取得
 	q := query.Use(db)
 	externalIdentity, err := q.ExternalIdentity.Where(q.ExternalIdentity.Provider.Eq("discord"), q.ExternalIdentity.ExternalUserID.Eq(externalUserID)).First()
@@ -21,11 +22,14 @@ func AddToGuild(externalUserID string, db *gorm.DB, config *config.Config) error
 
 	// Discord APIを使用してギルドに追加
 	accessToken := externalIdentity.AccessToken
-	botToken := config.DiscordConfig.BotToken
-	guildId := config.DiscordConfig.Guild.ID
+	botToken := cfg.DiscordConfig.BotToken
+	guildId := cfg.DiscordConfig.Guild.ID
+	if botToken == "" || guildId == "" {
+		return fmt.Errorf("discord bot token or guild id not configured")
+	}
 
 	discordAPIEndpoint := fmt.Sprintf("https://discord.com/api/v10/guilds/%s/members/%s", guildId, externalUserID)
-	httpClient := &http.Client{}
+	httpClient := &http.Client{Timeout: 10 * time.Second}
 
 	// body: { "access_token": "<user access token>" }
 	bodyObj := map[string]string{"access_token": accessToken}
