@@ -46,8 +46,8 @@ func refreshDiscordToken(ei *model.ExternalIdentity, q *query.Query, cfg *config
 	data := url.Values{
 		"grant_type":    {"refresh_token"},
 		"refresh_token": {ei.RefreshToken},
-		"client_id":     {cfg.DiscordClientID},
-		"client_secret": {cfg.DiscordClientSecret},
+		"client_id":     {cfg.DiscordConfig.ClientID},
+		"client_secret": {cfg.DiscordConfig.ClientSecret},
 	}
 	resp, err := http.PostForm("https://discord.com/api/oauth2/token", data)
 	if err != nil {

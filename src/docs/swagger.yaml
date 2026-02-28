@@ -13,6 +13,8 @@ definitions:
         type: string
       created_by:
         $ref: '#/definitions/routes.UserDTO'
+      deleted_at:
+        type: string
       id:
         type: string
       is_pinned:
@@ -31,6 +33,10 @@ definitions:
     type: object
   routes.ApplicationDTO:
     properties:
+      created_at:
+        type: string
+      deleted_at:
+        type: string
       description:
         type: string
       id:
@@ -38,6 +44,8 @@ definitions:
       name:
         type: string
       privacy_policy_url:
+        type: string
+      updated_at:
         type: string
       user_id:
         type: string
@@ -62,13 +70,6 @@ definitions:
     required:
     - content
     - title
-    type: object
-  routes.CreateApplicationOwnerRequest:
-    properties:
-      user_id:
-        type: string
-    required:
-    - user_id
     type: object
   routes.CreateApplicationRequest:
     properties:
@@ -107,6 +108,13 @@ definitions:
     - external_user_id
     - provider
     type: object
+  routes.CreateRedirectURIRequest:
+    properties:
+      uri:
+        type: string
+    required:
+    - uri
+    type: object
   routes.CreateRoleRequest:
     properties:
       assign_to_existing:
@@ -144,7 +152,7 @@ definitions:
         type: string
     required:
     - custom_id
-    - email
+    - external_email
     type: object
   routes.CreateUserRoleRequest:
     properties:
@@ -224,6 +232,92 @@ definitions:
           $ref: '#/definitions/routes.ExternalIdentityDTO'
         type: array
     type: object
+  routes.Nullable-bool:
+    properties:
+      set:
+        type: boolean
+      value:
+        type: boolean
+    type: object
+  routes.Nullable-string:
+    properties:
+      set:
+        type: boolean
+      value:
+        type: string
+    type: object
+  routes.Nullable-time_Time:
+    properties:
+      set:
+        type: boolean
+      value:
+        type: string
+    type: object
+  routes.PatchAnnouncementRequest:
+    properties:
+      content:
+        type: string
+      is_pinned:
+        type: boolean
+      title:
+        type: string
+    type: object
+  routes.PatchApplicationRequest:
+    properties:
+      client_secret:
+        $ref: '#/definitions/routes.Nullable-string'
+      description:
+        $ref: '#/definitions/routes.Nullable-string'
+      name:
+        $ref: '#/definitions/routes.Nullable-string'
+      privacy_policy_url:
+        $ref: '#/definitions/routes.Nullable-string'
+      website_url:
+        $ref: '#/definitions/routes.Nullable-string'
+    type: object
+  routes.PatchProfileRequest:
+    properties:
+      bio:
+        $ref: '#/definitions/routes.Nullable-string'
+      birthdate:
+        $ref: '#/definitions/routes.Nullable-string'
+      birthdate_visible:
+        $ref: '#/definitions/routes.Nullable-bool'
+      display_name:
+        $ref: '#/definitions/routes.Nullable-string'
+      joined_at:
+        $ref: '#/definitions/routes.Nullable-time_Time'
+      twitter_handle:
+        $ref: '#/definitions/routes.Nullable-string'
+      website_url:
+        $ref: '#/definitions/routes.Nullable-string'
+    type: object
+  routes.PatchRoleRequest:
+    properties:
+      description:
+        type: string
+      is_default:
+        type: boolean
+      name:
+        type: string
+      permission_bitmask:
+        type: integer
+    type: object
+  routes.PatchUserRequest:
+    properties:
+      affiliation_period:
+        $ref: '#/definitions/routes.Nullable-string'
+      custom_id:
+        $ref: '#/definitions/routes.Nullable-string'
+      email:
+        $ref: '#/definitions/routes.Nullable-string'
+      external_email:
+        $ref: '#/definitions/routes.Nullable-string'
+      profile:
+        $ref: '#/definitions/routes.PatchProfileRequest'
+      status:
+        $ref: '#/definitions/routes.Nullable-string'
+    type: object
   routes.PermissionsResponse:
     properties:
       permission_bitmask:
@@ -243,6 +337,8 @@ definitions:
         type: boolean
       display_name:
         type: string
+      is_adult:
+        type: boolean
       joined_at:
         type: string
       twitter_handle:
@@ -254,8 +350,6 @@ definitions:
     type: object
   routes.RedirectURIDTO:
     properties:
-      application_id:
-        type: string
       created_at:
         type: string
       updated_at:
@@ -263,9 +357,20 @@ definitions:
       uri:
         type: string
     type: object
+  routes.RedirectURIListResponse:
+    properties:
+      data:
+        items:
+          $ref: '#/definitions/routes.RedirectURIDTO'
+        type: array
+    type: object
   routes.RoleDTO:
     properties:
+      created_at:
+        type: string
       custom_id:
+        type: string
+      deleted_at:
         type: string
       description:
         type: string
@@ -277,6 +382,8 @@ definitions:
         type: string
       permission_bitmask:
         type: integer
+      updated_at:
+        type: string
     type: object
   routes.RoleListResponse:
     properties:
@@ -297,15 +404,15 @@ definitions:
   routes.UpdateApplicationRequest:
     properties:
       client_secret:
-        type: string
+        $ref: '#/definitions/routes.Nullable-string'
       description:
-        type: string
+        $ref: '#/definitions/routes.Nullable-string'
       name:
-        type: string
+        $ref: '#/definitions/routes.Nullable-string'
       privacy_policy_url:
-        type: string
+        $ref: '#/definitions/routes.Nullable-string'
       website_url:
-        type: string
+        $ref: '#/definitions/routes.Nullable-string'
     type: object
   routes.UpdateRoleRequest:
     properties:
@@ -318,19 +425,15 @@ definitions:
       permission_bitmask:
         type: integer
     type: object
-  routes.UpdateUserRequest:
+  routes.UserApproveDTO:
     properties:
       affiliation_period:
         type: string
-      custom_id:
-        type: string
       email:
         type: string
-      external_email:
+      joined_at:
         type: string
-      profile:
-        $ref: '#/definitions/routes.ProfileDTO'
-      status:
+      sakura_email_password:
         type: string
     type: object
   routes.UserDTO:
@@ -366,6 +469,15 @@ definitions:
         items:
           $ref: '#/definitions/routes.UserDTO'
         type: array
+    type: object
+  routes.UserPasswordChangeDTO:
+    properties:
+      current_password:
+        type: string
+      new_password:
+        type: string
+    required:
+    - new_password
     type: object
 info:
   contact: {}
@@ -449,6 +561,32 @@ paths:
           schema:
             $ref: '#/definitions/routes.AnnouncementDTO'
       summary: Get an announcement
+      tags:
+      - announcements
+    patch:
+      consumes:
+      - application/json
+      description: Partially update announcement fields
+      parameters:
+      - description: Announcement ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patch announcement
+        in: body
+        name: announcement
+        required: true
+        schema:
+          $ref: '#/definitions/routes.PatchAnnouncementRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.AnnouncementDTO'
+      summary: Partially update an announcement
       tags:
       - announcements
     put:
@@ -559,6 +697,32 @@ paths:
       summary: Get an application
       tags:
       - applications
+    patch:
+      consumes:
+      - application/json
+      description: パッチ更新。指定されたフィールドのみ更新（null を送ると NULL に）
+      parameters:
+      - description: Application ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patch application
+        in: body
+        name: app
+        required: true
+        schema:
+          $ref: '#/definitions/routes.PatchApplicationRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.ApplicationDTO'
+      summary: Partially update an application
+      tags:
+      - applications
     put:
       consumes:
       - application/json
@@ -583,51 +747,6 @@ paths:
           schema:
             $ref: '#/definitions/routes.ApplicationDTO'
       summary: Update an application
-      tags:
-      - applications
-  /applications/{id}/owners:
-    get:
-      description: Get the user(s) who own the application
-      parameters:
-      - description: Application ID
-        in: path
-        name: id
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/routes.UserListResponse'
-      summary: List owners for an application
-      tags:
-      - applications
-    post:
-      consumes:
-      - application/json
-      description: Set or replace the owner (user) of the application
-      parameters:
-      - description: Application ID
-        in: path
-        name: id
-        required: true
-        type: string
-      - description: Assign owner
-        in: body
-        name: body
-        required: true
-        schema:
-          $ref: '#/definitions/routes.CreateApplicationOwnerRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/routes.ApplicationDTO'
-      summary: Assign an owner to an application
       tags:
       - applications
   /applications/{id}/redirect_uris:
@@ -671,9 +790,7 @@ paths:
         "200":
           description: OK
           schema:
-            items:
-              $ref: '#/definitions/routes.RedirectURIDTO'
-            type: array
+            $ref: '#/definitions/routes.RedirectURIListResponse'
       summary: List redirect URIs for an application
       tags:
       - applications
@@ -687,14 +804,12 @@ paths:
         name: id
         required: true
         type: string
-      - description: 'payload: {\'
+      - description: Create redirect URI
         in: body
         name: body
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/routes.CreateRedirectURIRequest'
       produces:
       - application/json
       responses:
@@ -720,6 +835,28 @@ paths:
       summary: health check endpoint
       tags:
       - system info
+  /internal/users:
+    post:
+      consumes:
+      - application/json
+      description: Create a new user with optional profile
+      parameters:
+      - description: Create user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.CreateUserRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Create a user
+      tags:
+      - users
   /internal/users/email_verify:
     post:
       consumes:
@@ -740,27 +877,6 @@ paths:
           schema:
             $ref: '#/definitions/routes.EmailCodeCheckResponse'
       summary: Verify email code
-      tags:
-      - users
-  /internal/users/email_verify/{code}:
-    get:
-      description: メール検証コードからユーザーIDを取得する（メール認証フロー用）
-      parameters:
-      - description: Email verification code
-        in: path
-        name: code
-        required: true
-        type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            additionalProperties:
-              type: string
-            type: object
-      summary: Get email verification code info
       tags:
       - users
   /internal/users/email_verify/discord_link:
@@ -820,6 +936,20 @@ paths:
       tags:
       - roles
   /roles/{id}:
+    delete:
+      description: Soft delete a role by ID
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Delete a role
+      tags:
+      - roles
     get:
       description: Get a single role
       parameters:
@@ -836,6 +966,32 @@ paths:
           schema:
             $ref: '#/definitions/routes.RoleDTO'
       summary: Get a role
+      tags:
+      - roles
+    patch:
+      consumes:
+      - application/json
+      description: Partially update role fields
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Patch role
+        in: body
+        name: role
+        required: true
+        schema:
+          $ref: '#/definitions/routes.PatchRoleRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.RoleDTO'
+      summary: Patch a role
       tags:
       - roles
     put:
@@ -903,6 +1059,49 @@ paths:
       summary: List users for a role
       tags:
       - roles
+  /roles/{id}/users/{user_id}:
+    delete:
+      description: Unassign a role from a user
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "204":
+          description: No Content
+      summary: Remove a user from a role
+      tags:
+      - roles
+    put:
+      consumes:
+      - application/json
+      description: Assign a role to a user
+      parameters:
+      - description: Role ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: No Content
+      summary: Add a user to a role
+      tags:
+      - roles
   /users:
     get:
       description: List users with embedded profile. Returns all data if USER_READ
@@ -915,27 +1114,6 @@ paths:
           schema:
             $ref: '#/definitions/routes.UserListResponse'
       summary: List users
-      tags:
-      - users
-    post:
-      consumes:
-      - application/json
-      description: Create a new user with optional profile
-      parameters:
-      - description: Create user
-        in: body
-        name: user
-        required: true
-        schema:
-          $ref: '#/definitions/routes.CreateUserRequest'
-      produces:
-      - application/json
-      responses:
-        "201":
-          description: Created
-          schema:
-            $ref: '#/definitions/routes.UserDTO'
-      summary: Create a user
       tags:
       - users
   /users/{id}:
@@ -957,6 +1135,32 @@ paths:
       summary: Get a user
       tags:
       - users
+    patch:
+      consumes:
+      - application/json
+      description: 'パッチ更新。メールアドレスの変更は管理者のみ可能。プロフィールのフィールドは指定されたもののみ更新される（例: display_nameのみ更新など）'
+      parameters:
+      - description: User ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Update user
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/routes.PatchUserRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/routes.UserDTO'
+      summary: Partially update a user
+      tags:
+      - users
     put:
       consumes:
       - application/json
@@ -972,7 +1176,7 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/routes.UpdateUserRequest'
+          $ref: '#/definitions/routes.PatchUserRequest'
       produces:
       - application/json
       responses:
@@ -992,6 +1196,12 @@ paths:
         name: id
         required: true
         type: string
+      - description: Approval details
+        in: body
+        name: body
+        required: true
+        schema:
+          $ref: '#/definitions/routes.UserApproveDTO'
       produces:
       - application/json
       responses:
@@ -1102,9 +1312,7 @@ paths:
         name: body
         required: true
         schema:
-          additionalProperties:
-            type: string
-          type: object
+          $ref: '#/definitions/routes.UserPasswordChangeDTO'
       produces:
       - application/json
       responses:

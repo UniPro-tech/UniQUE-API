@@ -10,6 +10,7 @@ import (
 	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
+	"github.com/UniPro-tech/UniQUE-API/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/oklog/ulid/v2"
@@ -26,9 +27,12 @@ func RegisterRoleRoutes(r *gin.Engine) {
 
 		// ロールの作成・更新・削除はROLE_MANAGE権限が必要
 		g.POST("", middleware.RequirePermission(constants.ROLE_MANAGE), createRole)
-		g.POST(":id/assign_all", middleware.RequirePermission(constants.ROLE_MANAGE), assignRoleToAll)
 		g.PUT(":id", middleware.RequirePermission(constants.ROLE_MANAGE), updateRole)
 		g.DELETE(":id", middleware.RequirePermission(constants.ROLE_MANAGE), deleteRole)
+		g.PATCH(":id", middleware.RequirePermission(constants.ROLE_MANAGE), patchRole)
+		g.POST(":id/assign_all", middleware.RequirePermission(constants.ROLE_MANAGE), assignRoleToAll)
+		g.PUT(":id/users/:user_id", middleware.RequirePermission(constants.ROLE_MANAGE), addUserToRole)
+		g.DELETE(":id/users/:user_id", middleware.RequirePermission(constants.ROLE_MANAGE), removeUserFromRole)
 	}
 }
 
@@ -209,6 +213,9 @@ func listRoles(c *gin.Context) {
 			Description:       ptrToString(r.Description),
 			PermissionBitmask: r.PermissionBitmask,
 			IsDefault:         r.IsDefault,
+			CreatedAt:         r.CreatedAt,
+			UpdatedAt:         r.UpdatedAt,
+			DeletedAt:         utils.DeletedAtPtr(r.DeletedAt),
 		})
 	}
 	c.JSON(http.StatusOK, RoleListResponse{Data: out})
@@ -296,6 +303,9 @@ func createRole(c *gin.Context) {
 		Description:       ptrToString(role.Description),
 		PermissionBitmask: role.PermissionBitmask,
 		IsDefault:         role.IsDefault,
+		CreatedAt:         role.CreatedAt,
+		UpdatedAt:         role.UpdatedAt,
+		DeletedAt:         utils.DeletedAtPtr(role.DeletedAt),
 	}
 	c.JSON(http.StatusCreated, resp)
 }
@@ -332,6 +342,9 @@ func getRole(c *gin.Context) {
 		Description:       ptrToString(r.Description),
 		PermissionBitmask: r.PermissionBitmask,
 		IsDefault:         r.IsDefault,
+		CreatedAt:         r.CreatedAt,
+		UpdatedAt:         r.UpdatedAt,
+		DeletedAt:         utils.DeletedAtPtr(r.DeletedAt),
 	}
 	c.JSON(http.StatusOK, resp)
 }
@@ -395,10 +408,87 @@ func updateRole(c *gin.Context) {
 		Description:       ptrToString(updated.Description),
 		PermissionBitmask: updated.PermissionBitmask,
 		IsDefault:         updated.IsDefault,
+		CreatedAt:         updated.CreatedAt,
+		UpdatedAt:         updated.UpdatedAt,
+		DeletedAt:         utils.DeletedAtPtr(updated.DeletedAt),
 	}
 	c.JSON(http.StatusOK, resp)
 }
 
+// patchRole godoc
+// @Summary Patch a role
+// @Description Partially update role fields
+// @Tags roles
+// @Accept json
+// @Produce json
+// @Param id path string true "Role ID"
+// @Param role body routes.PatchRoleRequest true "Patch role"
+// @Success 200 {object} routes.RoleDTO
+// @Router /roles/{id} [patch]
+func patchRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	var input PatchRoleRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	q := query.Use(db)
+	role, err := q.Role.Where(query.Role.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	if input.Name != nil {
+		role.Name = *input.Name
+	}
+	if input.Description != nil {
+		role.Description = stringToPtr(*input.Description)
+	}
+	if input.PermissionBitmask != nil {
+		role.PermissionBitmask = *input.PermissionBitmask
+	}
+	if input.IsDefault != nil {
+		role.IsDefault = *input.IsDefault
+	}
+	if err := q.Role.Save(role); err != nil {
+		// MySQLの重複エラーをチェック
+		if mysqlErr, ok := err.(*mysql.MySQLError); ok && mysqlErr.Number == 1062 {
+			c.JSON(http.StatusConflict, gin.H{"error": "role name already exists", "code": "R0002"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	resp := RoleDTO{
+		ID:                role.ID,
+		CustomID:          role.CustomID,
+		Name:              role.Name,
+		Description:       ptrToString(role.Description),
+		PermissionBitmask: role.PermissionBitmask,
+		IsDefault:         role.IsDefault,
+		CreatedAt:         role.CreatedAt,
+		UpdatedAt:         role.UpdatedAt,
+		DeletedAt:         utils.DeletedAtPtr(role.DeletedAt),
+	}
+	c.JSON(http.StatusOK, resp)
+}
+
+// deleteRole godoc
+// @Summary Delete a role
+// @Description Soft delete a role by ID
+// @Tags roles
+// @Param id path string true "Role ID"
+// @Success 204 "No Content"
+// @Router /roles/{id} [delete]
 func deleteRole(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
@@ -412,6 +502,85 @@ func deleteRole(c *gin.Context) {
 	id := c.Param("id")
 	q := query.Use(db)
 	if _, err := q.Role.Delete(&model.Role{ID: id}); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// addUserToRole godoc
+// @Summary Add a user to a role
+// @Description Assign a role to a user
+// @Tags roles
+// @Accept json
+// @Produce json
+// @Param id path string true "Role ID"
+// @Param user_id path string true "User ID"
+// @Success 204 "No Content"
+// @Router /roles/{id}/users/{user_id} [put]
+func addUserToRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	roleID := c.Param("id")
+	userID := c.Param("user_id")
+	q := query.Use(db)
+	// Check if role exists
+	if _, err := q.Role.Where(query.Role.ID.Eq(roleID)).First(); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "role not found"})
+		return
+	}
+	// Check if user exists
+	if _, err := q.User.Where(query.User.ID.Eq(userID)).First(); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "user not found"})
+		return
+	}
+	// Check if already assigned
+	if _, err := q.UserRole.Where(query.UserRole.UserID.Eq(userID), query.UserRole.RoleID.Eq(roleID)).First(); err == nil {
+		c.JSON(http.StatusConflict, gin.H{"error": "user already has this role"})
+		return
+	} else if err != gorm.ErrRecordNotFound {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	// Assign role to user
+	ur := &model.UserRole{UserID: userID, RoleID: roleID}
+	if err := q.UserRole.Create(ur); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.Status(http.StatusNoContent)
+}
+
+// removeUserFromRole godoc
+// @Summary Remove a user from a role
+// @Description Unassign a role from a user
+// @Tags roles
+// @Param id path string true "Role ID"
+// @Param user_id path string true "User ID"
+// @Success 204 "No Content"
+// @Router /roles/{id}/users/{user_id} [delete]
+func removeUserFromRole(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	roleID := c.Param("id")
+	userID := c.Param("user_id")
+	q := query.Use(db)
+	_, err := q.UserRole.Where(query.UserRole.UserID.Eq(userID), query.UserRole.RoleID.Eq(roleID)).Delete(&model.UserRole{})
+	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}

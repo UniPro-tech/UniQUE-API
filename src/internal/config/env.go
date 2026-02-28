@@ -4,17 +4,28 @@ import (
 	"os"
 )
 
+type DiscordGuildConfig struct {
+	ID           string
+	MemberRoleID string
+}
+
+type DiscordConfig struct {
+	ClientID     string
+	ClientSecret string
+	Guild        DiscordGuildConfig
+	BotToken     string
+}
+
 type Config struct {
-	AppName             string
-	Version             string
-	FrontendURL         string
-	IssuerURL           string
-	IssuerInternalURL   string
-	EmailSenderURL      string
-	DiscordClientID     string
-	DiscordClientSecret string
-	GitHubClientID      string
-	GitHubClientSecret  string
+	AppName            string
+	Version            string
+	FrontendURL        string
+	IssuerURL          string
+	IssuerInternalURL  string
+	EmailSenderURL     string
+	DiscordConfig      DiscordConfig
+	GitHubClientID     string
+	GitHubClientSecret string
 }
 
 // envが設定されていない場合のデフォルト値
@@ -62,16 +73,27 @@ func LoadConfig() *Config {
 	if EmailSenderURLEnv == "" {
 		EmailSenderURLEnv = EmailSenderURL
 	}
+	DiscordConfig := DiscordConfig{
+		ClientID:     os.Getenv("DISCORD_CLIENT_ID"),
+		ClientSecret: os.Getenv("DISCORD_CLIENT_SECRET"),
+		Guild: DiscordGuildConfig{
+			ID:           os.Getenv("DISCORD_GUILD_ID"),
+			MemberRoleID: os.Getenv("DISCORD_MEMBER_ROLE_ID"),
+		},
+		BotToken: os.Getenv("DISCORD_BOT_TOKEN"),
+	}
+	if DiscordConfig.ClientID == "" || DiscordConfig.ClientSecret == "" || DiscordConfig.Guild.ID == "" || DiscordConfig.Guild.MemberRoleID == "" || DiscordConfig.BotToken == "" {
+		panic("Discord configuration is not fully set in environment variables")
+	}
 	return &Config{
-		AppName:             AppNameEnv,
-		FrontendURL:         FrontendURLEnv,
-		IssuerURL:           IssuerURLEnv,
-		IssuerInternalURL:   IssuerInternalURLEnv,
-		EmailSenderURL:      EmailSenderURLEnv,
-		Version:             version,
-		DiscordClientID:     os.Getenv("DISCORD_CLIENT_ID"),
-		DiscordClientSecret: os.Getenv("DISCORD_CLIENT_SECRET"),
-		GitHubClientID:      os.Getenv("GITHUB_CLIENT_ID"),
-		GitHubClientSecret:  os.Getenv("GITHUB_CLIENT_SECRET"),
+		AppName:            AppNameEnv,
+		FrontendURL:        FrontendURLEnv,
+		IssuerURL:          IssuerURLEnv,
+		IssuerInternalURL:  IssuerInternalURLEnv,
+		EmailSenderURL:     EmailSenderURLEnv,
+		Version:            version,
+		DiscordConfig:      DiscordConfig,
+		GitHubClientID:     os.Getenv("GITHUB_CLIENT_ID"),
+		GitHubClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
 	}
 }

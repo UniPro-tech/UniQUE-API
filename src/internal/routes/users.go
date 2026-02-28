@@ -21,6 +21,7 @@ import (
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
 	"github.com/UniPro-tech/UniQUE-API/internal/utils"
+	discordutil "github.com/UniPro-tech/UniQUE-API/internal/utils/discord"
 	"github.com/gin-gonic/gin"
 	"github.com/go-sql-driver/mysql"
 	"github.com/oklog/ulid/v2"
@@ -61,6 +62,7 @@ func RegisterUserRoutes(r *gin.Engine) {
 
 		// ユーザー情報の更新は自分自身 OR USER_UPDATE権限
 		g.PUT(":id", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), updateUser)
+		g.PATCH(":id", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), patchUser)
 
 		// パスワード変更: 自分自身またはUSER_UPDATE権限
 		g.PUT(":id/password/change", middleware.RequirePermissionOrSelf(constants.USER_UPDATE), changePassword)
@@ -82,7 +84,6 @@ func RegisterUserRoutes(r *gin.Engine) {
 	ig := r.Group("/internal/users")
 	{
 		ig.POST("", createUser)
-		ig.GET("email_verify/:code", getEmailVerificationCode)
 		ig.POST("email_verify/discord_link", linkDiscordByEmailCode)
 		ig.POST("email_verify", emailCodeCheck)
 	}
@@ -119,7 +120,7 @@ func getPendingEmail(userID string, q *query.Query) string {
 func listUsers(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -179,6 +180,7 @@ func listUsers(c *gin.Context) {
 				TwitterHandle:    ptrToString(p.TwitterHandle),
 				JoinedAt:         timeToTime(p.JoinedAt),
 				BirthdateVisible: &p.BirthdateVisible,
+				IsAdult:          isAdult(p.Birthdate),
 			}
 			// USER_READ権限があればExternalEmailとIsTOTPEnabledを返す
 			if hasUserReadPermission {
@@ -204,11 +206,11 @@ func listUsers(c *gin.Context) {
 // @Produce json
 // @Param user body routes.CreateUserRequest true "Create user"
 // @Success 201 {object} routes.UserDTO
-// @Router /users [post]
+// @Router /internal/users [post]
 func createUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -320,6 +322,7 @@ func createUser(c *gin.Context) {
 			Birthdate:        formatBirthdate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
 			JoinedAt:         timeToTime(p.JoinedAt),
+			IsAdult:          isAdult(p.Birthdate),
 		}
 	}
 	dbResp := UserDTO{
@@ -388,8 +391,13 @@ func getUser(c *gin.Context) {
 
 	// 基本情報は常に返す
 	dto := UserDTO{
-		ID:       u.ID,
-		CustomID: u.CustomID,
+		ID:                u.ID,
+		CustomID:          u.CustomID,
+		EmailVerified:     u.EmailVerified,
+		AffiliationPeriod: ptrToString(u.AffiliationPeriod),
+		Status:            u.Status,
+		CreatedAt:         u.CreatedAt,
+		UpdatedAt:         u.UpdatedAt,
 	}
 
 	// 自分自身またはUSER_READ権限がある場合はセンシティブ情報を含める
@@ -407,11 +415,6 @@ func getUser(c *gin.Context) {
 	if sensitiveAllowed {
 		dto.Email = u.Email
 		dto.ExternalEmail = u.ExternalEmail
-		dto.EmailVerified = u.EmailVerified
-		dto.AffiliationPeriod = ptrToString(u.AffiliationPeriod)
-		dto.Status = u.Status
-		dto.CreatedAt = u.CreatedAt
-		dto.UpdatedAt = u.UpdatedAt
 		dto.IsTOTPEnabled = u.IsTotpEnabled
 	}
 
@@ -436,6 +439,7 @@ func getUser(c *gin.Context) {
 			TwitterHandle:    ptrToString(p.TwitterHandle),
 			JoinedAt:         timeToTime(p.JoinedAt),
 			BirthdateVisible: &p.BirthdateVisible,
+			IsAdult:          isAdult(p.Birthdate),
 		}
 		// birthdateはUSER_READ権限があるか、自分自身、またはbirthdateVisible、OAuth で scope に profile があれば返す
 		if hasUserReadPermission || isSelf || p.BirthdateVisible || (isOAuth && strings.Contains(scopeStr, "profile")) {
@@ -459,7 +463,7 @@ func getUser(c *gin.Context) {
 func updateUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update users with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -508,7 +512,10 @@ func updateUser(c *gin.Context) {
 			query.EmailVerificationCode.RequestType.Eq("email_change"),
 		).Delete()
 		// external_emailは更新せず、認証コードのnew_emailに保存
-		sendEmailChangeVerification(id, *input.ExternalEmail, "", q, config.LoadConfig())
+		if err := sendEmailChangeVerification(id, *input.ExternalEmail, "", q, config.LoadConfig()); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		updates["email_verified"] = false
 	}
 	if input.AffiliationPeriod != nil {
@@ -525,57 +532,97 @@ func updateUser(c *gin.Context) {
 	}
 	if input.Profile != nil {
 		profileUpdates := map[string]interface{}{}
-		if input.Profile.DisplayName != "" {
-			profileUpdates["display_name"] = input.Profile.DisplayName
-		}
-		if input.Profile.Bio != "" {
-			profileUpdates["bio"] = input.Profile.Bio
-		}
-		if input.Profile.WebsiteURL != "" {
-			profileUpdates["website_url"] = input.Profile.WebsiteURL
-		}
-		if input.Profile.TwitterHandle != "" {
-			profileUpdates["twitter_handle"] = input.Profile.TwitterHandle
-		}
-		if input.Profile.BirthdateVisible != nil {
-			profileUpdates["birthdate_visible"] = *input.Profile.BirthdateVisible
-		}
-		if input.Profile.Birthdate != "" {
-			t, err := time.Parse("2006-01-02", input.Profile.Birthdate)
-			if err != nil {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
-				return
+		if input.Profile.DisplayName.Set {
+			if input.Profile.DisplayName.Value == nil {
+				profileUpdates["display_name"] = nil
+			} else {
+				profileUpdates["display_name"] = *input.Profile.DisplayName.Value
 			}
-			profileUpdates["birthdate"] = t
+		}
+		if input.Profile.Bio.Set {
+			if input.Profile.Bio.Value == nil {
+				profileUpdates["bio"] = nil
+			} else {
+				profileUpdates["bio"] = *input.Profile.Bio.Value
+			}
+		}
+		if input.Profile.WebsiteURL.Set {
+			if input.Profile.WebsiteURL.Value == nil {
+				profileUpdates["website_url"] = nil
+			} else {
+				profileUpdates["website_url"] = *input.Profile.WebsiteURL.Value
+			}
+		}
+		if input.Profile.TwitterHandle.Set {
+			if input.Profile.TwitterHandle.Value == nil {
+				profileUpdates["twitter_handle"] = nil
+			} else {
+				profileUpdates["twitter_handle"] = *input.Profile.TwitterHandle.Value
+			}
+		}
+		if input.Profile.BirthdateVisible.Set {
+			if input.Profile.BirthdateVisible.Value == nil {
+				profileUpdates["birthdate_visible"] = false
+			} else {
+				profileUpdates["birthdate_visible"] = *input.Profile.BirthdateVisible.Value
+			}
+		}
+		if input.Profile.Birthdate.Set {
+			if input.Profile.Birthdate.Value == nil || *input.Profile.Birthdate.Value == "" {
+				profileUpdates["birthdate"] = nil
+			} else {
+				t, err := time.Parse("2006-01-02", *input.Profile.Birthdate.Value)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
+					return
+				}
+				profileUpdates["birthdate"] = t
+			}
 		}
 		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
+		if err != nil || existing == nil {
+			if err == gorm.ErrRecordNotFound || existing == nil {
 				// 新規作成: 必須フィールドだけセット
 				newProfile := &model.Profile{
 					UserID: user.ID,
 				}
 				if v, ok := profileUpdates["display_name"]; ok {
-					newProfile.DisplayName = v.(string)
+					if v != nil {
+						newProfile.DisplayName = v.(string)
+					}
 				}
 				if v, ok := profileUpdates["bio"]; ok {
-					bioStr := v.(string)
-					newProfile.Bio = &bioStr
+					if v == nil {
+						newProfile.Bio = nil
+					} else {
+						bioStr := v.(string)
+						newProfile.Bio = &bioStr
+					}
 				}
 				if v, ok := profileUpdates["website_url"]; ok {
-					urlStr := v.(string)
-					newProfile.WebsiteURL = &urlStr
+					if v == nil {
+						newProfile.WebsiteURL = nil
+					} else {
+						urlStr := v.(string)
+						newProfile.WebsiteURL = &urlStr
+					}
 				}
 				if v, ok := profileUpdates["twitter_handle"]; ok {
-					twitterStr := v.(string)
-					newProfile.TwitterHandle = &twitterStr
+					if v == nil {
+						newProfile.TwitterHandle = nil
+					} else {
+						twitterStr := v.(string)
+						newProfile.TwitterHandle = &twitterStr
+					}
 				}
 				if v, ok := profileUpdates["birthdate_visible"]; ok {
 					newProfile.BirthdateVisible = v.(bool)
 				}
 				if v, ok := profileUpdates["birthdate"]; ok {
-					bdTime := v.(time.Time)
-					newProfile.Birthdate = &bdTime
+					if v != nil {
+						bdTime := v.(time.Time)
+						newProfile.Birthdate = &bdTime
+					}
 				}
 				now := time.Now()
 				newProfile.JoinedAt = &now
@@ -588,7 +635,6 @@ func updateUser(c *gin.Context) {
 				return
 			}
 		} else if len(profileUpdates) > 0 {
-			_ = existing // profile exists
 			if _, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).Updates(profileUpdates); err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 				return
@@ -596,7 +642,12 @@ func updateUser(c *gin.Context) {
 		}
 	}
 	// rebuild response dto
-	updated, _ := q.User.Where(query.User.ID.Eq(id)).First()
+	updated, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
 	dto := UserDTO{
 		ID:                updated.ID,
 		CustomID:          updated.CustomID,
@@ -620,6 +671,277 @@ func updateUser(c *gin.Context) {
 			Birthdate:        formatBirthdate(p.Birthdate),
 			BirthdateVisible: &p.BirthdateVisible,
 			JoinedAt:         timeToTime(p.JoinedAt),
+			IsAdult:          isAdult(p.Birthdate),
+		}
+	}
+	c.JSON(http.StatusOK, dto)
+}
+
+// patchUser godoc
+// @Summary Partially update a user
+// @Description パッチ更新。メールアドレスの変更は管理者のみ可能。プロフィールのフィールドは指定されたもののみ更新される（例: display_nameのみ更新など）
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param id path string true "User ID"
+// @Param user body routes.PatchUserRequest true "Update user"
+// @Success 200 {object} routes.UserDTO
+// @Router /users/{id} [patch]
+func patchUser(c *gin.Context) {
+	if isOAuth := IsOAuth(c); isOAuth {
+		// 403
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
+		return
+	}
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	q := query.Use(db)
+	user, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	var body PatchUserRequest
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	if body.Email.Set {
+		// メールアドレスの変更は管理者のみ可能
+		permissions, exists := c.Get("permissions")
+		if !exists {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "permissions not found"})
+			return
+		}
+
+		perms, ok := permissions.(constants.Permission)
+		if !ok || !perms.HasPermission(constants.USER_UPDATE) {
+			c.JSON(http.StatusNotImplemented, gin.H{"error": "email change not implemented"})
+			return
+		}
+
+		// 管理者ならメールアドレスを更新（nullならNULLに、値ありなら更新）
+		if body.Email.Value == nil {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"email": nil}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else if *body.Email.Value != user.Email {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Email, *body.Email.Value); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	if body.ExternalEmail.Set {
+		// 既存の未使用コードを削除
+		_, err = q.EmailVerificationCode.Where(
+			query.EmailVerificationCode.UserID.Eq(id),
+			query.EmailVerificationCode.RequestType.Eq("email_change"),
+		).Delete()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if body.ExternalEmail.Value == nil {
+			// 明示的に null を送られた -> external_email を NULL に
+			_, err = q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"external_email": nil, "email_verified": false})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else if *body.ExternalEmail.Value != user.ExternalEmail {
+			// external_emailは直接更新せず、認証コードのnew_emailに保存
+			if err := sendEmailChangeVerification(id, *body.ExternalEmail.Value, "", q, config.LoadConfig()); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+			_, err = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	if body.AffiliationPeriod.Set {
+		if body.AffiliationPeriod.Value == nil {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"affiliation_period": nil}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.AffiliationPeriod, *body.AffiliationPeriod.Value); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	if body.Status.Set {
+		if body.Status.Value == nil {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"status": nil}); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else {
+			if _, err := q.User.Where(query.User.ID.Eq(id)).Update(query.User.Status, *body.Status.Value); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	// TODO: custom_id
+
+	// プロフィールの更新
+	if body.Profile != nil {
+		profileUpdates := map[string]interface{}{}
+		if body.Profile.DisplayName.Set {
+			if body.Profile.DisplayName.Value == nil {
+				profileUpdates["display_name"] = nil
+			} else {
+				profileUpdates["display_name"] = *body.Profile.DisplayName.Value
+			}
+		}
+		if body.Profile.Bio.Set {
+			if body.Profile.Bio.Value == nil {
+				profileUpdates["bio"] = nil
+			} else {
+				profileUpdates["bio"] = *body.Profile.Bio.Value
+			}
+		}
+		if body.Profile.WebsiteURL.Set {
+			if body.Profile.WebsiteURL.Value == nil {
+				profileUpdates["website_url"] = nil
+			} else {
+				profileUpdates["website_url"] = *body.Profile.WebsiteURL.Value
+			}
+		}
+		if body.Profile.TwitterHandle.Set {
+			if body.Profile.TwitterHandle.Value == nil {
+				profileUpdates["twitter_handle"] = nil
+			} else {
+				profileUpdates["twitter_handle"] = *body.Profile.TwitterHandle.Value
+			}
+		}
+		if body.Profile.BirthdateVisible.Set {
+			if body.Profile.BirthdateVisible.Value == nil {
+				profileUpdates["birthdate_visible"] = false
+			} else {
+				profileUpdates["birthdate_visible"] = *body.Profile.BirthdateVisible.Value
+			}
+		}
+		if body.Profile.Birthdate.Set {
+			if body.Profile.Birthdate.Value == nil || *body.Profile.Birthdate.Value == "" {
+				profileUpdates["birthdate"] = nil
+			} else {
+				t, err := time.Parse("2006-01-02", *body.Profile.Birthdate.Value)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid birthdate format, expected YYYY-MM-DD"})
+					return
+				}
+				profileUpdates["birthdate"] = t
+			}
+		}
+		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
+		if err != nil || existing == nil {
+			if err == gorm.ErrRecordNotFound || existing == nil {
+				// 新規作成: 必須フィールドだけセット
+				newProfile := &model.Profile{
+					UserID: user.ID,
+				}
+				if v, ok := profileUpdates["display_name"]; ok {
+					if v != nil {
+						newProfile.DisplayName = v.(string)
+					}
+				}
+				if v, ok := profileUpdates["bio"]; ok {
+					if v == nil {
+						newProfile.Bio = nil
+					} else {
+						bioStr := v.(string)
+						newProfile.Bio = &bioStr
+					}
+				}
+				if v, ok := profileUpdates["website_url"]; ok {
+					if v == nil {
+						newProfile.WebsiteURL = nil
+					} else {
+						urlStr := v.(string)
+						newProfile.WebsiteURL = &urlStr
+					}
+				}
+				if v, ok := profileUpdates["twitter_handle"]; ok {
+					if v == nil {
+						newProfile.TwitterHandle = nil
+					} else {
+						twitterStr := v.(string)
+						newProfile.TwitterHandle = &twitterStr
+					}
+				}
+				if v, ok := profileUpdates["birthdate_visible"]; ok {
+					newProfile.BirthdateVisible = v.(bool)
+				}
+				if v, ok := profileUpdates["birthdate"]; ok {
+					if v != nil {
+						bdTime := v.(time.Time)
+						newProfile.Birthdate = &bdTime
+					}
+				}
+				now := time.Now()
+				newProfile.JoinedAt = &now
+				if err := q.Profile.Create(newProfile); err != nil {
+					c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+					return
+				}
+			} else {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		} else if len(profileUpdates) > 0 {
+			if _, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).Updates(profileUpdates); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
+		}
+	}
+
+	// rebuild response dto
+	updated, err := q.User.Where(query.User.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	dto := UserDTO{
+		ID:                updated.ID,
+		CustomID:          updated.CustomID,
+		Email:             updated.Email,
+		ExternalEmail:     updated.ExternalEmail,
+		PendingEmail:      getPendingEmail(updated.ID, q),
+		EmailVerified:     updated.EmailVerified,
+		AffiliationPeriod: ptrToString(updated.AffiliationPeriod),
+		Status:            updated.Status,
+		CreatedAt:         updated.CreatedAt,
+		UpdatedAt:         updated.UpdatedAt,
+		IsTOTPEnabled:     updated.IsTotpEnabled,
+	}
+	if p, err := q.Profile.Where(query.Profile.UserID.Eq(updated.ID)).First(); err == nil {
+		dto.Profile = &ProfileDTO{
+			UserID:           p.UserID,
+			DisplayName:      p.DisplayName,
+			Bio:              ptrToString(p.Bio),
+			WebsiteURL:       ptrToString(p.WebsiteURL),
+			TwitterHandle:    ptrToString(p.TwitterHandle),
+			Birthdate:        formatBirthdate(p.Birthdate),
+			BirthdateVisible: &p.BirthdateVisible,
+			IsAdult:          isAdult(p.Birthdate),
+			JoinedAt:         timeToTime(p.JoinedAt),
 		}
 	}
 	c.JSON(http.StatusOK, dto)
@@ -628,7 +950,7 @@ func updateUser(c *gin.Context) {
 func deleteUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -655,7 +977,7 @@ func deleteUser(c *gin.Context) {
 func listAppsForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -700,7 +1022,7 @@ func listAppsForUser(c *gin.Context) {
 func addRoleForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -760,7 +1082,7 @@ func addRoleForUser(c *gin.Context) {
 func removeRoleForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -797,7 +1119,7 @@ func removeRoleForUser(c *gin.Context) {
 func listRolesForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -848,7 +1170,7 @@ func listRolesForUser(c *gin.Context) {
 func getUserPermissions(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -896,7 +1218,7 @@ func getUserPermissions(c *gin.Context) {
 func listExternalIdentities(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -963,7 +1285,7 @@ func listExternalIdentities(c *gin.Context) {
 func addExternalIdentity(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -990,6 +1312,7 @@ func addExternalIdentity(c *gin.Context) {
 		IDToken:        stringToPtr(input.IDToken),
 		AccessToken:    input.AccessToken,
 		RefreshToken:   input.RefreshToken,
+		TokenExpiresAt: input.TokenExpiresAt,
 	}
 	if input.TokenExpiresAt != nil {
 		ei.TokenExpiresAt = timeToTimePtr(*input.TokenExpiresAt)
@@ -998,6 +1321,25 @@ func addExternalIdentity(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
+	// If provider is discord, try to add user to guild and assign member role (role only if user is active)
+	if input.Provider == "discord" {
+		config := c.MustGet("config").(config.Config)
+		if err := discordutil.AddToGuild(input.ExternalUserID, db, &config); err != nil {
+			log.Printf("failed to add user to discord guild: %v", err)
+		}
+
+		// assign member role only when user status is active
+		if user, uerr := q.User.Where(query.User.ID.Eq(id)).First(); uerr == nil {
+			if user.Status == "active" {
+				memberRoleId := config.DiscordConfig.Guild.MemberRoleID
+				if err := discordutil.AddRoleToUser(input.ExternalUserID, memberRoleId, &config); err != nil {
+					log.Printf("failed to add discord role: %v", err)
+				}
+			}
+		}
+	}
+
 	resp := ExternalIdentityDTO{
 		ID:             ei.ID,
 		UserID:         ei.UserID,
@@ -1037,7 +1379,7 @@ func addExternalIdentity(c *gin.Context) {
 func removeExternalIdentity(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1063,40 +1405,6 @@ func removeExternalIdentity(c *gin.Context) {
 	c.Status(http.StatusNoContent)
 }
 
-// getEmailVerificationCode godoc
-// @Summary Get email verification code info
-// @Description メール検証コードからユーザーIDを取得する（メール認証フロー用）
-// @Tags users
-// @Produce json
-// @Param code path string true "Email verification code"
-// @Success 200 {object} map[string]string
-// @Router /internal/users/email_verify/{code} [get]
-func getEmailVerificationCode(c *gin.Context) {
-	if isOAuth := IsOAuth(c); isOAuth {
-		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
-		return
-	}
-	db := getDB(c)
-	if db == nil {
-		return
-	}
-	code := c.Param("code")
-	q := query.Use(db)
-	evc, err := q.EmailVerificationCode.Where(
-		query.EmailVerificationCode.Code.Eq(code),
-	).First()
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "code_not_found"})
-		return
-	}
-	if time.Now().After(evc.ExpiresAt) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "code_expired"})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"user_id": evc.UserID})
-}
-
 // linkDiscordByEmailCode godoc
 // @Summary Link Discord account by email verification code
 // @Description メール検証コードを使ってDiscord連携を行う
@@ -1109,7 +1417,7 @@ func getEmailVerificationCode(c *gin.Context) {
 func linkDiscordByEmailCode(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1214,7 +1522,7 @@ func linkDiscordByEmailCode(c *gin.Context) {
 func emailCodeCheck(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1288,18 +1596,26 @@ func emailCodeCheck(c *gin.Context) {
 		_, err = q.User.Where(query.User.ID.Eq(evc.UserID)).Updates(map[string]interface{}{
 			"email_verified": true,
 		})
+		// Discord連携が終わっているかどうかを判定
+		externalCount, _ := q.ExternalIdentity.Where(
+			query.ExternalIdentity.UserID.Eq(evc.UserID),
+			query.ExternalIdentity.Provider.Eq("discord"),
+		).Count()
+		// Discord連携が終わっていればコードを削除、終わっていなければ残す（再度Discord連携後にこのコードで検証できるようにするため）
+		if externalCount > 0 {
+			_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
+		}
 	case "email_change":
 		_, err = q.User.Where(query.User.ID.Eq(evc.UserID)).Updates(map[string]interface{}{
 			"external_email": evc.NewEmail,
 			"email_verified": true,
 		})
+		_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
 	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	// delete used code
-	_, _ = q.EmailVerificationCode.Delete(&model.EmailVerificationCode{ID: evc.ID})
 	c.JSON(http.StatusOK, EmailCodeCheckResponse{Valid: true, Type: verificationType})
 }
 
@@ -1309,12 +1625,13 @@ func emailCodeCheck(c *gin.Context) {
 // @Tags users
 // @Produce json
 // @Param id path string true "User ID"
+// @Param body body UserApproveDTO true "Approval details"
 // @Success 200
 // @Router /users/{id}/approve [post]
 func approveUserRegist(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1323,13 +1640,73 @@ func approveUserRegist(c *gin.Context) {
 	}
 	user_id := c.Param("id")
 	q := query.Use(db)
-	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(map[string]interface{}{
-		"status": "active",
-	})
+
+	// リクエストボディを受け取る
+	var dto UserApproveDTO
+	if err := c.BindJSON(&dto); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_request_body"})
+		return
+	}
+
+	updates := map[string]interface{}{"status": "active"}
+	updateProfiles := map[string]interface{}{}
+	if dto.Email != "" {
+		updates["email"] = dto.Email
+	}
+	if dto.AffiliationPeriod != "" {
+		updates["affiliation_period"] = dto.AffiliationPeriod
+	}
+	if !dto.JoinedAt.IsZero() {
+		updateProfiles["joined_at"] = dto.JoinedAt
+	}
+
+	_, err := q.User.Where(query.User.ID.Eq(user_id)).Updates(updates)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+	_, err = q.Profile.Where(query.Profile.UserID.Eq(user_id)).Updates(updateProfiles)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Discord連携: ロール付与とウェルカムメッセージ送信（失敗しても承認自体は成功とする）
+	if externalIdentity, e := q.ExternalIdentity.Where(
+		query.ExternalIdentity.UserID.Eq(user_id),
+		query.ExternalIdentity.Provider.Eq("discord"),
+	).First(); e == nil {
+		discordUserId := externalIdentity.ExternalUserID
+
+		// ロール付与
+		config := c.MustGet("config").(config.Config)
+		memberRoleId := config.DiscordConfig.Guild.MemberRoleID
+		if memberRoleId != "" {
+			if err := discordutil.AddRoleToUser(discordUserId, memberRoleId, &config); err != nil {
+				log.Printf("failed to add discord role: %v", err)
+			}
+		} else {
+			log.Printf("DISCORD_MEMBER_ROLE_ID is not set; skipping role assignment")
+		}
+
+		// 表示名を取得
+		displayName := "メンバー"
+		if profile, perr := q.Profile.Where(query.Profile.UserID.Eq(user_id)).First(); perr == nil {
+			if profile.DisplayName != "" {
+				displayName = profile.DisplayName
+			}
+		} else if u, uerr := q.User.Where(query.User.ID.Eq(user_id)).First(); uerr == nil {
+			if u.CustomID != "" {
+				displayName = u.CustomID
+			}
+		}
+
+		// ウェルカムメッセージ送信
+		if err := discordutil.SendWelcomeMessage(discordUserId, dto.Email, dto.SakuraEmailPassword, displayName, db, &config); err != nil {
+			log.Printf("failed to send welcome DM: %v", err)
+		}
+	}
+
 	c.Status(http.StatusOK)
 }
 
@@ -1343,7 +1720,7 @@ func approveUserRegist(c *gin.Context) {
 // @Router /users/{id}/reject [post]
 func rejectUserRegist(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1371,7 +1748,7 @@ func rejectUserRegist(c *gin.Context) {
 func resendEmailVerification(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1400,7 +1777,6 @@ func resendEmailVerification(c *gin.Context) {
 	// 既存のコードを取得
 	existingCodes, err := q.EmailVerificationCode.Where(
 		query.EmailVerificationCode.UserID.Eq(id),
-		query.EmailVerificationCode.RequestType.Eq("email_change"),
 	).Find()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -1411,14 +1787,15 @@ func resendEmailVerification(c *gin.Context) {
 		return
 	}
 	externalEmail := existingCodes[0].NewEmail
-	if externalEmail == nil || *externalEmail == "" {
+	requestType := existingCodes[0].RequestType
+	if (externalEmail == nil || *externalEmail == "") && requestType == "email_change" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no external email set in existing request"})
 		return
 	}
 	// 既存の未使用コードを削除
 	_, _ = q.EmailVerificationCode.Where(
 		query.EmailVerificationCode.UserID.Eq(id),
-		query.EmailVerificationCode.RequestType.Eq("email_change"),
+		query.EmailVerificationCode.RequestType.Eq(requestType),
 	).Delete()
 	// プロフィールから名前を取得
 	name := ""
@@ -1426,7 +1803,11 @@ func resendEmailVerification(c *gin.Context) {
 		name = p.DisplayName
 	}
 	cfg := config.LoadConfig()
-	err = sendEmailChangeVerification(id, *externalEmail, name, q, cfg)
+	if requestType == "email_change" {
+		err = sendEmailChangeVerification(id, *externalEmail, name, q, cfg)
+	} else {
+		err = sendRegistrationEmailVerification(id, user.ExternalEmail, name, q, cfg)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification email: " + err.Error()})
 		return
@@ -1441,7 +1822,7 @@ func resendEmailVerification(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Param body body map[string]string true "Password change request"
+// @Param body body UserPasswordChangeDTO true "Password change request"
 // @Success 200 {object} map[string]string
 // @Failure 400 {object} map[string]string
 // @Failure 401 {object} map[string]string
@@ -1451,7 +1832,7 @@ func resendEmailVerification(c *gin.Context) {
 func changePassword(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1471,10 +1852,7 @@ func changePassword(c *gin.Context) {
 		return
 	}
 
-	var input struct {
-		CurrentPassword string `json:"current_password"`
-		NewPassword     string `json:"new_password" binding:"required"`
-	}
+	var input UserPasswordChangeDTO
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -1648,4 +2026,17 @@ func sendEmailChangeVerification(user_id, email, name string, q *query.Query, co
 	}
 
 	return nil
+}
+
+func isAdult(birthdate *time.Time) *bool {
+	if birthdate == nil {
+		return nil
+	}
+	now := time.Now()
+	age := now.Year() - birthdate.Year()
+	if now.Month() < birthdate.Month() || (now.Month() == birthdate.Month() && now.Day() < birthdate.Day()) {
+		age--
+	}
+	isAdult := age >= 18
+	return &isAdult
 }

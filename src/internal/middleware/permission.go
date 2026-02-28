@@ -120,6 +120,18 @@ func RequirePermissionOrSelf(required constants.Permission) gin.HandlerFunc {
 			targetUserID = c.Param("uid")
 		}
 
+		db, exists := c.Get("db")
+		if !exists {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+			return
+		}
+
+		dbConn, ok := db.(*gorm.DB)
+		if !ok || dbConn == nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
+			return
+		}
+
 		// 自分自身のリソースへのアクセスの場合は許可（ただし OAuth トークンの場合は scope を確認）
 		if targetUserID == userModel.ID {
 			if isOAuthI, _ := c.Get("isOAuth"); isOAuthI != nil {
@@ -135,6 +147,12 @@ func RequirePermissionOrSelf(required constants.Permission) gin.HandlerFunc {
 					return
 				}
 			}
+			permissions, err := GetUserPermissions(userModel.ID, dbConn)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "権限の取得に失敗しました"})
+				return
+			}
+			c.Set("permissions", permissions)
 			c.Next()
 			return
 		}
@@ -146,17 +164,6 @@ func RequirePermissionOrSelf(required constants.Permission) gin.HandlerFunc {
 				c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "OAuth トークンではこの操作は許可されていません"})
 				return
 			}
-		}
-		db, exists := c.Get("db")
-		if !exists {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})
-			return
-		}
-
-		dbConn, ok := db.(*gorm.DB)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})
-			return
 		}
 
 		permissions, err := GetUserPermissions(userModel.ID, dbConn)

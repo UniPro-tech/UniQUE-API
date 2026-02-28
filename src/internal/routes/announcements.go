@@ -3,12 +3,12 @@ package routes
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/UniPro-tech/UniQUE-API/internal/constants"
 	"github.com/UniPro-tech/UniQUE-API/internal/middleware"
 	"github.com/UniPro-tech/UniQUE-API/internal/model"
 	"github.com/UniPro-tech/UniQUE-API/internal/query"
+	"github.com/UniPro-tech/UniQUE-API/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/oklog/ulid/v2"
 )
@@ -24,34 +24,9 @@ func RegisterAnnouncementRoutes(r *gin.Engine) {
 		g.POST("", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_CREATE, "announcements.write"), createAnnouncement)
 		g.PUT(":id", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_UPDATE, "announcements.write"), updateAnnouncement)
 		g.DELETE(":id", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_DELETE, "announcements.delete"), deleteAnnouncement)
+		g.PATCH(":id", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_UPDATE, "announcements.write"), patchAnnouncement)
 		g.POST(":id/pin", middleware.RequirePermissionOrScope(constants.ANNOUNCEMENT_PIN, "announcements.write"), pinAnnouncement)
 	}
-}
-
-type CreateAnnouncementRequest struct {
-	Title    string `json:"title" binding:"required"`
-	Content  string `json:"content" binding:"required"`
-	IsPinned *bool  `json:"is_pinned,omitempty"`
-}
-
-type UpdateAnnouncementRequest struct {
-	Title    *string `json:"title,omitempty"`
-	Content  *string `json:"content,omitempty"`
-	IsPinned *bool   `json:"is_pinned,omitempty"`
-}
-
-type AnnouncementDTO struct {
-	ID        string    `json:"id"`
-	Title     string    `json:"title"`
-	Content   string    `json:"content"`
-	CreatedBy UserDTO   `json:"created_by"`
-	IsPinned  bool      `json:"is_pinned"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
-
-type AnnouncementListResponse struct {
-	Data []AnnouncementDTO `json:"data"`
 }
 
 // listAnnouncements godoc
@@ -174,6 +149,7 @@ func listAnnouncements(c *gin.Context) {
 			IsPinned:  a.IsPinned,
 			CreatedAt: a.CreatedAt,
 			UpdatedAt: a.UpdatedAt,
+			DeletedAt: utils.DeletedAtPtr(a.DeletedAt),
 		})
 	}
 	c.JSON(http.StatusOK, AnnouncementListResponse{Data: out})
@@ -221,6 +197,7 @@ func getAnnouncement(c *gin.Context) {
 		IsPinned:  a.IsPinned,
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
+		DeletedAt: utils.DeletedAtPtr(a.DeletedAt),
 	}
 	c.JSON(http.StatusOK, dto)
 }
@@ -285,6 +262,7 @@ func createAnnouncement(c *gin.Context) {
 		IsPinned:  ann.IsPinned,
 		CreatedAt: ann.CreatedAt,
 		UpdatedAt: ann.UpdatedAt,
+		DeletedAt: utils.DeletedAtPtr(ann.DeletedAt),
 	}
 	c.JSON(http.StatusCreated, dto)
 }
@@ -353,6 +331,76 @@ func updateAnnouncement(c *gin.Context) {
 		IsPinned:  a.IsPinned,
 		CreatedAt: a.CreatedAt,
 		UpdatedAt: a.UpdatedAt,
+		DeletedAt: utils.DeletedAtPtr(a.DeletedAt),
+	}
+	c.JSON(http.StatusOK, dto)
+}
+
+// patchAnnouncement godoc
+// @Summary Partially update an announcement
+// @Description Partially update announcement fields
+// @Tags announcements
+// @Accept json
+// @Produce json
+// @Param id path string true "Announcement ID"
+// @Param announcement body routes.PatchAnnouncementRequest true "Patch announcement"
+// @Success 200 {object} routes.AnnouncementDTO
+// @Router /announcements/{id} [patch]
+func patchAnnouncement(c *gin.Context) {
+	db := getDB(c)
+	if db == nil {
+		return
+	}
+	id := c.Param("id")
+	var input PatchAnnouncementRequest
+	if err := c.ShouldBindJSON(&input); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	updates := map[string]interface{}{}
+	if input.Title != nil {
+		updates["title"] = *input.Title
+	}
+	if input.Content != nil {
+		updates["content"] = *input.Content
+	}
+	if input.IsPinned != nil {
+		updates["is_pinned"] = *input.IsPinned
+	}
+	q := query.Use(db)
+	if len(updates) > 0 {
+		if _, err := q.Announcement.Where(query.Announcement.ID.Eq(id)).Updates(updates); err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+	}
+	a, err := q.Announcement.Where(query.Announcement.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "not found"})
+		return
+	}
+	// Build CreatedBy object
+	createdBy := UserDTO{ID: "", CustomID: ""}
+	if a.CreatedBy != "" {
+		if u, err := q.User.Where(query.User.ID.Eq(a.CreatedBy)).First(); err == nil {
+			createdBy = UserDTO{ID: u.ID, CustomID: u.CustomID}
+			if p, err := q.Profile.Where(query.Profile.UserID.Eq(u.ID)).First(); err == nil {
+				createdBy.Profile = &ProfileDTO{UserID: p.UserID, DisplayName: p.DisplayName, JoinedAt: timeToTime(p.JoinedAt)}
+			}
+		} else {
+			createdBy = UserDTO{ID: a.CreatedBy}
+		}
+	}
+
+	dto := AnnouncementDTO{
+		ID:        a.ID,
+		Title:     a.Title,
+		Content:   a.Content,
+		CreatedBy: createdBy,
+		IsPinned:  a.IsPinned,
+		CreatedAt: a.CreatedAt,
+		UpdatedAt: a.UpdatedAt,
+		DeletedAt: utils.DeletedAtPtr(a.DeletedAt),
 	}
 	c.JSON(http.StatusOK, dto)
 }
@@ -423,6 +471,15 @@ func pinAnnouncement(c *gin.Context) {
 		}
 	}
 
-	dto := AnnouncementDTO{ID: a.ID, Title: a.Title, Content: a.Content, CreatedBy: createdBy, IsPinned: a.IsPinned, CreatedAt: a.CreatedAt, UpdatedAt: a.UpdatedAt}
+	dto := AnnouncementDTO{
+		ID:        a.ID,
+		Title:     a.Title,
+		Content:   a.Content,
+		CreatedBy: createdBy,
+		IsPinned:  a.IsPinned,
+		CreatedAt: a.CreatedAt,
+		UpdatedAt: a.UpdatedAt,
+		DeletedAt: utils.DeletedAtPtr(a.DeletedAt),
+	}
 	c.JSON(http.StatusOK, dto)
 }

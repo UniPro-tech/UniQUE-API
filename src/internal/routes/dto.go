@@ -1,6 +1,32 @@
 package routes
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
+
+// Nullable is a generic type used for PATCH requests to distinguish
+// between "field not present" and "field present with null".
+type Nullable[T any] struct {
+	Set   bool
+	Value *T
+}
+
+func (n *Nullable[T]) UnmarshalJSON(data []byte) error {
+	n.Set = true
+
+	if string(data) == "null" {
+		n.Value = nil
+		return nil
+	}
+
+	var v T
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	n.Value = &v
+	return nil
+}
 
 // UserDTO represents user + optional profile for API responses
 type UserDTO struct {
@@ -18,6 +44,18 @@ type UserDTO struct {
 	IsTOTPEnabled     bool        `json:"is_totp_enabled"`
 }
 
+type UserApproveDTO struct {
+	Email               string    `json:"email"`
+	AffiliationPeriod   string    `json:"affiliation_period,omitempty"`
+	JoinedAt            time.Time `json:"joined_at,omitempty"`
+	SakuraEmailPassword string    `json:"sakura_email_password,omitempty"`
+}
+
+type UserPasswordChangeDTO struct {
+	CurrentPassword string `json:"current_password"`
+	NewPassword     string `json:"new_password" binding:"required"`
+}
+
 // UserListResponse represents response for listing users
 type UserListResponse struct {
 	Data []UserDTO `json:"data"`
@@ -33,14 +71,36 @@ type ProfileDTO struct {
 	Birthdate        string    `json:"birthdate,omitempty"`
 	BirthdateVisible *bool     `json:"birthdate_visible,omitempty"`
 	JoinedAt         time.Time `json:"joined_at,omitempty"`
+	IsAdult          *bool     `json:"is_adult,omitempty"`
+}
+
+// PatchProfileRequest is used for PATCH /users/:id
+type PatchProfileRequest struct {
+	DisplayName      Nullable[string]    `json:"display_name"`
+	Bio              Nullable[string]    `json:"bio"`
+	WebsiteURL       Nullable[string]    `json:"website_url"`
+	TwitterHandle    Nullable[string]    `json:"twitter_handle"`
+	Birthdate        Nullable[string]    `json:"birthdate"`
+	BirthdateVisible Nullable[bool]      `json:"birthdate_visible"`
+	JoinedAt         Nullable[time.Time] `json:"joined_at"`
+}
+
+// PatchUserRequest is used for PATCH /users/:id
+type PatchUserRequest struct {
+	CustomID          Nullable[string]     `json:"custom_id,omitempty"`
+	Email             Nullable[string]     `json:"email,omitempty"`
+	ExternalEmail     Nullable[string]     `json:"external_email,omitempty"`
+	AffiliationPeriod Nullable[string]     `json:"affiliation_period,omitempty"`
+	Status            Nullable[string]     `json:"status,omitempty"`
+	Profile           *PatchProfileRequest `json:"profile,omitempty"`
 }
 
 // CreateUserRequest is used for POST /users
 type CreateUserRequest struct {
 	CustomID          string      `json:"custom_id" binding:"required"`
-	Email             string      `json:"email" binding:"required,email"`
+	Email             string      `json:"email" binding:"omitempty,email"`
 	Password          string      `json:"password,omitempty"`
-	ExternalEmail     string      `json:"external_email,omitempty"`
+	ExternalEmail     string      `json:"external_email,omitempty" binding:"required,email"`
 	Status            string      `json:"status,omitempty"`
 	AffiliationPeriod string      `json:"affiliation_period,omitempty"`
 	Profile           *ProfileDTO `json:"profile,omitempty"`
@@ -48,22 +108,25 @@ type CreateUserRequest struct {
 
 // UpdateUserRequest is used for PUT /users/:id
 type UpdateUserRequest struct {
-	CustomID          *string     `json:"custom_id,omitempty"`
-	Email             *string     `json:"email,omitempty"`
-	ExternalEmail     *string     `json:"external_email,omitempty"`
-	AffiliationPeriod *string     `json:"affiliation_period,omitempty"`
-	Status            *string     `json:"status,omitempty"`
-	Profile           *ProfileDTO `json:"profile,omitempty"`
+	CustomID          *string              `json:"custom_id,omitempty"`
+	Email             *string              `json:"email,omitempty"`
+	ExternalEmail     *string              `json:"external_email,omitempty"`
+	AffiliationPeriod *string              `json:"affiliation_period,omitempty"`
+	Status            *string              `json:"status,omitempty"`
+	Profile           *PatchProfileRequest `json:"profile,omitempty"`
 }
 
 // RoleDTO represents role resource for API responses
 type RoleDTO struct {
-	ID                string `json:"id"`
-	CustomID          string `json:"custom_id"`
-	Name              string `json:"name"`
-	Description       string `json:"description,omitempty"`
-	PermissionBitmask int64  `json:"permission_bitmask"`
-	IsDefault         bool   `json:"is_default"`
+	ID                string     `json:"id"`
+	CustomID          string     `json:"custom_id"`
+	Name              string     `json:"name"`
+	Description       string     `json:"description,omitempty"`
+	PermissionBitmask int64      `json:"permission_bitmask"`
+	IsDefault         bool       `json:"is_default"`
+	CreatedAt         time.Time  `json:"created_at"`
+	UpdatedAt         time.Time  `json:"updated_at"`
+	DeletedAt         *time.Time `json:"deleted_at,omitempty"`
 }
 
 // RoleListResponse wraps a list of roles
@@ -89,14 +152,25 @@ type UpdateRoleRequest struct {
 	IsDefault         *bool   `json:"is_default,omitempty"`
 }
 
+// PatchRoleRequest is used for PATCH /roles/:id
+type PatchRoleRequest struct {
+	Name              *string `json:"name,omitempty"`
+	Description       *string `json:"description,omitempty"`
+	PermissionBitmask *int64  `json:"permission_bitmask,omitempty"`
+	IsDefault         *bool   `json:"is_default,omitempty"`
+}
+
 // ApplicationDTO represents application resource for API responses
 type ApplicationDTO struct {
-	ID               string `json:"id"`
-	Name             string `json:"name"`
-	Description      string `json:"description,omitempty"`
-	WebsiteURL       string `json:"website_url,omitempty"`
-	PrivacyPolicyURL string `json:"privacy_policy_url,omitempty"`
-	UserID           string `json:"user_id"`
+	ID               string     `json:"id"`
+	Name             string     `json:"name"`
+	Description      string     `json:"description,omitempty"`
+	WebsiteURL       string     `json:"website_url,omitempty"`
+	PrivacyPolicyURL string     `json:"privacy_policy_url,omitempty"`
+	UserID           string     `json:"user_id"`
+	CreatedAt        time.Time  `json:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at"`
+	DeletedAt        *time.Time `json:"deleted_at,omitempty"`
 }
 
 // ApplicationListResponse wraps a list of applications
@@ -159,12 +233,17 @@ type CreateApplicationRequest struct {
 }
 
 // UpdateApplicationRequest is used for PUT /applications/:id
-type UpdateApplicationRequest struct {
-	Name             *string `json:"name,omitempty"`
-	Description      *string `json:"description,omitempty"`
-	WebsiteURL       *string `json:"website_url,omitempty"`
-	PrivacyPolicyURL *string `json:"privacy_policy_url,omitempty"`
-	ClientSecret     *string `json:"client_secret,omitempty"`
+// Allow nullable semantics by aliasing to PatchApplicationRequest so
+// PUT can contain explicit nulls for fields.
+type UpdateApplicationRequest = PatchApplicationRequest
+
+// PatchApplicationRequest is used for PATCH /applications/:id
+type PatchApplicationRequest struct {
+	Name             Nullable[string] `json:"name,omitempty"`
+	Description      Nullable[string] `json:"description,omitempty"`
+	WebsiteURL       Nullable[string] `json:"website_url,omitempty"`
+	PrivacyPolicyURL Nullable[string] `json:"privacy_policy_url,omitempty"`
+	ClientSecret     Nullable[string] `json:"client_secret,omitempty"`
 }
 
 // CreateUserRoleRequest is used to assign a role to a user
@@ -185,10 +264,17 @@ type CreateApplicationOwnerRequest struct {
 
 // RedirectURIDTO represents a redirect URI for API responses (omits GORM deleted metadata)
 type RedirectURIDTO struct {
-	ApplicationID string    `json:"application_id"`
-	URI           string    `json:"uri"`
-	CreatedAt     time.Time `json:"created_at"`
-	UpdatedAt     time.Time `json:"updated_at"`
+	URI       string    `json:"uri"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
+}
+
+type RedirectURIListResponse struct {
+	Data []RedirectURIDTO `json:"data"`
+}
+
+type CreateRedirectURIRequest struct {
+	URI string `json:"uri" binding:"required,url"`
 }
 
 // EmailCodeCheckRequest is used to verify email codes
@@ -200,6 +286,39 @@ type EmailCodeCheckRequest struct {
 type EmailCodeCheckResponse struct {
 	Valid bool   `json:"valid"`
 	Type  string `json:"type"` // "signup", "change", or "migration"
+}
+
+type CreateAnnouncementRequest struct {
+	Title    string `json:"title" binding:"required"`
+	Content  string `json:"content" binding:"required"`
+	IsPinned *bool  `json:"is_pinned,omitempty"`
+}
+
+type UpdateAnnouncementRequest struct {
+	Title    *string `json:"title,omitempty"`
+	Content  *string `json:"content,omitempty"`
+	IsPinned *bool   `json:"is_pinned,omitempty"`
+}
+
+type PatchAnnouncementRequest struct {
+	Title    *string `json:"title,omitempty"`
+	Content  *string `json:"content,omitempty"`
+	IsPinned *bool   `json:"is_pinned,omitempty"`
+}
+
+type AnnouncementDTO struct {
+	ID        string     `json:"id"`
+	Title     string     `json:"title"`
+	Content   string     `json:"content"`
+	CreatedBy UserDTO    `json:"created_by"`
+	IsPinned  bool       `json:"is_pinned"`
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at,omitempty"`
+}
+
+type AnnouncementListResponse struct {
+	Data []AnnouncementDTO `json:"data"`
 }
 
 // formatBirthdate formats a *time.Time as "YYYY-MM-DD" or returns "" if nil.
