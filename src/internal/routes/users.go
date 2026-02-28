@@ -756,7 +756,10 @@ func patchUser(c *gin.Context) {
 			}
 		} else if *body.ExternalEmail.Value != user.ExternalEmail {
 			// external_emailは直接更新せず、認証コードのnew_emailに保存
-			sendEmailChangeVerification(id, *body.ExternalEmail.Value, "", q, config.LoadConfig())
+			if err := sendEmailChangeVerification(id, *body.ExternalEmail.Value, "", q, config.LoadConfig()); err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 			_, err = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
 			if err != nil {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
