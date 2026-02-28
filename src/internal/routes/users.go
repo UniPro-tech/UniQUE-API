@@ -1319,7 +1319,7 @@ func addExternalIdentity(c *gin.Context) {
 	// If provider is discord, try to add user to guild and assign member role (role only if user is active)
 	if input.Provider == "discord" {
 		config := c.MustGet("config").(config.Config)
-		if err := discordutil.AddToGuild(id, db, &config); err != nil {
+		if err := discordutil.AddToGuild(input.ExternalUserID, db, &config); err != nil {
 			log.Printf("failed to add user to discord guild: %v", err)
 		}
 
