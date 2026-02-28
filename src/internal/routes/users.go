@@ -457,7 +457,7 @@ func getUser(c *gin.Context) {
 // @Accept json
 // @Produce json
 // @Param id path string true "User ID"
-// @Param user body routes.PatchUserRequest true "Update user"
+// @Param user body routes.UpdateUserRequest true "Update user"
 // @Success 200 {object} routes.UserDTO
 // @Router /users/{id} [put]
 func updateUser(c *gin.Context) {
@@ -687,7 +687,7 @@ func updateUser(c *gin.Context) {
 func patchUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update applications with an access token"})
 		return
 	}
 	db := getDB(c)
