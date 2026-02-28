@@ -1771,7 +1771,6 @@ func resendEmailVerification(c *gin.Context) {
 	// 既存のコードを取得
 	existingCodes, err := q.EmailVerificationCode.Where(
 		query.EmailVerificationCode.UserID.Eq(id),
-		query.EmailVerificationCode.RequestType.Eq("email_change"),
 	).Find()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
