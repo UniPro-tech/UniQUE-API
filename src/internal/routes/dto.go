@@ -45,10 +45,10 @@ type UserDTO struct {
 }
 
 type UserApproveDTO struct {
-	Email               string    `json:"email"`
-	AffiliationPeriod   string    `json:"affiliation_period,omitempty"`
-	JoinedAt            time.Time `json:"joined_at,omitempty"`
-	SakuraEmailPassword string    `json:"sakura_email_password,omitempty"`
+	Email               string `json:"email" binding:"required,email"`
+	AffiliationPeriod   string `json:"affiliation_period"`
+	JoinedAt            string `json:"joined_at"`
+	SakuraEmailPassword string `json:"sakura_email_password"`
 }
 
 type UserPasswordChangeDTO struct {
@@ -63,26 +63,26 @@ type UserListResponse struct {
 
 // ProfileDTO is a minimal profile representation embedded in UserDTO
 type ProfileDTO struct {
-	UserID           string    `json:"user_id"`
-	DisplayName      string    `json:"display_name,omitempty"`
-	Bio              string    `json:"bio,omitempty"`
-	WebsiteURL       string    `json:"website_url,omitempty"`
-	TwitterHandle    string    `json:"twitter_handle,omitempty"`
-	Birthdate        string    `json:"birthdate,omitempty"`
-	BirthdateVisible *bool     `json:"birthdate_visible,omitempty"`
-	JoinedAt         time.Time `json:"joined_at,omitempty"`
-	IsAdult          *bool     `json:"is_adult,omitempty"`
+	UserID           string `json:"user_id"`
+	DisplayName      string `json:"display_name,omitempty"`
+	Bio              string `json:"bio,omitempty"`
+	WebsiteURL       string `json:"website_url,omitempty"`
+	TwitterHandle    string `json:"twitter_handle,omitempty"`
+	Birthdate        string `json:"birthdate,omitempty"`
+	BirthdateVisible *bool  `json:"birthdate_visible,omitempty"`
+	JoinedAt         string `json:"joined_at,omitempty"`
+	IsAdult          *bool  `json:"is_adult,omitempty"`
 }
 
 // PatchProfileRequest is used for PATCH /users/:id
 type PatchProfileRequest struct {
-	DisplayName      Nullable[string]    `json:"display_name"`
-	Bio              Nullable[string]    `json:"bio"`
-	WebsiteURL       Nullable[string]    `json:"website_url"`
-	TwitterHandle    Nullable[string]    `json:"twitter_handle"`
-	Birthdate        Nullable[string]    `json:"birthdate"`
-	BirthdateVisible Nullable[bool]      `json:"birthdate_visible"`
-	JoinedAt         Nullable[time.Time] `json:"joined_at"`
+	DisplayName      Nullable[string] `json:"display_name"`
+	Bio              Nullable[string] `json:"bio"`
+	WebsiteURL       Nullable[string] `json:"website_url"`
+	TwitterHandle    Nullable[string] `json:"twitter_handle"`
+	Birthdate        Nullable[string] `json:"birthdate"`
+	BirthdateVisible Nullable[bool]   `json:"birthdate_visible"`
+	JoinedAt         Nullable[string] `json:"joined_at"`
 }
 
 // PatchUserRequest is used for PATCH /users/:id
@@ -321,8 +321,8 @@ type AnnouncementListResponse struct {
 	Data []AnnouncementDTO `json:"data"`
 }
 
-// formatBirthdate formats a *time.Time as "YYYY-MM-DD" or returns "" if nil.
-func formatBirthdate(t *time.Time) string {
+// formatDate formats a *time.Time as "YYYY-MM-DD" or returns "" if nil.
+func formatDate(t *time.Time) string {
 	if t == nil || t.IsZero() {
 		return ""
 	}
@@ -343,14 +343,6 @@ func stringToPtr(s string) *string {
 		return nil
 	}
 	return &s
-}
-
-// timeToTime converts *time.Time to time.Time, returning zero time if nil
-func timeToTime(t *time.Time) time.Time {
-	if t == nil {
-		return time.Time{}
-	}
-	return *t
 }
 
 // timeToTimePtr converts time.Time to *time.Time

@@ -171,9 +171,9 @@ func listUsersForRole(c *gin.Context) {
 				Bio:              ptrToString(p.Bio),
 				WebsiteURL:       ptrToString(p.WebsiteURL),
 				TwitterHandle:    ptrToString(p.TwitterHandle),
-				Birthdate:        formatBirthdate(p.Birthdate),
+				Birthdate:        formatDate(p.Birthdate),
 				BirthdateVisible: &p.BirthdateVisible,
-				JoinedAt:         timeToTime(p.JoinedAt),
+				JoinedAt:         formatDate(p.JoinedAt),
 			}
 		}
 		out = append(out, dto)
