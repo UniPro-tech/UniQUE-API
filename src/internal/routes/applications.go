@@ -586,6 +586,10 @@ func deleteRedirectURIForApplication(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "uri required"})
 		return
 	}
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "application id required"})
+		return
+	}
 	q := query.Use(db)
 	r, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(id), q.RedirectURI.URI.Eq(uri), q.RedirectURI.DeletedAt.IsNull()).First()
 	if err != nil {
@@ -596,7 +600,7 @@ func deleteRedirectURIForApplication(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "redirect uri not found"})
 		return
 	}
-	if _, err := q.RedirectURI.Delete(r); err != nil {
+	if _, err := q.RedirectURI.Where(q.RedirectURI.ApplicationID.Eq(r.ApplicationID), q.RedirectURI.URI.Eq(r.URI), q.RedirectURI.DeletedAt.IsNull()).Delete(); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
