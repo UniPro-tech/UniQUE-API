@@ -731,17 +731,29 @@ func patchUser(c *gin.Context) {
 
 	if body.ExternalEmail.Set {
 		// 既存の未使用コードを削除
-		_, _ = q.EmailVerificationCode.Where(
+		_, err = q.EmailVerificationCode.Where(
 			query.EmailVerificationCode.UserID.Eq(id),
 			query.EmailVerificationCode.RequestType.Eq("email_change"),
 		).Delete()
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
 		if body.ExternalEmail.Value == nil {
 			// 明示的に null を送られた -> external_email を NULL に
-			_, _ = q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"external_email": nil, "email_verified": false})
+			_, err = q.User.Where(query.User.ID.Eq(id)).Updates(map[string]interface{}{"external_email": nil, "email_verified": false})
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 		} else if *body.ExternalEmail.Value != user.ExternalEmail {
 			// external_emailは直接更新せず、認証コードのnew_emailに保存
 			sendEmailChangeVerification(id, *body.ExternalEmail.Value, "", q, config.LoadConfig())
-			_, _ = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
+			_, err = q.User.Where(query.User.ID.Eq(id)).Update(query.User.EmailVerified, false)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+				return
+			}
 		}
 	}
 
@@ -772,6 +784,8 @@ func patchUser(c *gin.Context) {
 			}
 		}
 	}
+
+	// TODO: custom_id
 
 	// プロフィールの更新
 	if body.Profile != nil {
@@ -1302,7 +1316,6 @@ func addExternalIdentity(c *gin.Context) {
 		// assign member role only when user status is active
 		if user, uerr := q.User.Where(query.User.ID.Eq(id)).First(); uerr == nil {
 			if user.Status == "active" {
-				discordutil.AddToGuild(input.ExternalUserID, db, &config)
 				memberRoleId := config.DiscordConfig.Guild.MemberRoleID
 				if err := discordutil.AddRoleToUser(input.ExternalUserID, memberRoleId, &config); err != nil {
 					log.Printf("failed to add discord role: %v", err)

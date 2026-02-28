@@ -122,13 +122,13 @@ func RequirePermissionOrSelf(required constants.Permission) gin.HandlerFunc {
 
 		db, exists := c.Get("db")
 		if !exists {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 			return
 		}
 
 		dbConn, ok := db.(*gorm.DB)
-		if !ok {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "データベース接続エラー"})
+		if !ok || dbConn == nil {
+			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"error": "Database connection error"})
 			return
 		}
 

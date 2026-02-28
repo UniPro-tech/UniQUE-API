@@ -108,13 +108,21 @@ func listApplications(c *gin.Context) {
 func createApplication(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to create applications with an access token"})
 		return
 	}
 	db := getDB(c)
 	if db == nil {
 		return
 	}
+
+	// Authentication
+	_, exists := c.Get("user")
+	if !exists {
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
 	var input CreateApplicationRequest
 	if err := c.ShouldBindJSON(&input); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -165,7 +173,7 @@ func createApplication(c *gin.Context) {
 func getApplication(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to get applications with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -206,7 +214,7 @@ func getApplication(c *gin.Context) {
 func updateApplication(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update applications with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -271,19 +279,19 @@ func updateApplication(c *gin.Context) {
 	// auth user required for owner check
 	ui, exists := c.Get("user")
 	if !exists {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "認証が必要です"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
 		return
 	}
 	authUser, ok := ui.(*model.User)
 	if !ok || authUser == nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "ユーザー情報が取得できませんでした"})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "Could not retrieve user information"})
 		return
 	}
 
 	// allow if user has APP_UPDATE permission or is owner
 	perms, _ := middleware.GetUserPermissions(authUser.ID, db)
 	if !perms.HasPermission(constants.APP_UPDATE) && appModel.UserID != authUser.ID {
-		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "この操作を実行する権限がありません"})
+		c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "You do not have permission to perform this operation"})
 		return
 	}
 
@@ -408,7 +416,11 @@ func patchApplication(c *gin.Context) {
 			return
 		}
 	}
-	updated, _ := q.Application.Where(query.Application.ID.Eq(id)).First()
+	updated, err := q.Application.Where(query.Application.ID.Eq(id)).First()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	resp := ApplicationDTO{
 		ID:               updated.ID,
 		Name:             updated.Name,

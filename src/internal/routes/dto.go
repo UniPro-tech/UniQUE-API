@@ -233,7 +233,6 @@ type CreateApplicationRequest struct {
 }
 
 // UpdateApplicationRequest is used for PUT /applications/:id
-// UpdateApplicationRequest is used for PUT /applications/:id
 // Allow nullable semantics by aliasing to PatchApplicationRequest so
 // PUT can contain explicit nulls for fields.
 type UpdateApplicationRequest = PatchApplicationRequest
