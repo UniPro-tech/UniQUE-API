@@ -1759,14 +1759,15 @@ func resendEmailVerification(c *gin.Context) {
 		return
 	}
 	externalEmail := existingCodes[0].NewEmail
-	if externalEmail == nil || *externalEmail == "" {
+	requestType := existingCodes[0].RequestType
+	if (externalEmail == nil || *externalEmail == "") && requestType == "email_change" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "no external email set in existing request"})
 		return
 	}
 	// 既存の未使用コードを削除
 	_, _ = q.EmailVerificationCode.Where(
 		query.EmailVerificationCode.UserID.Eq(id),
-		query.EmailVerificationCode.RequestType.Eq("email_change"),
+		query.EmailVerificationCode.RequestType.Eq(requestType),
 	).Delete()
 	// プロフィールから名前を取得
 	name := ""
@@ -1774,7 +1775,11 @@ func resendEmailVerification(c *gin.Context) {
 		name = p.DisplayName
 	}
 	cfg := config.LoadConfig()
-	err = sendEmailChangeVerification(id, *externalEmail, name, q, cfg)
+	if requestType == "email_change" {
+		err = sendEmailChangeVerification(id, *externalEmail, name, q, cfg)
+	} else {
+		err = sendRegistrationEmailVerification(id, user.ExternalEmail, name, q, cfg)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to send verification email: " + err.Error()})
 		return
