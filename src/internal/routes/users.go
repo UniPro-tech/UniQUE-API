@@ -120,7 +120,7 @@ func getPendingEmail(userID string, q *query.Query) string {
 func listUsers(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -210,7 +210,7 @@ func listUsers(c *gin.Context) {
 func createUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -463,7 +463,7 @@ func getUser(c *gin.Context) {
 func updateUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update users with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -687,7 +687,7 @@ func updateUser(c *gin.Context) {
 func patchUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to update applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -944,7 +944,7 @@ func patchUser(c *gin.Context) {
 func deleteUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -971,7 +971,7 @@ func deleteUser(c *gin.Context) {
 func listAppsForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1016,7 +1016,7 @@ func listAppsForUser(c *gin.Context) {
 func addRoleForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1076,7 +1076,7 @@ func addRoleForUser(c *gin.Context) {
 func removeRoleForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1113,7 +1113,7 @@ func removeRoleForUser(c *gin.Context) {
 func listRolesForUser(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1164,7 +1164,7 @@ func listRolesForUser(c *gin.Context) {
 func getUserPermissions(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1212,7 +1212,7 @@ func getUserPermissions(c *gin.Context) {
 func listExternalIdentities(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1279,7 +1279,7 @@ func listExternalIdentities(c *gin.Context) {
 func addExternalIdentity(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1373,7 +1373,7 @@ func addExternalIdentity(c *gin.Context) {
 func removeExternalIdentity(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1411,7 +1411,7 @@ func removeExternalIdentity(c *gin.Context) {
 func linkDiscordByEmailCode(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1516,7 +1516,7 @@ func linkDiscordByEmailCode(c *gin.Context) {
 func emailCodeCheck(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1625,7 +1625,7 @@ func emailCodeCheck(c *gin.Context) {
 func approveUserRegist(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1714,7 +1714,7 @@ func approveUserRegist(c *gin.Context) {
 // @Router /users/{id}/reject [post]
 func rejectUserRegist(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1742,7 +1742,7 @@ func rejectUserRegist(c *gin.Context) {
 func resendEmailVerification(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
@@ -1826,7 +1826,7 @@ func resendEmailVerification(c *gin.Context) {
 func changePassword(c *gin.Context) {
 	if isOAuth := IsOAuth(c); isOAuth {
 		// 403
-		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to list applications with an access token"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "You are not allowed to perform this action with an access token"})
 		return
 	}
 	db := getDB(c)
