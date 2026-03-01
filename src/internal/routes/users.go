@@ -89,6 +89,25 @@ func RegisterUserRoutes(r *gin.Engine) {
 	}
 }
 
+// parseDateFlexible attempts to parse date/time strings in multiple
+// common layouts. Frontend sends "YYYY-MM-DD" only, but accept
+// RFC3339 as well for robustness.
+func parseDateFlexible(s string) (time.Time, error) {
+	if s == "" {
+		return time.Time{}, fmt.Errorf("empty date")
+	}
+	layouts := []string{time.DateOnly, "2006-01-02", time.RFC3339, time.RFC3339Nano}
+	var parseErr error
+	for _, l := range layouts {
+		if t, err := time.Parse(l, s); err == nil {
+			return t, nil
+		} else {
+			parseErr = err
+		}
+	}
+	return time.Time{}, parseErr
+}
+
 func getDB(c *gin.Context) *gorm.DB {
 	dbi, ok := c.MustGet("db").(*gorm.DB)
 	if !ok {
@@ -579,6 +598,18 @@ func updateUser(c *gin.Context) {
 				profileUpdates["birthdate"] = t
 			}
 		}
+		if input.Profile.JoinedAt.Set {
+			if input.Profile.JoinedAt.Value == nil || *input.Profile.JoinedAt.Value == "" {
+				profileUpdates["joined_at"] = nil
+			} else {
+				joinedAt, err := parseDateFlexible(*input.Profile.JoinedAt.Value)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid joined_at format"})
+					return
+				}
+				profileUpdates["joined_at"] = joinedAt
+			}
+		}
 		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
 		if err != nil || existing == nil {
 			if err == gorm.ErrRecordNotFound || existing == nil {
@@ -846,6 +877,18 @@ func patchUser(c *gin.Context) {
 					return
 				}
 				profileUpdates["birthdate"] = t
+			}
+		}
+		if body.Profile.JoinedAt.Set {
+			if body.Profile.JoinedAt.Value == nil || *body.Profile.JoinedAt.Value == "" {
+				profileUpdates["joined_at"] = nil
+			} else {
+				joinedAt, err := parseDateFlexible(*body.Profile.JoinedAt.Value)
+				if err != nil {
+					c.JSON(http.StatusBadRequest, gin.H{"error": "invalid joined_at format"})
+					return
+				}
+				profileUpdates["joined_at"] = joinedAt
 			}
 		}
 		existing, err := q.Profile.Where(query.Profile.UserID.Eq(user.ID)).First()
@@ -1653,8 +1696,8 @@ func approveUserRegist(c *gin.Context) {
 
 	updates["email"] = dto.Email
 	updates["affiliation_period"] = dto.AffiliationPeriod
-	// timeに変換
-	joinedAt, err := time.Parse(time.DateOnly, dto.JoinedAt)
+	// timeに変換（YYYY-MM-DD をフロントが送るのでそれを受け入れる）
+	joinedAt, err := parseDateFlexible(dto.JoinedAt)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid_joined_at_format"})
 		return
