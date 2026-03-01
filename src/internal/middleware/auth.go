@@ -39,6 +39,12 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		// health checkはスキップ
+		if c.Request.URL.Path == "/health" {
+			c.Next()
+			return
+		}
+
 		// /internal/users への POST（ユーザー作成）はスキップ
 		if c.Request.Method == "POST" && c.Request.URL.Path == "/internal/users" {
 			c.Next()
