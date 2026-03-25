@@ -1,18 +1,18 @@
 basePath: /
 definitions:
-  main.HealthResponse:
+  cmd_server.HealthResponse:
     properties:
       status:
         type: string
     type: object
-  routes.AnnouncementDTO:
+  internal_routes.AnnouncementDTO:
     properties:
       content:
         type: string
       created_at:
         type: string
       created_by:
-        $ref: '#/definitions/routes.UserDTO'
+        $ref: '#/definitions/internal_routes.UserDTO'
       deleted_at:
         type: string
       id:
@@ -24,14 +24,14 @@ definitions:
       updated_at:
         type: string
     type: object
-  routes.AnnouncementListResponse:
+  internal_routes.AnnouncementListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/routes.AnnouncementDTO'
+          $ref: '#/definitions/internal_routes.AnnouncementDTO'
         type: array
     type: object
-  routes.ApplicationDTO:
+  internal_routes.ApplicationDTO:
     properties:
       created_at:
         type: string
@@ -52,14 +52,14 @@ definitions:
       website_url:
         type: string
     type: object
-  routes.ApplicationListResponse:
+  internal_routes.ApplicationListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/routes.ApplicationDTO'
+          $ref: '#/definitions/internal_routes.ApplicationDTO'
         type: array
     type: object
-  routes.CreateAnnouncementRequest:
+  internal_routes.CreateAnnouncementRequest:
     properties:
       content:
         type: string
@@ -71,7 +71,7 @@ definitions:
     - content
     - title
     type: object
-  routes.CreateApplicationRequest:
+  internal_routes.CreateApplicationRequest:
     properties:
       client_secret:
         type: string
@@ -90,7 +90,7 @@ definitions:
     - name
     - user_id
     type: object
-  routes.CreateExternalIdentityRequest:
+  internal_routes.CreateExternalIdentityRequest:
     properties:
       access_token:
         type: string
@@ -108,14 +108,14 @@ definitions:
     - external_user_id
     - provider
     type: object
-  routes.CreateRedirectURIRequest:
+  internal_routes.CreateRedirectURIRequest:
     properties:
       uri:
         type: string
     required:
     - uri
     type: object
-  routes.CreateRoleRequest:
+  internal_routes.CreateRoleRequest:
     properties:
       assign_to_existing:
         type: boolean
@@ -134,7 +134,7 @@ definitions:
     - custom_id
     - name
     type: object
-  routes.CreateUserRequest:
+  internal_routes.CreateUserRequest:
     properties:
       affiliation_period:
         type: string
@@ -147,28 +147,28 @@ definitions:
       password:
         type: string
       profile:
-        $ref: '#/definitions/routes.ProfileDTO'
+        $ref: '#/definitions/internal_routes.ProfileDTO'
       status:
         type: string
     required:
     - custom_id
     - external_email
     type: object
-  routes.CreateUserRoleRequest:
+  internal_routes.CreateUserRoleRequest:
     properties:
       role_id:
         type: string
     required:
     - role_id
     type: object
-  routes.EmailCodeCheckRequest:
+  internal_routes.EmailCodeCheckRequest:
     properties:
       code:
         type: string
     required:
     - code
     type: object
-  routes.EmailCodeCheckResponse:
+  internal_routes.EmailCodeCheckResponse:
     properties:
       type:
         description: '"signup", "change", or "migration"'
@@ -176,7 +176,7 @@ definitions:
       valid:
         type: boolean
     type: object
-  routes.EmailVerifyDiscordLinkRequest:
+  internal_routes.EmailVerifyDiscordLinkRequest:
     properties:
       access_token:
         type: string
@@ -193,7 +193,7 @@ definitions:
     - code
     - external_user_id
     type: object
-  routes.ExternalIdentityDTO:
+  internal_routes.ExternalIdentityDTO:
     properties:
       avatar_url:
         type: string
@@ -225,35 +225,28 @@ definitions:
         description: Common normalised fields from provider userinfo
         type: string
     type: object
-  routes.ExternalIdentityListResponse:
+  internal_routes.ExternalIdentityListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/routes.ExternalIdentityDTO'
+          $ref: '#/definitions/internal_routes.ExternalIdentityDTO'
         type: array
     type: object
-  routes.Nullable-bool:
+  internal_routes.Nullable-bool:
     properties:
       set:
         type: boolean
       value:
         type: boolean
     type: object
-  routes.Nullable-string:
-    properties:
-      set:
-        type: boolean
-      value:
-        type: string
-    type: object
-  routes.Nullable-time_Time:
+  internal_routes.Nullable-string:
     properties:
       set:
         type: boolean
       value:
         type: string
     type: object
-  routes.PatchAnnouncementRequest:
+  internal_routes.PatchAnnouncementRequest:
     properties:
       content:
         type: string
@@ -262,37 +255,37 @@ definitions:
       title:
         type: string
     type: object
-  routes.PatchApplicationRequest:
+  internal_routes.PatchApplicationRequest:
     properties:
       client_secret:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       description:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       name:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       privacy_policy_url:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       website_url:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
     type: object
-  routes.PatchProfileRequest:
+  internal_routes.PatchProfileRequest:
     properties:
       bio:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       birthdate:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       birthdate_visible:
-        $ref: '#/definitions/routes.Nullable-bool'
+        $ref: '#/definitions/internal_routes.Nullable-bool'
       display_name:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       joined_at:
-        $ref: '#/definitions/routes.Nullable-time_Time'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       twitter_handle:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       website_url:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
     type: object
-  routes.PatchRoleRequest:
+  internal_routes.PatchRoleRequest:
     properties:
       description:
         type: string
@@ -303,22 +296,22 @@ definitions:
       permission_bitmask:
         type: integer
     type: object
-  routes.PatchUserRequest:
+  internal_routes.PatchUserRequest:
     properties:
       affiliation_period:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       custom_id:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       email:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       external_email:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       profile:
-        $ref: '#/definitions/routes.PatchProfileRequest'
+        $ref: '#/definitions/internal_routes.PatchProfileRequest'
       status:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
     type: object
-  routes.PermissionsResponse:
+  internal_routes.PermissionsResponse:
     properties:
       permission_bitmask:
         type: integer
@@ -327,7 +320,7 @@ definitions:
           type: string
         type: array
     type: object
-  routes.ProfileDTO:
+  internal_routes.ProfileDTO:
     properties:
       bio:
         type: string
@@ -348,7 +341,7 @@ definitions:
       website_url:
         type: string
     type: object
-  routes.RedirectURIDTO:
+  internal_routes.RedirectURIDTO:
     properties:
       created_at:
         type: string
@@ -357,14 +350,14 @@ definitions:
       uri:
         type: string
     type: object
-  routes.RedirectURIListResponse:
+  internal_routes.RedirectURIListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/routes.RedirectURIDTO'
+          $ref: '#/definitions/internal_routes.RedirectURIDTO'
         type: array
     type: object
-  routes.RoleDTO:
+  internal_routes.RoleDTO:
     properties:
       created_at:
         type: string
@@ -385,14 +378,14 @@ definitions:
       updated_at:
         type: string
     type: object
-  routes.RoleListResponse:
+  internal_routes.RoleListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/routes.RoleDTO'
+          $ref: '#/definitions/internal_routes.RoleDTO'
         type: array
     type: object
-  routes.UpdateAnnouncementRequest:
+  internal_routes.UpdateAnnouncementRequest:
     properties:
       content:
         type: string
@@ -401,20 +394,20 @@ definitions:
       title:
         type: string
     type: object
-  routes.UpdateApplicationRequest:
+  internal_routes.UpdateApplicationRequest:
     properties:
       client_secret:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       description:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       name:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       privacy_policy_url:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
       website_url:
-        $ref: '#/definitions/routes.Nullable-string'
+        $ref: '#/definitions/internal_routes.Nullable-string'
     type: object
-  routes.UpdateRoleRequest:
+  internal_routes.UpdateRoleRequest:
     properties:
       description:
         type: string
@@ -425,7 +418,22 @@ definitions:
       permission_bitmask:
         type: integer
     type: object
-  routes.UserApproveDTO:
+  internal_routes.UpdateUserRequest:
+    properties:
+      affiliation_period:
+        type: string
+      custom_id:
+        type: string
+      email:
+        type: string
+      external_email:
+        type: string
+      profile:
+        $ref: '#/definitions/internal_routes.PatchProfileRequest'
+      status:
+        type: string
+    type: object
+  internal_routes.UserApproveDTO:
     properties:
       affiliation_period:
         type: string
@@ -435,8 +443,10 @@ definitions:
         type: string
       sakura_email_password:
         type: string
+    required:
+    - email
     type: object
-  routes.UserDTO:
+  internal_routes.UserDTO:
     properties:
       affiliation_period:
         type: string
@@ -457,20 +467,20 @@ definitions:
       pending_email:
         type: string
       profile:
-        $ref: '#/definitions/routes.ProfileDTO'
+        $ref: '#/definitions/internal_routes.ProfileDTO'
       status:
         type: string
       updated_at:
         type: string
     type: object
-  routes.UserListResponse:
+  internal_routes.UserListResponse:
     properties:
       data:
         items:
-          $ref: '#/definitions/routes.UserDTO'
+          $ref: '#/definitions/internal_routes.UserDTO'
         type: array
     type: object
-  routes.UserPasswordChangeDTO:
+  internal_routes.UserPasswordChangeDTO:
     properties:
       current_password:
         type: string
@@ -501,7 +511,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.AnnouncementListResponse'
+            $ref: '#/definitions/internal_routes.AnnouncementListResponse'
       summary: List announcements
       tags:
       - announcements
@@ -515,14 +525,14 @@ paths:
         name: announcement
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateAnnouncementRequest'
+          $ref: '#/definitions/internal_routes.CreateAnnouncementRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.AnnouncementDTO'
+            $ref: '#/definitions/internal_routes.AnnouncementDTO'
       summary: Create an announcement
       tags:
       - announcements
@@ -559,7 +569,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.AnnouncementDTO'
+            $ref: '#/definitions/internal_routes.AnnouncementDTO'
       summary: Get an announcement
       tags:
       - announcements
@@ -578,14 +588,14 @@ paths:
         name: announcement
         required: true
         schema:
-          $ref: '#/definitions/routes.PatchAnnouncementRequest'
+          $ref: '#/definitions/internal_routes.PatchAnnouncementRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.AnnouncementDTO'
+            $ref: '#/definitions/internal_routes.AnnouncementDTO'
       summary: Partially update an announcement
       tags:
       - announcements
@@ -604,14 +614,14 @@ paths:
         name: announcement
         required: true
         schema:
-          $ref: '#/definitions/routes.UpdateAnnouncementRequest'
+          $ref: '#/definitions/internal_routes.UpdateAnnouncementRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.AnnouncementDTO'
+            $ref: '#/definitions/internal_routes.AnnouncementDTO'
       summary: Update an announcement
       tags:
       - announcements
@@ -640,7 +650,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.AnnouncementDTO'
+            $ref: '#/definitions/internal_routes.AnnouncementDTO'
       summary: Pin or unpin an announcement
       tags:
       - announcements
@@ -653,7 +663,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.ApplicationListResponse'
+            $ref: '#/definitions/internal_routes.ApplicationListResponse'
       summary: List applications
       tags:
       - applications
@@ -667,14 +677,14 @@ paths:
         name: app
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateApplicationRequest'
+          $ref: '#/definitions/internal_routes.CreateApplicationRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.ApplicationDTO'
+            $ref: '#/definitions/internal_routes.ApplicationDTO'
       summary: Create an application
       tags:
       - applications
@@ -693,7 +703,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.ApplicationDTO'
+            $ref: '#/definitions/internal_routes.ApplicationDTO'
       summary: Get an application
       tags:
       - applications
@@ -712,14 +722,14 @@ paths:
         name: app
         required: true
         schema:
-          $ref: '#/definitions/routes.PatchApplicationRequest'
+          $ref: '#/definitions/internal_routes.PatchApplicationRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.ApplicationDTO'
+            $ref: '#/definitions/internal_routes.ApplicationDTO'
       summary: Partially update an application
       tags:
       - applications
@@ -738,14 +748,14 @@ paths:
         name: app
         required: true
         schema:
-          $ref: '#/definitions/routes.UpdateApplicationRequest'
+          $ref: '#/definitions/internal_routes.UpdateApplicationRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.ApplicationDTO'
+            $ref: '#/definitions/internal_routes.ApplicationDTO'
       summary: Update an application
       tags:
       - applications
@@ -790,7 +800,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.RedirectURIListResponse'
+            $ref: '#/definitions/internal_routes.RedirectURIListResponse'
       summary: List redirect URIs for an application
       tags:
       - applications
@@ -809,14 +819,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateRedirectURIRequest'
+          $ref: '#/definitions/internal_routes.CreateRedirectURIRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.RedirectURIDTO'
+            $ref: '#/definitions/internal_routes.RedirectURIDTO'
       summary: Create redirect URI for an application
       tags:
       - applications
@@ -831,7 +841,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/main.HealthResponse'
+            $ref: '#/definitions/cmd_server.HealthResponse'
       summary: health check endpoint
       tags:
       - system info
@@ -846,14 +856,14 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateUserRequest'
+          $ref: '#/definitions/internal_routes.CreateUserRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.UserDTO'
+            $ref: '#/definitions/internal_routes.UserDTO'
       summary: Create a user
       tags:
       - users
@@ -868,14 +878,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.EmailCodeCheckRequest'
+          $ref: '#/definitions/internal_routes.EmailCodeCheckRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.EmailCodeCheckResponse'
+            $ref: '#/definitions/internal_routes.EmailCodeCheckResponse'
       summary: Verify email code
       tags:
       - users
@@ -890,14 +900,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.EmailVerifyDiscordLinkRequest'
+          $ref: '#/definitions/internal_routes.EmailVerifyDiscordLinkRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.ExternalIdentityDTO'
+            $ref: '#/definitions/internal_routes.ExternalIdentityDTO'
       summary: Link Discord account by email verification code
       tags:
       - users
@@ -910,7 +920,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.RoleListResponse'
+            $ref: '#/definitions/internal_routes.RoleListResponse'
       summary: List roles
       tags:
       - roles
@@ -924,14 +934,14 @@ paths:
         name: role
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateRoleRequest'
+          $ref: '#/definitions/internal_routes.CreateRoleRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.RoleDTO'
+            $ref: '#/definitions/internal_routes.RoleDTO'
       summary: Create a role
       tags:
       - roles
@@ -964,7 +974,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.RoleDTO'
+            $ref: '#/definitions/internal_routes.RoleDTO'
       summary: Get a role
       tags:
       - roles
@@ -983,14 +993,14 @@ paths:
         name: role
         required: true
         schema:
-          $ref: '#/definitions/routes.PatchRoleRequest'
+          $ref: '#/definitions/internal_routes.PatchRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.RoleDTO'
+            $ref: '#/definitions/internal_routes.RoleDTO'
       summary: Patch a role
       tags:
       - roles
@@ -1009,14 +1019,14 @@ paths:
         name: role
         required: true
         schema:
-          $ref: '#/definitions/routes.UpdateRoleRequest'
+          $ref: '#/definitions/internal_routes.UpdateRoleRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.RoleDTO'
+            $ref: '#/definitions/internal_routes.RoleDTO'
       summary: Update a role
       tags:
       - roles
@@ -1055,7 +1065,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.UserListResponse'
+            $ref: '#/definitions/internal_routes.UserListResponse'
       summary: List users for a role
       tags:
       - roles
@@ -1112,7 +1122,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.UserListResponse'
+            $ref: '#/definitions/internal_routes.UserListResponse'
       summary: List users
       tags:
       - users
@@ -1131,7 +1141,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.UserDTO'
+            $ref: '#/definitions/internal_routes.UserDTO'
       summary: Get a user
       tags:
       - users
@@ -1150,14 +1160,14 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/routes.PatchUserRequest'
+          $ref: '#/definitions/internal_routes.PatchUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.UserDTO'
+            $ref: '#/definitions/internal_routes.UserDTO'
       summary: Partially update a user
       tags:
       - users
@@ -1176,14 +1186,14 @@ paths:
         name: user
         required: true
         schema:
-          $ref: '#/definitions/routes.PatchUserRequest'
+          $ref: '#/definitions/internal_routes.UpdateUserRequest'
       produces:
       - application/json
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.UserDTO'
+            $ref: '#/definitions/internal_routes.UserDTO'
       summary: Update a user
       tags:
       - users
@@ -1201,7 +1211,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.UserApproveDTO'
+          $ref: '#/definitions/internal_routes.UserApproveDTO'
       produces:
       - application/json
       responses:
@@ -1225,7 +1235,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.ApplicationListResponse'
+            $ref: '#/definitions/internal_routes.ApplicationListResponse'
       summary: List applications for a user
       tags:
       - users
@@ -1244,7 +1254,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.ExternalIdentityListResponse'
+            $ref: '#/definitions/internal_routes.ExternalIdentityListResponse'
       summary: List external identities for a user
       tags:
       - users
@@ -1263,14 +1273,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateExternalIdentityRequest'
+          $ref: '#/definitions/internal_routes.CreateExternalIdentityRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.ExternalIdentityDTO'
+            $ref: '#/definitions/internal_routes.ExternalIdentityDTO'
       summary: Link an external account
       tags:
       - users
@@ -1312,7 +1322,7 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.UserPasswordChangeDTO'
+          $ref: '#/definitions/internal_routes.UserPasswordChangeDTO'
       produces:
       - application/json
       responses:
@@ -1364,7 +1374,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.PermissionsResponse'
+            $ref: '#/definitions/internal_routes.PermissionsResponse'
       summary: Get user permissions
       tags:
       - users
@@ -1417,7 +1427,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/routes.RoleListResponse'
+            $ref: '#/definitions/internal_routes.RoleListResponse'
       summary: List roles for a user
       tags:
       - users
@@ -1436,14 +1446,14 @@ paths:
         name: body
         required: true
         schema:
-          $ref: '#/definitions/routes.CreateUserRoleRequest'
+          $ref: '#/definitions/internal_routes.CreateUserRoleRequest'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/routes.RoleDTO'
+            $ref: '#/definitions/internal_routes.RoleDTO'
       summary: Assign a role to a user
       tags:
       - users
