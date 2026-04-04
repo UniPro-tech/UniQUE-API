@@ -1573,6 +1573,9 @@ const docTemplate = `{
                 "privacy_policy_url": {
                     "type": "string"
                 },
+                "public_client": {
+                    "type": "boolean"
+                },
                 "updated_at": {
                     "type": "string"
                 },

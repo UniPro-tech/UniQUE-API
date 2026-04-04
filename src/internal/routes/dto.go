@@ -168,6 +168,7 @@ type ApplicationDTO struct {
 	WebsiteURL       string     `json:"website_url,omitempty"`
 	PrivacyPolicyURL string     `json:"privacy_policy_url,omitempty"`
 	UserID           string     `json:"user_id"`
+	PublicClient     bool       `json:"public_client,omitempty"`
 	CreatedAt        time.Time  `json:"created_at"`
 	UpdatedAt        time.Time  `json:"updated_at"`
 	DeletedAt        *time.Time `json:"deleted_at,omitempty"`
