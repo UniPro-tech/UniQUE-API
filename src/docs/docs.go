@@ -43,7 +43,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.AnnouncementListResponse"
+                            "$ref": "#/definitions/routes.AnnouncementListResponse"
                         }
                     }
                 }
@@ -67,7 +67,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateAnnouncementRequest"
+                            "$ref": "#/definitions/routes.CreateAnnouncementRequest"
                         }
                     }
                 ],
@@ -75,7 +75,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.AnnouncementDTO"
+                            "$ref": "#/definitions/routes.AnnouncementDTO"
                         }
                     }
                 }
@@ -104,7 +104,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.AnnouncementDTO"
+                            "$ref": "#/definitions/routes.AnnouncementDTO"
                         }
                     }
                 }
@@ -135,7 +135,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UpdateAnnouncementRequest"
+                            "$ref": "#/definitions/routes.UpdateAnnouncementRequest"
                         }
                     }
                 ],
@@ -143,7 +143,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.AnnouncementDTO"
+                            "$ref": "#/definitions/routes.AnnouncementDTO"
                         }
                     }
                 }
@@ -201,7 +201,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.PatchAnnouncementRequest"
+                            "$ref": "#/definitions/routes.PatchAnnouncementRequest"
                         }
                     }
                 ],
@@ -209,7 +209,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.AnnouncementDTO"
+                            "$ref": "#/definitions/routes.AnnouncementDTO"
                         }
                     }
                 }
@@ -253,7 +253,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.AnnouncementDTO"
+                            "$ref": "#/definitions/routes.AnnouncementDTO"
                         }
                     }
                 }
@@ -273,7 +273,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ApplicationListResponse"
+                            "$ref": "#/definitions/routes.ApplicationListResponse"
                         }
                     }
                 }
@@ -297,7 +297,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateApplicationRequest"
+                            "$ref": "#/definitions/routes.CreateApplicationRequest"
                         }
                     }
                 ],
@@ -305,7 +305,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ApplicationDTO"
+                            "$ref": "#/definitions/routes.ApplicationDTO"
                         }
                     }
                 }
@@ -334,7 +334,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ApplicationDTO"
+                            "$ref": "#/definitions/routes.ApplicationDTO"
                         }
                     }
                 }
@@ -365,7 +365,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UpdateApplicationRequest"
+                            "$ref": "#/definitions/routes.UpdateApplicationRequest"
                         }
                     }
                 ],
@@ -373,7 +373,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ApplicationDTO"
+                            "$ref": "#/definitions/routes.ApplicationDTO"
                         }
                     }
                 }
@@ -404,7 +404,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.PatchApplicationRequest"
+                            "$ref": "#/definitions/routes.PatchApplicationRequest"
                         }
                     }
                 ],
@@ -412,7 +412,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ApplicationDTO"
+                            "$ref": "#/definitions/routes.ApplicationDTO"
                         }
                     }
                 }
@@ -441,7 +441,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RedirectURIListResponse"
+                            "$ref": "#/definitions/routes.RedirectURIListResponse"
                         }
                     }
                 }
@@ -472,7 +472,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateRedirectURIRequest"
+                            "$ref": "#/definitions/routes.CreateRedirectURIRequest"
                         }
                     }
                 ],
@@ -480,7 +480,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RedirectURIDTO"
+                            "$ref": "#/definitions/routes.RedirectURIDTO"
                         }
                     }
                 }
@@ -540,7 +540,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/cmd_server.HealthResponse"
+                            "$ref": "#/definitions/main.HealthResponse"
                         }
                     }
                 }
@@ -566,7 +566,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateUserRequest"
+                            "$ref": "#/definitions/routes.CreateUserRequest"
                         }
                     }
                 ],
@@ -574,7 +574,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserDTO"
+                            "$ref": "#/definitions/routes.UserDTO"
                         }
                     }
                 }
@@ -600,7 +600,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.EmailCodeCheckRequest"
+                            "$ref": "#/definitions/routes.EmailCodeCheckRequest"
                         }
                     }
                 ],
@@ -608,7 +608,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.EmailCodeCheckResponse"
+                            "$ref": "#/definitions/routes.EmailCodeCheckResponse"
                         }
                     }
                 }
@@ -634,7 +634,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.EmailVerifyDiscordLinkRequest"
+                            "$ref": "#/definitions/routes.EmailVerifyDiscordLinkRequest"
                         }
                     }
                 ],
@@ -642,7 +642,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ExternalIdentityDTO"
+                            "$ref": "#/definitions/routes.ExternalIdentityDTO"
                         }
                     }
                 }
@@ -662,7 +662,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleListResponse"
+                            "$ref": "#/definitions/routes.RoleListResponse"
                         }
                     }
                 }
@@ -686,7 +686,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateRoleRequest"
+                            "$ref": "#/definitions/routes.CreateRoleRequest"
                         }
                     }
                 ],
@@ -694,7 +694,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleDTO"
+                            "$ref": "#/definitions/routes.RoleDTO"
                         }
                     }
                 }
@@ -723,7 +723,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleDTO"
+                            "$ref": "#/definitions/routes.RoleDTO"
                         }
                     }
                 }
@@ -754,7 +754,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UpdateRoleRequest"
+                            "$ref": "#/definitions/routes.UpdateRoleRequest"
                         }
                     }
                 ],
@@ -762,7 +762,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleDTO"
+                            "$ref": "#/definitions/routes.RoleDTO"
                         }
                     }
                 }
@@ -814,7 +814,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.PatchRoleRequest"
+                            "$ref": "#/definitions/routes.PatchRoleRequest"
                         }
                     }
                 ],
@@ -822,7 +822,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleDTO"
+                            "$ref": "#/definitions/routes.RoleDTO"
                         }
                     }
                 }
@@ -881,7 +881,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserListResponse"
+                            "$ref": "#/definitions/routes.UserListResponse"
                         }
                     }
                 }
@@ -965,7 +965,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserListResponse"
+                            "$ref": "#/definitions/routes.UserListResponse"
                         }
                     }
                 }
@@ -994,7 +994,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserDTO"
+                            "$ref": "#/definitions/routes.UserDTO"
                         }
                     }
                 }
@@ -1025,7 +1025,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UpdateUserRequest"
+                            "$ref": "#/definitions/routes.UpdateUserRequest"
                         }
                     }
                 ],
@@ -1033,7 +1033,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserDTO"
+                            "$ref": "#/definitions/routes.UserDTO"
                         }
                     }
                 }
@@ -1064,7 +1064,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.PatchUserRequest"
+                            "$ref": "#/definitions/routes.PatchUserRequest"
                         }
                     }
                 ],
@@ -1072,7 +1072,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserDTO"
+                            "$ref": "#/definitions/routes.UserDTO"
                         }
                     }
                 }
@@ -1102,7 +1102,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserApproveDTO"
+                            "$ref": "#/definitions/routes.UserApproveDTO"
                         }
                     }
                 ],
@@ -1136,7 +1136,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ApplicationListResponse"
+                            "$ref": "#/definitions/routes.ApplicationListResponse"
                         }
                     }
                 }
@@ -1165,7 +1165,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ExternalIdentityListResponse"
+                            "$ref": "#/definitions/routes.ExternalIdentityListResponse"
                         }
                     }
                 }
@@ -1196,7 +1196,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateExternalIdentityRequest"
+                            "$ref": "#/definitions/routes.CreateExternalIdentityRequest"
                         }
                     }
                 ],
@@ -1204,7 +1204,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.ExternalIdentityDTO"
+                            "$ref": "#/definitions/routes.ExternalIdentityDTO"
                         }
                     }
                 }
@@ -1267,7 +1267,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.UserPasswordChangeDTO"
+                            "$ref": "#/definitions/routes.UserPasswordChangeDTO"
                         }
                     }
                 ],
@@ -1343,7 +1343,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.PermissionsResponse"
+                            "$ref": "#/definitions/routes.PermissionsResponse"
                         }
                     }
                 }
@@ -1424,7 +1424,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleListResponse"
+                            "$ref": "#/definitions/routes.RoleListResponse"
                         }
                     }
                 }
@@ -1455,7 +1455,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.CreateUserRoleRequest"
+                            "$ref": "#/definitions/routes.CreateUserRoleRequest"
                         }
                     }
                 ],
@@ -1463,7 +1463,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/internal_routes.RoleDTO"
+                            "$ref": "#/definitions/routes.RoleDTO"
                         }
                     }
                 }
@@ -1504,7 +1504,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "cmd_server.HealthResponse": {
+        "main.HealthResponse": {
             "type": "object",
             "properties": {
                 "status": {
@@ -1512,7 +1512,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.AnnouncementDTO": {
+        "routes.AnnouncementDTO": {
             "type": "object",
             "properties": {
                 "content": {
@@ -1522,7 +1522,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "created_by": {
-                    "$ref": "#/definitions/internal_routes.UserDTO"
+                    "$ref": "#/definitions/routes.UserDTO"
                 },
                 "deleted_at": {
                     "type": "string"
@@ -1541,18 +1541,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.AnnouncementListResponse": {
+        "routes.AnnouncementListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_routes.AnnouncementDTO"
+                        "$ref": "#/definitions/routes.AnnouncementDTO"
                     }
                 }
             }
         },
-        "internal_routes.ApplicationDTO": {
+        "routes.ApplicationDTO": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -1584,18 +1584,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.ApplicationListResponse": {
+        "routes.ApplicationListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_routes.ApplicationDTO"
+                        "$ref": "#/definitions/routes.ApplicationDTO"
                     }
                 }
             }
         },
-        "internal_routes.CreateAnnouncementRequest": {
+        "routes.CreateAnnouncementRequest": {
             "type": "object",
             "required": [
                 "content",
@@ -1613,10 +1613,9 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.CreateApplicationRequest": {
+        "routes.CreateApplicationRequest": {
             "type": "object",
             "required": [
-                "client_secret",
                 "name",
                 "user_id"
             ],
@@ -1633,6 +1632,9 @@ const docTemplate = `{
                 "privacy_policy_url": {
                     "type": "string"
                 },
+                "public_client": {
+                    "type": "boolean"
+                },
                 "user_id": {
                     "type": "string"
                 },
@@ -1641,7 +1643,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.CreateExternalIdentityRequest": {
+        "routes.CreateExternalIdentityRequest": {
             "type": "object",
             "required": [
                 "external_user_id",
@@ -1668,7 +1670,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.CreateRedirectURIRequest": {
+        "routes.CreateRedirectURIRequest": {
             "type": "object",
             "required": [
                 "uri"
@@ -1679,7 +1681,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.CreateRoleRequest": {
+        "routes.CreateRoleRequest": {
             "type": "object",
             "required": [
                 "custom_id",
@@ -1707,7 +1709,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.CreateUserRequest": {
+        "routes.CreateUserRequest": {
             "type": "object",
             "required": [
                 "custom_id",
@@ -1730,14 +1732,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile": {
-                    "$ref": "#/definitions/internal_routes.ProfileDTO"
+                    "$ref": "#/definitions/routes.ProfileDTO"
                 },
                 "status": {
                     "type": "string"
                 }
             }
         },
-        "internal_routes.CreateUserRoleRequest": {
+        "routes.CreateUserRoleRequest": {
             "type": "object",
             "required": [
                 "role_id"
@@ -1748,7 +1750,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.EmailCodeCheckRequest": {
+        "routes.EmailCodeCheckRequest": {
             "type": "object",
             "required": [
                 "code"
@@ -1759,7 +1761,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.EmailCodeCheckResponse": {
+        "routes.EmailCodeCheckResponse": {
             "type": "object",
             "properties": {
                 "type": {
@@ -1771,7 +1773,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.EmailVerifyDiscordLinkRequest": {
+        "routes.EmailVerifyDiscordLinkRequest": {
             "type": "object",
             "required": [
                 "access_token",
@@ -1796,7 +1798,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.ExternalIdentityDTO": {
+        "routes.ExternalIdentityDTO": {
             "type": "object",
             "properties": {
                 "avatar_url": {
@@ -1842,18 +1844,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.ExternalIdentityListResponse": {
+        "routes.ExternalIdentityListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_routes.ExternalIdentityDTO"
+                        "$ref": "#/definitions/routes.ExternalIdentityDTO"
                     }
                 }
             }
         },
-        "internal_routes.Nullable-bool": {
+        "routes.Nullable-bool": {
             "type": "object",
             "properties": {
                 "set": {
@@ -1864,7 +1866,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.Nullable-string": {
+        "routes.Nullable-string": {
             "type": "object",
             "properties": {
                 "set": {
@@ -1875,7 +1877,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.PatchAnnouncementRequest": {
+        "routes.PatchAnnouncementRequest": {
             "type": "object",
             "properties": {
                 "content": {
@@ -1889,53 +1891,56 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.PatchApplicationRequest": {
+        "routes.PatchApplicationRequest": {
             "type": "object",
             "properties": {
                 "client_secret": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "description": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "name": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "privacy_policy_url": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "public_client": {
+                    "$ref": "#/definitions/routes.Nullable-bool"
                 },
                 "website_url": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },
-        "internal_routes.PatchProfileRequest": {
+        "routes.PatchProfileRequest": {
             "type": "object",
             "properties": {
                 "bio": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "birthdate": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "birthdate_visible": {
-                    "$ref": "#/definitions/internal_routes.Nullable-bool"
+                    "$ref": "#/definitions/routes.Nullable-bool"
                 },
                 "display_name": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "joined_at": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "twitter_handle": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "website_url": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },
-        "internal_routes.PatchRoleRequest": {
+        "routes.PatchRoleRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -1952,30 +1957,30 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.PatchUserRequest": {
+        "routes.PatchUserRequest": {
             "type": "object",
             "properties": {
                 "affiliation_period": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "custom_id": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "email": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "external_email": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "profile": {
-                    "$ref": "#/definitions/internal_routes.PatchProfileRequest"
+                    "$ref": "#/definitions/routes.PatchProfileRequest"
                 },
                 "status": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },
-        "internal_routes.PermissionsResponse": {
+        "routes.PermissionsResponse": {
             "type": "object",
             "properties": {
                 "permission_bitmask": {
@@ -1989,7 +1994,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.ProfileDTO": {
+        "routes.ProfileDTO": {
             "type": "object",
             "properties": {
                 "bio": {
@@ -2021,7 +2026,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.RedirectURIDTO": {
+        "routes.RedirectURIDTO": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2035,18 +2040,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.RedirectURIListResponse": {
+        "routes.RedirectURIListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_routes.RedirectURIDTO"
+                        "$ref": "#/definitions/routes.RedirectURIDTO"
                     }
                 }
             }
         },
-        "internal_routes.RoleDTO": {
+        "routes.RoleDTO": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2078,18 +2083,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.RoleListResponse": {
+        "routes.RoleListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_routes.RoleDTO"
+                        "$ref": "#/definitions/routes.RoleDTO"
                     }
                 }
             }
         },
-        "internal_routes.UpdateAnnouncementRequest": {
+        "routes.UpdateAnnouncementRequest": {
             "type": "object",
             "properties": {
                 "content": {
@@ -2103,27 +2108,30 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.UpdateApplicationRequest": {
+        "routes.UpdateApplicationRequest": {
             "type": "object",
             "properties": {
                 "client_secret": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "description": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "name": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 },
                 "privacy_policy_url": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
+                },
+                "public_client": {
+                    "$ref": "#/definitions/routes.Nullable-bool"
                 },
                 "website_url": {
-                    "$ref": "#/definitions/internal_routes.Nullable-string"
+                    "$ref": "#/definitions/routes.Nullable-string"
                 }
             }
         },
-        "internal_routes.UpdateRoleRequest": {
+        "routes.UpdateRoleRequest": {
             "type": "object",
             "properties": {
                 "description": {
@@ -2140,7 +2148,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.UpdateUserRequest": {
+        "routes.UpdateUserRequest": {
             "type": "object",
             "properties": {
                 "affiliation_period": {
@@ -2156,14 +2164,14 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile": {
-                    "$ref": "#/definitions/internal_routes.PatchProfileRequest"
+                    "$ref": "#/definitions/routes.PatchProfileRequest"
                 },
                 "status": {
                     "type": "string"
                 }
             }
         },
-        "internal_routes.UserApproveDTO": {
+        "routes.UserApproveDTO": {
             "type": "object",
             "required": [
                 "email"
@@ -2183,7 +2191,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.UserDTO": {
+        "routes.UserDTO": {
             "type": "object",
             "properties": {
                 "affiliation_period": {
@@ -2214,7 +2222,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "profile": {
-                    "$ref": "#/definitions/internal_routes.ProfileDTO"
+                    "$ref": "#/definitions/routes.ProfileDTO"
                 },
                 "status": {
                     "type": "string"
@@ -2224,18 +2232,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_routes.UserListResponse": {
+        "routes.UserListResponse": {
             "type": "object",
             "properties": {
                 "data": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/internal_routes.UserDTO"
+                        "$ref": "#/definitions/routes.UserDTO"
                     }
                 }
             }
         },
-        "internal_routes.UserPasswordChangeDTO": {
+        "routes.UserPasswordChangeDTO": {
             "type": "object",
             "required": [
                 "new_password"

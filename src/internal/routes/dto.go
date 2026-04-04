@@ -228,7 +228,8 @@ type CreateApplicationRequest struct {
 	Description      string `json:"description,omitempty"`
 	WebsiteURL       string `json:"website_url,omitempty"`
 	PrivacyPolicyURL string `json:"privacy_policy_url,omitempty"`
-	ClientSecret     string `json:"client_secret" binding:"required"`
+	ClientSecret     string `json:"client_secret,omitempty"`
+	PublicClient     bool   `json:"public_client,omitempty"`
 	UserID           string `json:"user_id" binding:"required"`
 }
 
@@ -244,6 +245,7 @@ type PatchApplicationRequest struct {
 	WebsiteURL       Nullable[string] `json:"website_url,omitempty"`
 	PrivacyPolicyURL Nullable[string] `json:"privacy_policy_url,omitempty"`
 	ClientSecret     Nullable[string] `json:"client_secret,omitempty"`
+	PublicClient     Nullable[bool]   `json:"public_client,omitempty"`
 }
 
 // CreateUserRoleRequest is used to assign a role to a user

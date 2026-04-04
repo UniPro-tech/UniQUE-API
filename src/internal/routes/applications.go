@@ -128,6 +128,11 @@ func createApplication(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	// Validate client secret requirement for confidential clients
+	if !input.PublicClient && input.ClientSecret == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "client_secret is required for confidential clients"})
+		return
+	}
 	app := model.Application{
 		ID:               ulid.Make().String(),
 		Name:             input.Name,
@@ -135,6 +140,7 @@ func createApplication(c *gin.Context) {
 		WebsiteURL:       stringToPtr(input.WebsiteURL),
 		PrivacyPolicyURL: stringToPtr(input.PrivacyPolicyURL),
 		ClientSecret:     input.ClientSecret,
+		PublicClient:     input.PublicClient,
 		UserID:           input.UserID,
 	}
 	q := query.Use(db)
@@ -263,6 +269,13 @@ func updateApplication(c *gin.Context) {
 			updates["client_secret"] = *input.ClientSecret.Value
 		}
 	}
+	if input.PublicClient.Set {
+		if input.PublicClient.Value == nil {
+			updates["public_client"] = nil
+		} else {
+			updates["public_client"] = *input.PublicClient.Value
+		}
+	}
 	q := query.Use(db)
 
 	// fetch application to check ownership
@@ -375,6 +388,13 @@ func patchApplication(c *gin.Context) {
 			updates["client_secret"] = nil
 		} else {
 			updates["client_secret"] = *body.ClientSecret.Value
+		}
+	}
+	if body.PublicClient.Set {
+		if body.PublicClient.Value == nil {
+			updates["public_client"] = nil
+		} else {
+			updates["public_client"] = *body.PublicClient.Value
 		}
 	}
 

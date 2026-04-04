@@ -19,7 +19,8 @@ type Application struct {
 	Description      *string        `gorm:"column:description" json:"description"`
 	WebsiteURL       *string        `gorm:"column:website_url" json:"website_url"`
 	PrivacyPolicyURL *string        `gorm:"column:privacy_policy_url" json:"privacy_policy_url"`
-	ClientSecret     string         `gorm:"column:client_secret;not null" json:"client_secret"`
+	ClientSecret     string         `gorm:"column:client_secret" json:"client_secret"`
+	PublicClient     bool           `gorm:"column:public_client;not null;default:false" json:"public_client"`
 	UserID           string         `gorm:"column:user_id;not null" json:"user_id"`
 	CreatedAt        time.Time      `gorm:"column:created_at;not null;default:CURRENT_TIMESTAMP" json:"created_at"`
 	UpdatedAt        time.Time      `gorm:"column:updated_at;not null;default:CURRENT_TIMESTAMP" json:"updated_at"`
