@@ -1,3 +1,7 @@
+> [!WARNING]
+> # DEPRECATED
+> このリポジトリは、[UniPro-tech/UniQUE](https://github.com/UniPro-tech/UniQUE)に移動しました。
+
 # UniQUE API
 
 デジタル創作サークルUniProject 内製認証基盤 UniQUE のリソースAPIサーバーです。
